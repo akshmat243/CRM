@@ -144,16 +144,16 @@ class LoginApiView(APIView):
             )
 
         # Ensure the user is a staff member
-        if not user.is_staff_new:
-            return Response(
-                {'status': False, 'message': 'Only staff users are allowed to log in', 'data': []}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        if user.user_active is False:
-            return Response(
-                {'status': False, 'message': "You don't have permission to login please contact admin", 'data': []}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        # if not user.is_staff_new:
+        #     return Response(
+        #         {'status': False, 'message': 'Only staff users are allowed to log in', 'data': []}, 
+        #         status=status.HTTP_400_BAD_REQUEST
+        #     )
+        # if user.user_active is False:
+        #     return Response(
+        #         {'status': False, 'message': "You don't have permission to login please contact admin", 'data': []}, 
+        #         status=status.HTTP_400_BAD_REQUEST
+        #     )
 
         # Mark user as logged in
         user.is_user_login = True
