@@ -1,0 +1,279 @@
+{% extends 'admin_dashboard/base.html' %}
+
+{% block content %}
+{% load static %}
+<style>
+    /* Custom Styles */
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #e6f7e6;
+    }
+
+    .container1 {
+        margin: 20px auto;
+        border: 2px solid #044407;
+        background-color: #fff;
+        padding: 10px;
+        width: 1604px;
+    }
+
+    h1 {
+        text-align: center;
+        margin: 0;
+        padding: 10px;
+        background-color: #06681e;
+        color: white;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+    }
+
+    th,
+    td {
+        border: 1px solid #ccc;
+        text-align: center;
+        padding: 8px;
+        font-size: 14px;
+    }
+
+    th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+        padding: 4px;
+        font-size: 8px;
+        line-height: 1.2;
+    }
+
+    input[type="checkbox"] {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 20px;
+        height: 20px;
+        border: 1px solid #ccc;
+        margin: 0;
+        padding: 0;
+        display: inline-block;
+        position: relative;
+        cursor: not-allowed; /* Disable the checkbox */
+    }
+
+    input[type="checkbox"]:checked::before {
+        content: "P";
+        display: block;
+        text-align: center;
+        color: rgb(8, 105, 45);
+        font-weight: bold;
+        font-size: 16px;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: 1px solid #ccc;
+        line-height: 20px;
+    }
+
+    input[type="checkbox"]:not(:checked) {
+        background-color: white;
+    }
+
+    input[type="checkbox"]:not(:checked).absent {
+        background-color: red; /* Red background for absent (A) */
+        color: white;
+    }
+
+    input[type="checkbox"]:not(:checked).absent::before {
+        content: "A"; /* "A" inside red checkbox */
+        display: block;
+        text-align: center;
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
+        line-height: 20px;
+    }
+
+    .header-section {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px;
+    }
+
+    .header-section div {
+        font-size: 14px;
+    }
+</style>
+
+<div class="content-body my class">
+    <div class="container-fluid">
+        <div class="container1">
+            <h1>Student's Monthly Attendance Details Page</h1>
+
+            <!-- Header Information -->
+            <div class="header-section">
+                <div>
+                    Class:
+                    <select id="class-select" style="width: 150px;">
+                        <option value="" selected>Select Class</option>
+                        <option value="12">12</option>
+                        <option value="11">11</option>
+                        <option value="10">10</option>
+                        <option value="09">09</option>
+                        <option value="08">08</option>
+                    </select>
+                </div>
+                <div>
+                    Section:
+                    <select id="section-select" style="width: 150px;">
+                        <option value="" selected>Select Section</option>
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                    </select>
+                </div>
+
+                <div>
+                    Month:
+                    <select id="month-select" style="width: 150px;">
+                        <option value="January">January</option>
+                        <option value="February">February</option>
+                        <option value="March">March</option>
+                        <option value="April">April</option>
+                        <option value="June">June</option>
+                    </select>
+                </div>
+
+                <div>
+                    Year:
+                    <select id="year-select" style="width: 150px;">
+                        <option value="2024">2024</option>
+                        <option value="2023">2023</option>
+                        <option value="2022">2022</option>
+                        <option value="2021">2021</option>
+                        <option value="2020">2020</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Attendance Table -->
+            <table>
+                <thead>
+                    <tr>
+                        <th rowspan="2">S.No.</th>
+                        <th rowspan="2">Name of Students</th>
+                        <th rowspan="2">Name of Mother</th>
+                        <th rowspan="2">Name of Father</th>
+                        <th rowspan="2">Cast</th>
+                        <th colspan="31">Attendance (Days)</th>
+                        <th rowspan="2">Total</th>
+                        <th rowspan="2">Received</th>
+                        <th rowspan="2">Balance</th>
+                        <th rowspan="2">Signature</th>
+                        <th rowspan="2">Remark</th>
+                    </tr>
+                    <tr>
+                        {% for day in days_range %}
+                            <th>{{ day }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody id="attendance-table">
+                    {% for student in attendance_data.student_data %}
+                    <tr>
+                        <td>{{ student.S_No }}</td>
+                        <td>{{ student.Name_of_Students }}</td>
+                        <td>{{ student.Name_of_Mother }}</td>
+                        <td>{{ student.Name_of_Father }}</td>
+                        <td>{{ student.Cast }}</td>
+                        {% for attendance in student.Attendance %}
+                        <td>
+                            <!-- Use checkbox for attendance (P for present, A for absent) -->
+                            {% if attendance == 'P' %}
+                                <input type="checkbox" checked disabled>
+                            {% elif attendance == 'A' %}
+                                <input type="checkbox" class="absent" disabled>
+                            {% else %}
+                                <input type="checkbox" disabled>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                        <td>{{ student.Total }}</td>
+                        <td>{{ student.Received }}</td>
+                        <td>{{ student.Balance }}</td>
+                        <td>{{ student.Signature }}</td>
+                        <td>{{ student.Remark }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    // On Class and Section selection change, fetch the attendance data via AJAX
+    $('#class-select, #section-select, #year-select').change(function() {
+        var classId = $('#class-select').val();
+        var sectionId = $('#section-select').val();
+        var year = $('#year-select').val();
+
+        if (classId && sectionId && year) {
+            $.ajax({
+                url: '{% url "student_attendance_months_wise" %}',  // Your actual endpoint URL
+                data: {
+                    'class_id': classId,
+                    'section_id': sectionId,
+                    'year': year
+                },
+                dataType: 'json',
+                success: function(response) {
+                    var tableBody = $('#attendance-table');
+                    // Clear only the existing data in the table (not the headers)
+                    tableBody.empty();
+
+                    // Loop through the student data and populate the table with filtered rows
+                    response.student_data.forEach(function(student) {
+                        var row = '<tr>';
+                        row += '<td>' + student.S_No + '</td>';
+                        row += '<td>' + student.Name_of_Students + '</td>';
+                        row += '<td>' + student.Name_of_Mother + '</td>';
+                        row += '<td>' + student.Name_of_Father + '</td>';
+                        row += '<td>' + student.Cast + '</td>';
+
+                        // Loop through attendance and add checkboxes
+                        student.Attendance.forEach(function(att) {
+                            row += '<td>';
+                            if (att === 'P') {
+                                row += '<input type="checkbox" checked disabled>';
+                            } else if (att === 'A') {
+                                row += '<input type="checkbox" class="absent" disabled>';
+                            } else {
+                                row += '<input type="checkbox" disabled>';
+                            }
+                            row += '</td>';
+                        });
+
+                        row += '<td>' + student.Total + '</td>';
+                        row += '<td>' + student.Received + '</td>';
+                        row += '<td>' + student.Balance + '</td>';
+                        row += '<td>' + student.Signature + '</td>';
+                        row += '<td>' + student.Remark + '</td>';
+                        row += '</tr>';
+
+                        tableBody.append(row);
+                    });
+                },
+                error: function() {
+                    alert("Failed to fetch attendance data. Please try again.");
+                }
+            });
+        }
+    });
+</script>
+
+{% endblock %}

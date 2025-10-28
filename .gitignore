@@ -1,0 +1,105 @@
+*.pyc
+*~
+_pycache_
+.DS_Store
+*.DS_Store
+*migrations/
+*.sqlite3
+debug-error.log
+nursing/settings/
+home/google/credentials.json
+*media/
+# static/
+nohup.out
+.vscode/
+db.json
+credentials.json
+.env
+
+# --- Python / Django ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.so
+*.log
+
+# Django specific
+db.sqlite3
+*.db
+*.bak
+*.sql
+*.sqlite3
+*.sqlite
+media/
+staticfiles/
+tmp/
+public/
+*.pid
+
+# Ignore compiled translations
+*.mo
+
+# Ignore virtual environments
+venv/
+env/
+.venv/
+ENV/
+
+# Django cache & local settings
+*.cache
+local_settings.py
+settings_local.py
+
+# --- Node / React frontend (if any) ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+build/
+
+# --- IDE / Editor ---
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# --- System Files ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Archives / Backups ---
+*.zip
+*.tar
+*.gz
+*.bz2
+*.7z
+*.rar
+backup*/
+crm_*.zip
+
+# --- Deployment / Hosting ---
+cgi-bin/
+.well-known/
+.htaccess
+passenger_wsgi.py
+
+# --- Coverage / Testing ---
+.coverage
+.tox/
+nosetests.xml
+coverage.xml
+htmlcov/
+pytest_cache/
+
+# --- Logs ---
+*.log
+stderr.log
+stdout.log
+
+# --- Misc ---
+# Ignore your lead_crm_backup folders if not part of code
+lead_crm_backend-anku*/

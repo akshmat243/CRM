@@ -1,0 +1,713 @@
+{% extends request.user.is_superuser|yesno:'base.html,admin_dashboard/staff/base.html' %}
+{% block content %}
+{% load static %}
+
+<div class="dashboard-main-body">
+
+        {% if request.user.is_superuser %}
+        <div class="dash-title">Total Leads</div>
+        {% else %}
+        <div class="dash-title">Staff Leads</div>
+        {% endif %}
+
+
+    {% comment %} 
+    <div class="dashboard-main-body">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-24">
+            <h6 class="fw-semibold mb-0  ">Staff Leads</h6>
+            <ul class="d-flex align-items-center gap-2">
+               
+        </div>
+     {% endcomment %}
+     {% if not request.user.is_superuser %}
+     <div class="Filterrow">
+        <div class="row">
+
+            <div class="col-12 col-sm-6 col-md-4"> <h6 class="m-0">Filter</h6> </div>
+               
+            <div class="col-12 col-sm-6 col-md-8">
+              <div class="row">
+                  <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                      <div class="dropdown">
+                          <div class="btn" type="button" data-bs-toggle="dropdown"
+                          aria-expanded="false">
+                            <button>Assigned </button>
+         
+                     
+                          </div>
+         
+                          <div class="dropdown-menu">
+                              {% for user in user_logs %}
+                              <li>
+                                  <button class="dropdown-item" type="submit" name="new_status" value="Leads">
+         
+                                      <a data-toggle="modal" data-target="#ModalLoginForm{{ user.email }}"
+                                          href="{% url 'assigned' user.email %}">
+                                          {{ user.username }}
+                                      </a></button>
+         
+                              </li>
+                              {% endfor %}
+                          </div>
+                      </div>
+                  </div>
+                  <div class="col-12 col-sm-6 col-md-4 col-lg-3"> 
+                      <div class="dropdown">
+                       
+                          <div class="btn" type="button" data-bs-toggle="dropdown"
+                          aria-expanded="false">
+                          <button> Interested </button>
+         
+                     
+                          </div>
+                          
+                          <ul class="dropdown-menu">
+                              {% for user in user_logs %}
+                              <li>
+                                  <button class="dropdown-item" type="submit" name="new_status" value="Leads">
+                                      <a data-toggle="modal" data-target="#ModalLoginForm{{ user.email }}"
+                                          href="{% url 'team_leader_staff_interested_leads' user.id %}">
+                                          {{ user.username }}
+                                      </a></button>
+                              </li>
+                              {% endfor %}
+         
+                          </ul>
+                      </div> 
+                  </div> 
+                  {% comment %} 
+                  <div class="col-12 col-sm-6 col-md-4 col-lg-3">  
+                    
+                      <div class="dropdown">
+                          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                              aria-expanded="false">
+                              Customer
+                          </button>
+                          <ul class="dropdown-menu">
+                              {% for user in leads3 %}
+                              <li><a class="dropdown-item" href="#">
+                                      {{ user.name }}
+                                  </a></li>
+                              {% endfor %}
+         
+                          </ul>
+                      </div> 
+                   
+                       </div> 
+                       {% endcomment %}
+                       <div class="col-12 col-sm-6 col-md-4 col-lg-3"> 
+                          <div class="dropdown ">
+                              <div class="btn" type="button" data-bs-toggle="dropdown"
+                              aria-expanded="false">
+                              <button>  IT-Team </button>
+         
+                              </div>
+                              <ul class="dropdown-menu">
+                                  <li><a class="dropdown-item" href="#"></a></li>
+          
+                              </ul>
+                          </div>
+                       </div>
+         
+                       <div class="col-12 col-sm-6 col-md-4 col-lg-3"> 
+                          <div class="dropdown">
+                              <div class="btn" type="button" data-bs-toggle="dropdown"
+                              aria-expanded="false">
+                             <button> Lost</button>
+         
+                              </div>
+         
+                              <ul class="dropdown-menu">
+                                  <li><a class="dropdown-item" href="#"></a></li>
+          
+                              </ul>
+                              </div>
+                       </div>
+                
+              </div>
+            </div>
+      
+           </div>
+     </div>
+
+     {% endif %}
+        <div class="card h-100 p-0 radius-12">
+          
+    
+
+
+
+
+
+
+            <div class="card-header border-bottom bg-base py-16 px-24 d-flex align-items-center flex-wrap gap-3 justify-content-between">
+                {% if request.user.is_team_leader %}
+
+
+                {% endif %}
+                <div class="w-100" id="admin_lead_dashboard">
+          
+                      
+                        <div class="d-flex align-items-center flex-wrap gap-3 justify-content-between">
+                            <div class="form-outline" data-mdb-input-init="">
+                                {% if request.user.is_superuser %}
+                                <form class="navbar-search">
+                                <input type="text" placeholder="search" name="search" id="searchInput" class="form-control h-40-px w-100" onkeyup="searchTable()">
+                                <iconify-icon icon="ion:search-outline" class="icon"></iconify-icon>
+                            </form>
+                                {% else %}
+                                <form class="navbar-search">
+                                <input type="text" placeholder="search" name="search" id="searchInput" class="form-control h-40-px w-100" onkeyup="searchTable()">
+                                <iconify-icon icon="ion:search-outline" class="icon"></iconify-icon>
+                            </form>
+                                {% endif %}
+                            </div>
+                            {% if not request.user.is_superuser %}
+                            <div class="ms-3">
+                                <a href="{% url 'add_lead_by_self' %}"
+                                    class="btn text-sm text-sm"
+                                        id="auto-assign-btn-1">
+                                        Add New Lead
+                                </a> 
+                            </div>
+                            {% endif %}
+                        </div>
+            
+                    {% if request.user.is_superuser %}
+                    <form id="selected-form1" action="{% url 'import_leads' %}" method="POST" class="lead_improt_page my-8">
+                        {% csrf_token %}
+                        <input type="hidden" id="selected-user-ids" name="user_ids" value="">
+                        <button type="submit" class="btn bulkk">Import Lead</button>
+                    </form>
+                    {% endif %}
+
+                </div>
+                
+            </div>
+            
+
+
+            <div class="card-body p-24">
+
+            <div class="table-responsive scroll-sm">
+                <table class="table bordered-table sm-table mb-0" >
+                    <thead>
+                        <tr>
+                            {% comment %}<th scope="col">
+                                <div id="masterButton" class="select-button btn btn-primary" onclick="toggleAllRows()">
+                                </div>
+                                <div class="select-button btn btn-primary"></div>
+                            </th>{% endcomment %}
+                            <th>S.N.</th>
+                            <!-- <th scope="col" hidden>id</th> -->
+                            <th scope="col">Name</th>
+                            <th scope="col" class="text-center">Call</th>
+                            <th scope="col" class="text-center">Whatsapp</th>
+                            <!-- <th scope="col">Send</th> -->
+                            <!-- <th scope="col">Status</th> -->
+                            <th class="text-center">Change Status</th>
+                            <!-- <th scope="col">Projects</th> -->
+                        </tr>
+                    </thead>
+
+                    <tbody id="myTable">
+
+
+
+                        {% for user in page %}
+                        <tr id="{{user.id}}">
+                            <!-- <td>
+                                <div class="select-button btn btn-primary" onclick="toggleRow(this)"></div>
+                            </td> -->
+                            <td>{{ forloop.counter }}</td>
+                            <!-- <td hidden>{{ user.id }}</td> -->
+                            <td>{{ user.name }}</td>
+                            <td class="text-center">
+                                <a href="tel:+91{{ user.call }}">
+                                    <i class="fas fa-phone" style="font-size:1.1em; transform: rotate(95deg);"></i></a>
+                            </td>
+                            {% comment %} <td class="text-center">
+                                <a href="https://wa.me/{{ user.call }}" target="_blank">
+                                    <i class="fab fa-whatsapp menu-icon" style="font-size:1.5em; color: #25D366;"></i>
+                                </a>
+                            </td> {% endcomment %}
+                            <td class="text-center">
+                                <a href="https://wa.me/+91{{ user.call }}?{{ whatsapp_marketing.message }} {{ whatsapp_marketing.url }} {{ user.name }}" target="_blank">
+                                    <i class="fab fa-whatsapp menu-icon" style="font-size:1.5em; color: #25D366;"></i>
+                                </a>
+                            </td class="text-center">
+                            {% comment %} <td>
+                                <i class="fas fa-paper-plane" style="font-size:1.1em; transform: rotate(95deg);"></i> {{ user.send }}
+                            </td> {% endcomment %}
+                            <!-- <td>
+                                <button class="btn btn-toggle" onclick="toggleSendStatus({{ user.id }}, this)">
+                                    {% if user.send == 'True' %}
+                                    <span class="badge bg-success">Send</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Don't Send</span>
+                                    {% endif %}
+                                </button>
+                            </td> -->
+
+                            <!-- <td>{{user.status}}</td> -->
+                            <td class="text-center">
+                                <button
+                                    type="button"
+                                    class="btn"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#basicModal2"
+                                    data-id="{{ user.id }}"
+                                  >
+                                    {{ user.status }} <i class="bi bi-arrow-down-short"></i>
+                                </button>
+                              </td>
+                              {% comment %}<td class="team_status">
+                                <!-- <form action="" method="POST">
+                                  {% csrf_token %}
+                                  <input type="hidden" name="leads_id" value="{{ user.id }}"> -->
+                                  <div class="dropdown">
+                                      
+                                      <button class="btn dropdown-toggle" aria-expanded="false" data-bs-toggle="dropdown" type="button">select&nbsp;</button>
+                                      <div class="dropdown-menu w-25-px">
+                                        {% for proj in projects %}
+                                        <!-- <a href="https://wa.me/{{ user.call }}?text={{ proj.name }}%20{{ proj.message }}%20{{ proj.youtube_link }}%20{{ user.name }}" data-id="{{ request.user.email }}" 
+                                          class="log-activity"
+                                          data-activity="Whatsapp user" target="_blank">
+                                          <button class="dropdown-item" type="submit" name="new_status" value="Leads">{{ proj.name }}</button>
+                                        </a> -->
+                                        <a href="https://wa.me/{{ user.call }}?text=*{{ proj.name }}*%0A{{ proj.message }}%0A{{ proj.youtube_link }}%0A{{ user.name }}" 
+                                          data-id="{{ request.user.email }}" 
+                                          class="log-activity"
+                                          data-activity="Whatsapp user" target="_blank">
+                                          <button class="dropdown-item text-black" type="submit" name="new_status" value="Leads">{{ proj.name }}</button>
+                                        </a>
+                                        {% endfor %}
+
+                                      </div>
+                                  </div>
+                              <!-- </form> -->
+                              </td> {% endcomment %}
+                            
+                           
+
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+            </div>
+        </div>
+
+            <nav class="mt-3" aria-label="Page navigation example">
+                <ul class="pagination">
+                    <!-- First page link -->
+                    <li class="page-item {% if not page.has_previous %}disabled{% endif %}">
+                        <a class="page-link" href="?page=1" aria-label="First">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+            
+                    <!-- Previous page link -->
+                    {% if page.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page.previous_page_number }}" aria-label="Previous">
+                                <span aria-hidden="true">&lsaquo;</span>
+                            </a>
+                        </li>
+                    {% endif %}
+            
+                    <!-- Page numbers -->
+                    {% for num in page_range %}
+                        {% if num == '...' %}
+                            <li class="page-item disabled"><a class="page-link">...</a></li>
+                        {% else %}
+                            <li class="page-item {% if num == page.number %}active{% endif %}">
+                                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+            
+                    <!-- Next page link -->
+                    {% if page.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page.next_page_number }}" aria-label="Next">
+                                <span aria-hidden="true">&rsaquo;</span>
+                            </a>
+                        </li>
+                    {% endif %}
+            
+                    <!-- Last page link -->
+                    <li class="page-item {% if not page.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="?page={{ page.paginator.num_pages }}" aria-label="Last">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+              
+              
+        </div>
+
+    </div>
+</div>
+</div>
+
+{% comment %} <form id="selected-form" action="{% url 'bulk_from' %}" method="POST">
+    {% csrf_token %}
+    <input type="hidden" id="selected-user-ids" name="user_ids" value=""> {% endcomment %}
+    {% comment %} <button type="submit" class="btn btn-primary">Submit Selected IDs</button> {% endcomment %}
+    {% comment %}
+</form> {% endcomment %}
+
+  <!-- Modal -->
+  <div class="modal fade marketingpopup " id="basicModal2" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <form id="leadUpdateForm">
+        <div class="modal-content">
+          <div class="modal-header">
+
+            <h6 class="modal-title" id="exampleModalLabel1">Leads Update</h6>
+           
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="row">
+              <div class="col mb-3">
+                <!-- <label for="form-id" class="form-label">Id</label> -->
+                <input type="text" id="form-id" class="form-control" readonly hidden/>
+              </div>
+            </div>
+            <div class="row g-2">
+              <div class="col-12 mb-3">
+                <label for="status" class="form-label">Status</label>
+                <select id="status" class="form-select" aria-label="Default select example">
+                  <option selected>Open this select menu</option>
+                  <option value="Leads">Leads</option>
+                  <option value="Intrested">Intrested</option>
+                  <option value="Not Interested">Not Interested</option>
+                  <option value="Other Location">Other Location</option>
+                  <option value="Not Picked">Not Picked</option>
+                  <option value="Lost">Lost</option>
+                  <option value="Visit">Visit</option>
+                </select>
+              </div>
+              <div class="col-12">
+                <label for="dobBasic" class="form-label">Message</label>
+                <textarea name="message" id="dobBasic" class="form-control"></textarea>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+          
+            <button type="button" class="btn btn-outline-secondary" id="saveChangesBtn">Update Status</button>
+          </div>
+        </div>
+      </form>
+      
+    </div>
+  </div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+
+document.addEventListener('DOMContentLoaded', function () {
+    $('#basicModal2').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget);  
+        var id = button.data('id');           
+        
+        $.ajax({
+            url: '/lead_user/' + id,  
+            method: 'GET',
+            success: function (data) {
+                $('#form-id').val(data.id);
+                $('#dobBasic').val(data.message);  
+                $('select.form-select').val(data.status); 
+            },
+            error: function () {
+                alert('Failed to retrieve data.');
+            }
+        });
+    });
+});
+
+$(document).ready(function() {
+    $('#saveChangesBtn').on('click', function (e) {
+        e.preventDefault();  
+        
+        console.log("Button clicked");
+
+        var id = $('#form-id').val();
+        var status = $('#status').val();  
+        var message = $('#dobBasic').val();
+
+        $.ajax({
+            url: '/lead_user/update/' + id + '/',
+            method: 'POST',
+            data: {
+                'status': status,
+                'message': message,
+                'csrfmiddlewaretoken': '{{ csrf_token }}',
+            },
+            success: function (response) {
+                alert('Changes saved successfully.');
+                location.reload();  
+            },
+            error: function () {
+                alert('Failed to save changes.');
+            }
+        });
+    });
+});
+
+
+    let selectedUserIds = [];
+
+    function toggleRow(button) {
+        const row = button.parentNode.parentNode;
+        const userId = row.id;
+
+        if (row.classList.contains('selected')) {
+            row.classList.remove('selected');
+            button.style.backgroundColor = 'white';
+            selectedUserIds = selectedUserIds.filter(id => id !== userId);
+        } else {
+            row.classList.add('selected');
+            button.style.backgroundColor = 'black';
+            selectedUserIds.push(userId);
+        }
+
+        document.getElementById('selected-user-ids').value = selectedUserIds.join(',');
+    }
+
+    document.getElementById('selected-form').addEventListener('submit', function (event) {
+        if (selectedUserIds.length === 0) {
+            event.preventDefault();
+            alert('Please select at least one user.');
+        }
+    });
+    let a = 0;
+    function toggleAllRows() {
+        var buttons = document.querySelectorAll('.select-button');
+        var allSelected = true;
+        buttons.forEach(function (button) {
+            var row = button.parentNode.parentNode;
+            if (!row.classList.contains('selected')) {
+                allSelected = false;
+            }
+        });
+        let b = 0;
+        buttons.forEach(function (button) {
+            var row = button.parentNode.parentNode;
+            const userId = row.id;
+            b += 1;
+            if (b <= a) {
+
+                if (allSelected) {
+                    row.classList.remove('selected');
+                    button.style.backgroundColor = 'white';
+                    selectedUserIds = selectedUserIds.filter(id => id !== userId);
+                } else {
+                    row.classList.add('selected');
+                    button.style.backgroundColor = 'black';
+                    selectedUserIds.push(userId);
+                }
+                document.getElementById('selected-user-ids').value = selectedUserIds.join(',');
+            }
+        });
+        b = 0;
+    }
+    function searchTable() {
+        var input, filter, table, tr, td, i, txtValue;
+        input = document.getElementById("searchInput");
+        filter = input.value.toUpperCase();
+        table = document.getElementById("myTable");
+        tr = table.getElementsByTagName("tr");
+
+        // Loop through all table rows, and hide those that don't match the search query
+        for (i = 0; i < tr.length; i++) {
+            var rowShouldBeVisible = false;
+
+            // Loop through all cells of current row
+            for (j = 0; j < tr[i].cells.length; j++) {
+                td = tr[i].cells[j];
+                if (td) {
+                    txtValue = td.textContent || td.innerText;
+                    if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                        rowShouldBeVisible = true;
+                        break; // If a match is found in this row, no need to check further
+                    }
+                }
+            }
+            if (rowShouldBeVisible) {
+                tr[i].style.display = "";
+            } else {
+                tr[i].style.display = "none";
+            }
+        }
+
+    }
+    
+    function showInputRows() {
+        const input = document.getElementById("rowInput").value;
+        const count = parseInt(input) || 'all';
+        a = count + 1;
+        showRows(count);
+    }
+
+    function showRows(count) {
+        const rows = document.querySelectorAll("#myTable tbody tr");
+        rows.forEach((row, index) => {
+            if (count === 'all' || index < count) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        });
+    }
+</script>
+{% comment %} 
+function searchTable() {
+    var input, filter, table, tr, td, i, txtValue;
+    input = document.getElementById("searchInput");
+    filter = input.value.toUpperCase();
+    table = document.getElementById("myTable");
+    tr = table.getElementsByTagName("tr");
+
+    // Loop through all table rows, and hide those that don't match the search query
+    for (i = 0; i < tr.length; i++) {
+        var rowShouldBeVisible = false;
+
+        // Loop through all cells of current row
+        for (j = 0; j < tr[i].cells.length; j++) {
+            td = tr[i].cells[j];
+            if (td) {
+                txtValue = td.textContent || td.innerText;
+                if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                    rowShouldBeVisible = true;
+                    break; // If a match is found in this row, no need to check further
+                }
+            }
+        }
+        if (rowShouldBeVisible) {
+            tr[i].style.display = "";
+        } else {
+            tr[i].style.display = "show";
+        }
+    }
+
+} {% endcomment %}
+
+
+
+<style>
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+
+    .table th,
+    .table td {
+        padding: 10px;
+        text-align: left;
+    }
+
+    .select-button {
+        width: 16px;
+        height: 16px;
+        border: 1px solid black;
+        display: inline-block;
+        cursor: pointer;
+        margin: 0;
+        padding: 0;
+        background-color: white;
+        position: relative;
+    }
+
+    .select-button::before {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 5px;
+        width: 5px;
+        height: 10px;
+        /* border: solid black; */
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    .selected .select-button::before {
+        opacity: 3;
+    }
+
+    .selected {
+        background-color: #d3d3d3;
+        /* Light grey background for selected rows */
+    }
+
+    .input-container {
+        margin-bottom: 5px;
+        margin-top: 6px;
+    }
+
+    button.btn.btn-primary.bulk.px-5 {
+        margin-top: 12px;
+    }
+
+    /* #rowInput {
+        border: 1px solid black;
+        padding: 6px;
+        width: 140px;
+        font-size: 14px;
+        margin: 7px;
+        font-weight: bold;
+        text-transform: capitalize;
+        color: black;
+        border-radius: 10px 10px 10px 10px;
+    } */
+</style>
+
+
+<script>
+    function toggleSendStatus(userId, button) {
+        var currentStatus = button.querySelector('.badge').textContent.trim() === 'Send';
+        var newSendStatus = !currentStatus;
+
+        fetch('{% url "update_send_status" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'  // Include CSRF token for security
+            },
+            body: JSON.stringify({
+                id: userId,
+                send: newSendStatus
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update button text based on the new status
+                    if (data.new_send_status) {
+                        button.innerHTML = '<span class="badge bg-success">Send</span>';
+                    } else {
+                        button.innerHTML = '<span class="badge bg-danger">Don\'t Send</span>';
+                    }
+                } else {
+                    alert('Failed to update status: ' + data.message);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    }
+</script>
+
+{% endblock %}

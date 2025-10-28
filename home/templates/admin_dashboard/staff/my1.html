@@ -1,0 +1,582 @@
+{% extends template %}
+
+{% comment %}{% extends request.user.is_superuser|yesno:'base.html,admin_dashboard/staff/base.html' %}  {% endcomment %}
+{% block content %}
+{% load static %}
+
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css">
+
+    <style>
+
+        .ui-datepicker {
+            z-index: 1000; /* Ensure the date picker appears on top */
+        }
+
+
+   .gap-5 {
+    gap: 3rem !important;
+}
+
+
+.Productivity-bgtable{
+  background-color: #1f293721 !important;
+  border: none !important;
+}
+
+
+
+
+td.Productivity-bgtable:first-child {
+    border-end-start-radius: 8px;
+}
+td.Productivity-bgtable:last-child {
+    border-end-end-radius: 8px;
+}
+
+@media (min-width: 992px) and (max-width: 1350px){
+.form-control.select_date{
+  width:150px !important;
+  text-align: end !important;
+  justify-content: end !important;
+  margin: 6px 20px !important;
+
+}
+.md-mt-5{
+  margin-top: 20px !important;
+}
+}
+@media (min-width: 768px) and (max-width: 904px){
+.form-control.select_date{
+  width:150px !important;
+  text-align: end !important;
+  justify-content: end !important;
+  margin: 6px 20px !important;
+}
+.md-mt-5{
+  margin-top: 20px !important;
+}
+}
+    </style>
+</head>
+
+    <div class="dashboard-main-body">
+
+      <div class="dash-title">Productivity Index</div>
+      
+      <!-- <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-24">
+    
+        <ul class="d-flex align-items-center gap-2">
+        <li class="fw-medium">
+        </li>
+      </div>  -->
+
+
+      <div class="col-xxl-12 pb-5">   
+      <div class="card h-100 p-0 radius-12">         
+        <div class="card-body p-24">
+        
+            {% if request.user.is_superuser and fiter == 1 %}
+           <div class="p-24 border rounded mb-3">
+            <div class="row">
+              <!-- Admin Select Box -->
+              <div class="col-lg-3 col-md-6 col-sm-12">
+                <label for="admin-select" class="form-label">Admin</label>
+                <select id="admin-select" class="form-select form-select-sm">
+                  <option value="">Select Admin</option>
+                  {% for admin in admins %}
+                    <option value="{{ admin.id }}">{{ admin.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            
+              <!-- Team Leader Select Box -->
+              <div class="col-lg-3 col-md-6 col-sm-12">
+                <label for="teamleader-select" class="form-label">Team Leader</label>
+                <select id="teamleader-select" class="form-select form-select-sm">
+                  <option value="">Select Team Leader</option>
+                </select>
+              </div>
+
+              <div class="col-lg-3 col-md-6 col-sm-12">
+                <label class="form-label">Start Date</label>
+                <input type="date" id="date-picker" name="date-picker" value="{{ start_date|date:'Y-m-d' }}" class="form-control select_date" placeholder="Start Date">
+              </div>
+              <div class="col-lg-3 col-md-6 col-sm-12">
+                <label class="form-label">End Date</label>
+              <input type="date" id="end_date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="form-control select_date"
+                placeholder="End Date">
+            </div>
+            </div>
+           </div>
+            
+            {% elif request.user.is_superuser and fiter == 3 %}
+            <div class="p-24 border rounded mb-3">
+              <div class="row">
+                <!-- Admin Select Box -->
+                 <div class="col-lg-3 col-md-6 col-sm-12">
+                  <label for="admin-select" class="form-label">Admin</label>
+                  <select id="admin-select" class="form-select form-select-sm">
+                    <option value="">Select Admin</option>
+                    {% for admin in admins %}
+                      <option value="{{ admin.id }}">{{ admin.name }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <div class="col-lg-3 col-md-6 col-sm-12">
+                  <label class="form-label">Start Date:</label>
+                  <input type="date" id="date-picker" name="date-picker" value="{{ start_date|date:'Y-m-d' }}" class="form-control select_date" placeholder="Start Date">
+                </div>
+                 <div class="col-lg-3 col-md-6 col-sm-12">
+                  <label class="form-label">End Date:</label>
+                <input type="date" id="end_date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="form-control select_date"
+                  placeholder="End Date">
+              </div>
+              </div>
+          </div>
+            {% elif request.user.is_admin and fiter == 4 %}
+            <div class="p-24 border rounded mb-3">
+            <div class="row">
+              <!-- Admin Select Box -->
+               <div class="col-lg-3 col-md-6 col-sm-12">
+                <label for="teamleader-select" class="form-label">Admin</label>
+                <select id="teamleader-select" class="form-select form-select-sm">
+                  <option value="">Select Team Leader</option>
+                  {% for admin in teamleader %}
+                    <option value="{{ admin.id }}">{{ admin.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+               <div class="col-lg-3 col-md-6 col-sm-12">
+                <label class="form-label">Start Date:</label>
+                <input type="date" id="date-picker" name="date-picker" value="{{ start_date|date:'Y-m-d' }}" class="form-control select_date" placeholder="Start Date">
+              </div>
+               <div class="col-lg-3 col-md-6 col-sm-12">
+                <label class="form-label">End Date:</label>
+              <input type="date" id="end_date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="form-control select_date"
+                placeholder="End Date">
+            </div>
+            </div>
+          </div>
+
+            {% else %}
+            <div class="p-24 border rounded mb-3">
+            <div class="row">
+
+              <div class="col-lg-3 col-md-6 col-sm-12">
+                <label class="form-label">Start Date:</label>
+                <input type="date" id="date-picker" name="date-picker" value="{{ start_date|date:'Y-m-d' }}" class="form-control select_date" placeholder="Start Date">
+              </div>
+               <div class="col-lg-3 col-md-6 col-sm-12">
+                <label class="form-label">End Date:</label>
+              <input type="date" id="end_date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="form-control select_date"
+                placeholder="End Date">
+            </div>
+            </div>
+          </div>
+            {% endif %}
+            
+
+            <div class="table-responsive scroll-sm mt-4">
+             
+                <table class="table bordered-table sm-table mb-0" id="myTable">
+                    <thead>
+                        <tr>
+                            <th scope="col">SN</th>
+                            <th scope="col">Name</th>
+                            <!-- <th scope="col">Total Leads</th> -->
+                            <th scope="col" class="text-center">Total Calls</th>
+                              <th scope="col" class="text-center">Interested</th>
+                              <th scope="col" class="text-center">Not Interested</th>
+                              <th scope="col" class="text-center">Other Location</th>
+                            <!--   <th scope="col" class="text-center">Not Picked</th> -->
+                              <th scope="col" class="text-center">Lost</th>
+                              <th scope="col" class="text-center">Visit</th>
+                              <th scope="col" class="text-center">Interested %</th>
+                              <th scope="col" class="text-center">Visit %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Data will be populated by JavaScript -->
+                    </tbody>
+                    <tfoot class="">
+                      <!-- <tr>
+                          <th scope="col" class="text-center ">Total</th>
+                          <th scope="col" class="text-center ">{{ total_staff_count }}</th>
+                          <th scope="col" class="text-center ">{{ total_all_leads }}</th>
+                          <th scope="col" class="text-center ">{{ total_all_calls }}</th>
+                          <th scope="col" class="text-center ">{{ total_all_interested }}</th>
+                          <th scope="col" class="text-center ">{{ total_all_not_interested }}</th>
+                          <th scope="col" class="text-center ">{{ total_all_other_location }}</th>
+                          <th scope="col" class="text-center ">{{ total_all_visit }}</th>
+                          <th scope="col" class="text-center ">{{ total_interested_percentage }} %</th>
+                          <th scope="col" class="text-center ">{{ total_visit_percentage }} %</th>
+                      </tr> -->
+                  </tfoot>
+                </table>
+            </div>
+
+          
+          
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <!-- Bootstrap JS -->
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+  <!-- Bootstrap Datepicker JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+
+  <!-- <td class="text-center">${staff.not_picked}</td>
+  <td class="text-center">${staff.lost}</td> -->
+
+  <!-- <h1>{{ task_type }}</h1> -->
+  <script>
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('date-picker').value = today;
+</script>
+
+  <script>
+    $(function() {
+      var url;
+      {% if task_type == 'teamleader' %}
+          url = "{% url 'teamleader_productivity_view' %}";
+      {% elif task_type == 'staff' %}
+          url = "{% url 'staff_productivity_view' %}";
+      {% elif task_type == 'staff' %}
+          url = "{% url 'admin_productivity_view' %}";
+      {% elif task_type == 'freelancer' %}
+          url = "{% url 'freelancer_productivity_view' %}";
+      {% endif %}
+
+      $('#admin-select').on('change', function () {
+        var adminId = $(this).val();
+        if (adminId) {
+            $.ajax({
+                url: "{% url 'get_team_leaders' %}",
+                data: {
+                    'admin_id': adminId
+                },
+                success: function (response) {
+                    var teamleaderSelect = $('#teamleader-select');
+                    teamleaderSelect.empty();
+                    teamleaderSelect.append('<option value="">Select Team Leader</option>');
+                    $.each(response.team_leaders, function (key, leader) {
+                        teamleaderSelect.append('<option value="' + leader.id + '">' + leader.name + '</option>');
+                    });
+                    updateTable(adminId, null, $('#date-picker').val(), $('#end_date').val());
+                }
+            });
+        } else {            
+            updateTable(null, null, $('#date-picker').val(), $('#end_date').val()); // Reset filter if no admin selected
+        }
+    });
+
+    $('#teamleader-select').on('change', function () {
+        var adminId = $('#admin-select').val();
+        var leaderId = $(this).val();
+        updateTable(adminId, leaderId, $('#date-picker').val(), $('#end_date').val());
+    });
+
+    var endDate =  $('#end_date').val()
+    $('#date-picker').on('change', function () {
+        console.log('CCCCCCCCCCCCCCCCCCCCCCCC');
+        
+        var adminId = $('#admin-select').val();
+        var leaderId = $('#teamleader-select').val();
+        var selectedDate = $(this).val();
+        var endDate =  $('#end_date').val()
+        // adminId = adminId ? adminId : null;
+        // leaderId = leaderId ? leaderId : null;
+
+        updateTable(adminId, leaderId, selectedDate, endDate);
+    });
+  
+    function updateTable(adminId, leaderId, date, endDate) {
+        $.ajax({
+            url: url,
+            data: {
+                'admin_id': adminId,
+                'teamleader_id': leaderId,
+                'date': date,
+                'endDate': endDate
+            },  
+                success: function(data) {
+                    var tbody = $('#myTable tbody');
+                    tbody.empty(); // Clear existing rows
+  
+                    $.each(data.staff_data, function(index, staff) {
+                      
+                      var leadUrl = "{% url 'leam_lead_show' 0 'Intrested' %}".replace('0', staff.id);
+                      var leadUrl1 = "{% url 'leam_lead_show' 0 'Not Interested' %}".replace('0', staff.id);
+                      var leadUrl2 = "{% url 'leam_lead_show' 0 'Other Location' %}".replace('0', staff.id);
+                      var leadUrl3 = "{% url 'leam_lead_show' 0 'Lost' %}".replace('0', staff.id);
+                      var leadUrl4 = "{% url 'leam_lead_show' 0 'Visit' %}".replace('0', staff.id);
+                        var row = `
+                            <tr>
+                                <th scope="row">${index + 1}</th>
+                                <td>${staff.name}</td>
+                                
+                                <td class="text-center">${staff.total_calls}</td>
+                                <td class="  text-center">
+                                    <a href="${leadUrl}" class="text-primary">${staff.interested}</a>
+                                </td>
+                                <td class="text-center">
+                                    <a href="${leadUrl1}" class="text-danger">${staff.not_interested}</a>
+                                </td>
+                                <td class="text-center">
+                                  <a href="${leadUrl2}">${staff.other_location}</a>
+                                </td>
+                                <td class="text-center">
+                                  <a href="${leadUrl3}">${staff.lost}</a>
+                                </td>
+                                <td class=" text-success text-center">
+                                  <a href="${leadUrl4}" class="text-success">${staff.visit}</a>
+                                </td>
+                                <td class="text-center">${staff.interested_percentage}%</td>
+                                <td class="text-center">${staff.visit_percentage}%</td>
+                            </tr>
+                        `;
+                        tbody.append(row);
+                    });
+
+                  // Update tfoot with total data
+                  var tfoot = $('#myTable tfoot');
+                    var footerRow = `
+                        <tr class="">
+                            <td scope="col" class="text-center Productivity-bgtable ">Total</td>
+                            <td scope="col" class="text-center Productivity-bgtable ">${data.total_staff_count}</td>
+                            
+                            <td scope="col" class="text-center Productivity-bgtable ">${data.total_all_calls}</td>
+                            <td scope="col" class="text-center Productivity-bgtable ">${data.total_all_interested}</td>
+                            <td scope="col" class="text-center Productivity-bgtable ">${data.total_all_not_interested}</td>
+                            <td scope="col" class="text-center Productivity-bgtable ">${data.total_all_otder_location}</td>
+                            <td scope="col" class="text-center Productivity-bgtable ">${data.total_all_lost}</td>
+                            <td scope="col" class="text-center Productivity-bgtable ">${data.total_all_visit}</td>
+                            <td scope="col" class="text-center Productivity-bgtable ">${data.total_interested_percentage}%</td>
+                            <td scope="col" class="text-center Productivity-bgtable ">${data.total_visit_percentage}%</td>
+                        </tr>
+                    `;
+                    tfoot.html(footerRow); // Replace the content of tfoot
+                    
+                }
+            });
+        }
+  
+        // Fetch default data on page load
+        // updateTable(''); // Initial load with no date selected
+        updateTable(null, null, $('#date-picker').val(), $('#end_date').val());
+  
+        // Set interval to refresh the table every 5 seconds
+        setInterval(function() {
+            var currentDate = $('#date-picker').val();
+            var endDate = $('#end_date').val()
+            if (currentDate) {
+              var adminId = $('#admin-select').val();
+              var leaderId = $('#teamleader-select').val();
+              adminId = adminId ? adminId : null;
+              leaderId = leaderId ? leaderId : null;
+              endDate = endDate ? endDate : null;
+              updateTable(adminId, leaderId, currentDate, endDate);
+            } else {
+              console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+              
+              updateTable('');
+            }
+            // updateTable(currentDate);
+        }, 5000);
+    });
+  </script>
+
+<!-- <td class="text-center">${staff.total_leads}</td> -->
+<!-- <th scope="col" class="text-center ">${data.total_all_leads}</th> -->
+
+  <!-- <script>
+    $(function() {
+      var url;
+      {% if task_type == 'teamleader' %}
+          url = "{% url 'teamleader_productivity_view' %}";
+      {% elif task_type == 'staff' %}
+          url = "{% url 'staff_productivity_view' %}";
+      {% endif %}
+
+        $('#date-picker').datepicker({
+            dateFormat: 'yy-mm-dd', 
+            autoclose: true,
+            todayHighlight: true
+        }).on('change', function(e) {
+            var selectedDate = $(this).val(); 
+            updateTable(selectedDate);
+        });
+  
+        function updateTable(date) {
+            $.ajax({
+                url: url,
+                data: {
+                    date: date // Pass the date in the correct format
+                },
+                success: function(data) {
+                    console.log(data, 'AAAAAAAAAAAAAAAAAA');
+                    
+                    var tbody = $('#myTable tbody');
+                    tbody.empty(); // Clear existing rows
+  
+                    // Append staff data rows
+                    $.each(data.staff_data, function(index, staff) {
+                        var row = `
+                            <tr>
+                                <th scope="row">${index + 1}</th>
+                                <td>${staff.name}</td>
+                                <td class="text-center">${staff.total_leads}</td>
+                                <td class="text-center">${staff.total_calls}</td>
+                                <td class="bg-primary  text-center">${staff.interested}</td>
+                                <td class="bg-danger  text-center">${staff.not_interested}</td>
+                                <td class="text-center">${staff.other_location}</td>
+                                <td class=" bg-success text-center">${staff.visit}</td>
+                                <td class="text-center">${staff.interested_percentage}%</td>
+                                <td class="text-center">${staff.visit_percentage}%</td>
+                            </tr>
+                        `;
+                        tbody.append(row);
+                    });
+
+                    // Update tfoot with total data
+                    var tfoot = $('#myTable tfoot');
+                    var footerRow = `
+                        <tr>
+                            <th scope="col" class="text-center  bg-dark">Total</th>
+                            <th scope="col" class="text-center  bg-dark">${data.total_staff_count}</th>
+                            <th scope="col" class="text-center  bg-dark">${data.total_all_leads}</th>
+                            <th scope="col" class="text-center  bg-dark">${data.total_all_calls}</th>
+                            <th scope="col" class="text-center  bg-dark">${data.total_all_interested}</th>
+                            <th scope="col" class="text-center  bg-dark">${data.total_all_not_interested}</th>
+                            <th scope="col" class="text-center  bg-dark">${data.total_all_other_location}</th>
+                            <th scope="col" class="text-center  bg-dark">${data.total_all_visit}</th>
+                            <th scope="col" class="text-center  bg-dark">${data.total_interested_percentage}%</th>
+                            <th scope="col" class="text-center  bg-dark">${data.total_visit_percentage}%</th>
+                        </tr>
+                    `;
+                    tfoot.html(footerRow); // Replace the content of tfoot
+                }
+            });
+        }
+  
+        // Fetch default data on page load
+        updateTable(''); // Initial load with no date selected
+  
+        // Set interval to refresh the table every 5 seconds
+        setInterval(function() {
+            var currentDate = $('#date-picker').val();
+            updateTable(currentDate || ''); // Update with current date or empty for all
+        }, 5000);
+    });
+</script> -->
+
+  
+  
+  
+
+  <script>
+    function searchTable() {
+      var input, filter, table, tr, td, i, txtValue;
+      input = document.getElementById("searchInput");
+      filter = input.value.toUpperCase();
+      table = document.getElementById("myTable");
+      tr = table.getElementsByTagName("tr");
+  
+      // Loop through all table rows, and hide those that don't match the search query
+      for (i = 0; i < tr.length; i++) {
+        var rowShouldBeVisible = false;
+  
+        // Loop through all cells of current row
+        for (j = 0; j < tr[i].cells.length; j++) {
+          td = tr[i].cells[j];
+          if (td) {
+            txtValue = td.textContent || td.innerText;
+            if (txtValue.toUpperCase().indexOf(filter) > -1) {
+              rowShouldBeVisible = true;
+              break; // If a match is found in this row, no need to check further
+            }
+          }
+        }
+        if (rowShouldBeVisible) {
+          tr[i].style.display = "";
+        } else {
+          tr[i].style.display = "none";
+        }
+      }
+  
+    }
+  </script>
+{% endblock %}
+
+<!-- <div class="dashboard-main-body">
+    <p class="text-center">Productivity Index</p>
+
+    <table class="table bordered-table sm-table mb-0">
+        <thead>
+          <tr>
+            <th scope="col">SN</th>
+            <th scope="col">Name</th>
+            <th scope="col">Total Leads</th>
+            <th scope="col">Interested</th>
+            <th scope="col">Not Interested</th>
+            <th scope="col">Other Location</th>
+            <th scope="col">Not Picked</th>
+            <th scope="col">Lost</th>
+            <th scope="col">Visit</th>
+            <th scope="col">Visit %</th>
+            <th scope="col">Interested %</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">1</th>
+            <td>Staff1</td>
+            <td class="text-center">50</td>
+            <td class="bg-primary  text-center">20</td>
+            <td class="bg-danger  text-center">20</td>
+            <td class="text-center">10</td>
+            <td class="text-center">10</td>
+            <td class="text-center">5</td>
+            <td class=" bg-success text-center">2</td>
+            <td class="text-center">20</td>
+            <td class="text-center">30</td>            
+          </tr>
+          <tr>
+            <th scope="row">2</th>
+            <td>Staff1</td>
+            <td class="text-center">50</td>
+            <td class="bg-primary  text-center">20</td>
+            <td class="bg-danger  text-center">20</td>
+            <td class="text-center">10</td>
+            <td class="text-center">10</td>
+            <td class="text-center">5</td>
+            <td class=" bg-success text-center">2</td>
+            <td class="text-center">20</td>
+            <td class="text-center">30</td>
+          </tr>
+          <tr>
+            <th scope="row">3</th>
+            <td>Staff1</td>
+            <td class="text-center">50</td>
+            <td class="bg-primary  text-center">20</td>
+            <td class="bg-danger  text-center">20</td>
+            <td class="text-center">10</td>
+            <td class="text-center">10</td>
+            <td class="text-center">5</td>
+            <td class=" bg-success text-center">2</td>
+            <td class="text-center">20</td>
+            <td class="text-center">30</td>
+          </tr>
+        </tbody>
+      </table>
+</div> -->

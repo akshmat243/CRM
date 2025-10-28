@@ -1,0 +1,375 @@
+{% extends 'admin_dashboard/team_leader/base.html' %}
+{% block content %}
+{% load static %}
+
+
+<div class="dashboard-main-body add_user_profile">
+
+  <div class="dash-title">View Profile </div>
+
+
+  <div class="row">
+    <div class="col-lg-4">
+      <div class="user-grid-card position-relative border radius-16 overflow-hidden bg-base h-100">
+        <img src="{% static 'assets/images/user-grid/user-grid-bg1.png' %}" alt="" class="w-100 object-fit-cover">
+        <div class="pb-24 ms-16 me-16 mt--100">
+          <div class="userprofiletop">
+            <div class="userprofileimages">
+              {% if request.user.profile_image %}
+              <img src="{{ request.user.profile_image.url }}" alt="site logo" class="">
+              {% else %}
+              <img src="{% static 'assets/images/main_profile.jpg' %}" alt="site logo" class="">
+              {% endif %}
+            </div>
+
+            <div class="userprofiletoptext">
+              <h6>{{ admin.name }}</h6>
+              <p >{{ admin.email }}</p>
+            </div>
+          </div>
+
+          <div class="userprofiletopPersonal">
+            <h6>Personal Info</h6>
+            <ul>
+              <li>
+                <span>Salary</span> {{ admin.salary }} INR
+              </li>
+              <li>
+                <span>DOB</span> {{ admin.dob }}
+              </li>
+              <li>
+                <span> Pan-Card</span> {{ admin.pancard }}
+              </li>
+              <li>
+                <span> Aadhar-Card</span> {{ admin.aadharCard }}
+              </li>
+              <li>
+                <span> Account Number</span> {{ admin.account_number }}
+              </li>
+              <li>
+                <span> Upi Id</span> {{ admin.upi_id }}
+              </li>
+              <li>
+                <span> Bank Name</span> {{ admin.bank_name }}
+              </li>
+              <li>
+                <span> Ifsc Code</span> {{ admin.ifsc_code }}
+              </li>
+              <li>
+                <span> Degree</span> {{ admin.degree }}
+              </li>
+              <li>
+                <span> Referral Code</span> {{ admin.referral_code }}
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-8">
+      <div class="card h-100">
+        <div class="border-bottom title-part-padding">
+          {% if messages %}
+          {% for message in messages %}
+          <div class="alert alert-success">
+            {{ message }}
+          </div>
+          {% endfor %}
+          {% endif %}
+          {% comment %} <h4 class="card-title mb-0">Welcome {{ user.name }}</h4> {% endcomment %}
+          {% comment %} <h4 class="card-title mb-0">Welcome {{ admin.name }}</h4> {% endcomment %}
+        </div>
+        <div class="card-body p-24">
+          <ul class="nav border-gradient-tab nav-pills mb-20" id="pills-tab" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link d-flex align-items-center px-24 active" id="pills-edit-profile-tab"
+                data-bs-toggle="pill" data-bs-target="#pills-edit-profile" type="button" role="tab"
+                aria-controls="pills-edit-profile" aria-selected="true">
+                Edit Profile
+              </button>
+            </li>
+            {% comment %} <li class="nav-item" role="presentation">
+              <button class="nav-link d-flex align-items-center px-24" id="pills-change-passwork-tab"
+                data-bs-toggle="pill" data-bs-target="#pills-change-passwork" type="button" role="tab"
+                aria-controls="pills-change-passwork" aria-selected="false" tabindex="-1">
+                Change Password
+              </button>
+            </li> {% endcomment %}
+            <li class="nav-item" role="presentation">
+              <button class="nav-link d-flex align-items-center px-24" id="pills-notification-tab" data-bs-toggle="pill"
+                data-bs-target="#pills-notification" type="button" role="tab" aria-controls="pills-notification"
+                aria-selected="false" tabindex="-1">
+                Notification Settings
+              </button>
+            </li>
+          </ul>
+
+          <div class="tab-content" id="pills-tabContent">
+            <div class="tab-pane fade show active" id="pills-edit-profile" role="tabpanel"
+              aria-labelledby="pills-edit-profile-tab" tabindex="0">
+
+              <form action="{% url 'staff_view_profile' %}" method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+
+
+                <div class="row">
+                  <div class="col-md-6 col-sm-12">
+
+                    <div class="form-group">
+                      <label for="imageUpload" class="form-label">Profile Image</label>
+                      <input type='file' id="imageUpload" name="profile_image" class="form-control"
+                        accept=".png, .jpg, .jpeg">
+                    </div>
+                  </div>
+
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="validationDefault01" class="form-label">Staff ID</label>
+                      <input type="number" class="form-control" placeholder="{{admin.staff_id}}" name="staff_id"
+                        value="{{admin.staff_id}}" disabled>
+                    </div>
+                  </div>
+
+
+                  <div class="col-md-6 col-sm-12">
+                    <div class="form-group">
+                      <label class="form-label">Name</label>
+                      <input type="text" class="form-control radius-8" id="name" name="name" placeholder="Name"
+                        style="width: 100%;" maxlength="20" required value="{{ admin.name }}">
+                    </div>
+                  </div>
+
+
+                  <div class="col-md-6 col-sm-12">
+                    <div class="form-group">
+
+                      <label for="email" class="form-label">E-Mail Address</label>
+                      <input type="email" class="form-control radius-8" id="email" name="email" placeholder="email"
+                        style="width: 100%;" maxlength="30" required value="{{admin.email}}" readonly>
+                    </div>
+                  </div>
+
+
+                  <div class="col-md-6 col-sm-12">
+                    <div class="form-group">
+                      <label class="form-label ">Password</label>
+                      <input type="password" class="form-control radius-8" id="password" name="password"
+                        placeholder="XXXXXXXXXXXXXXX" style="width: 100%;" maxlength="15" required
+                        value="{{admin.password}}">
+                    </div>
+                  </div>
+
+                  <div class="col-md-6 col-sm-12">
+                    <div class="form-group">
+                      <label class="form-label">Mobile</label>
+                      <input type="number" class="form-control radius-8" id="mobile" name="mobile" placeholder="number"
+                        style="width: 100%;" oninput="if(this.value.length > 10) this.value = this.value.slice(0, 10);"
+                        min="999999999" max="9999999999" required value="{{admin.mobile}}">
+                    </div>
+                  </div>
+
+
+                  <div class="col-sm-6 col-12">
+                    <div class="form-group">
+                      <label for="exampleFormControlInput1" class="form-label">Date Of
+                        Birth</label>
+                      <input type="date" value="{{ admin.dob }}" name="dob" class="form-control"
+                        id="exampleFormControlInput1" placeholder="Select a date">
+                    </div>
+                  </div>
+
+                  <div class="col-sm-6 col-12">
+                    <div class="form-group">
+                      <label class="form-label">Pan Card</label>
+                      <input type="text" class="form-control radius-8" id="pancard" name="pancard" placeholder="pancard"
+                        style="width: 100%;" maxlength="20" value="{{ admin.pancard }}">
+                    </div>
+                  </div>
+
+
+                  <div class="col-sm-6 col-12">
+                    <div class="form-group">
+                      <label class="form-label">Aadhar Card</label>
+                      <input type="number" class="form-control radius-8" id="mobile" name="aadharCard"
+                        placeholder="number" style="width: 100%;"
+                        oninput="if(this.value.length > 10) this.value = this.value.slice(0, 10);" min="999999999"
+                        max="9999999999" value="{{ admin.mobile }}">
+                    </div>
+                  </div>
+
+
+                  <div class="col-sm-6 col-12">
+                    <div class="form-group">
+                      <label class="form-label">Degree</label>
+                      <input type="text" class="form-control radius-8" id="degree" name="degree" placeholder="Degree"
+                        style="width: 100%;" maxlength="20" value="{{ admin.degree }}">
+                    </div>
+                  </div>
+
+
+                  <div class="col-md-6 col-sm-12">
+                    <div class="form-group">
+                      <label for="city" class="form-label">City</label>
+                      <input type="text" class="form-control radius-8" id="city" name="city" placeholder="city"
+                        style="width: 100%;" maxlength="30" required value="{{admin.city}}">
+                    </div>
+                  </div>
+
+
+                  <div class="col-sm-6 col-12">
+                    <div class="form-group">
+                      <label for="stateSelect" class="form-label">State</label>
+                      <select class="form-select" name="state" aria-label="Default select example">
+                        <option value="{{ admin.state }}">{{ admin.state }}</option>
+                        <option value="Andhra Pradesh">Andhra Pradesh</option>
+                        <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+                        <option value="Assam">Assam</option>
+                        <option value="Bihar">Bihar</option>
+                        <option value="Chhattisgarh">Chhattisgarh</option>
+                        <option value="Goa">Goa</option>
+                        <option value="Gujarat">Gujarat</option>
+                        <option value="Haryana">Haryana</option>
+                        <option value="Himachal Pradesh">Himachal Pradesh</option>
+                        <option value="Jharkhand">Jharkhand</option>
+                        <option value="Karnataka">Karnataka</option>
+                        <option value="Kerala">Kerala</option>
+                        <option value="Madhya Pradesh">Madhya Pradesh</option>
+                        <option value="Maharashtra">Maharashtra</option>
+                        <option value="Manipur">Manipur</option>
+                        <option value="Meghalaya">Meghalaya</option>
+                        <option value="Mizoram">Mizoram</option>
+                        <option value="Nagaland">Nagaland</option>
+                        <option value="Odisha">Odisha</option>
+                        <option value="Punjab">Punjab</option>
+                        <option value="Rajasthan">Rajasthan</option>
+                        <option value="Sikkim">Sikkim</option>
+                        <option value="Tamil Nadu">Tamil Nadu</option>
+                        <option value="Telangana">Telangana</option>
+                        <option value="Tripura">Tripura</option>
+                        <option value="Uttar Pradesh">Uttar Pradesh</option>
+                        <option value="Uttarakhand">Uttarakhand</option>
+                        <option value="West Bengal">West Bengal</option>
+                      </select>
+                    </div>
+                  </div>
+
+
+                  <div class="col-md-6 col-sm-12">
+                    <div class="form-group">
+                      <label for="pincode" class="form-label">Pincode</label>
+                      <input type="number" class="form-control radius-8" id="pincode" name="pincode"
+                        placeholder="pincode" style="width: 100%;"
+                        oninput="if(this.value.length > 6) this.value = this.value.slice(0, 6);" min="99999"
+                        max="999999" required value="{{admin.pincode}}">
+
+                    </div>
+                  </div>
+
+                  <h6
+                    class="text-md text-primary-light mt-16 p-3 bg-primary-50 radius-8 d-flex justify-content-between align-items-center">
+                    Account Details</h6>
+                  <div class="col-sm-6 col-12">
+
+                    <div class="form-group">
+                      <label class="form-label">Account Number</label>
+                      <input type="number" class="form-control radius-8" id="account_number" name="account_number"
+                        placeholder="Account Number" style="width: 100%;"
+                        oninput="if(this.value.length > 16) this.value = this.value.slice(0, 16);"
+                        value="{{ admin.account_number }}">
+                    </div>
+                  </div>
+
+
+                  <div class="col-sm-6 col-12">
+                    <div class="form-group">
+                      <label class="form-label">Add UPI</label>
+                      <input type="text" class="form-control radius-8" id="upi_id" name="upi_id"
+                        placeholder="Enter UPI ID" style="width: 100%;" maxlength="20" value="{{ admin.upi_id }}">
+                    </div>
+                  </div>
+
+
+
+                  <div class="col-sm-6 col-12">
+                    <div class="form-group">
+                      <label class="form-label">Bank Name</label>
+                      <input type="text" class="form-control radius-8" id="bank_name" name="bank_name"
+                        placeholder="Bank Name" style="width: 100%;" maxlength="20" value="{{ admin.bank_name }}">
+                    </div>
+                  </div>
+
+                  <div class="col-sm-6 col-12">
+                    <div class="form-group">
+                      <label class="form-label">IFSC Code</label>
+                      <input type="text" class="form-control radius-8" id="ifsc_code" name="ifsc_code"
+                        placeholder="IFSC Code" style="width: 100%;" maxlength="11" value="{{ admin.ifsc_code }}">
+                    </div>
+                  </div>
+                  <div class="col-12">
+                    <div class="form-group">
+                      <label class="form-label">Address</label>
+                      <textarea class="form-control" name="address" id="address" rows="3">{{ admin.address }}</textarea>
+
+                    </div>
+                  </div>
+                </div>
+
+
+            </div>
+
+
+
+            <div class="d-flex align-items-center mt-3 gap-3">
+              <input type="submit" class="btn text-md px-56  radius-8">
+            </div>
+            </form>
+          </div>
+
+          <div class="tab-pane fade" id="pills-notification" role="tabpanel" aria-labelledby="pills-notification-tab"
+            tabindex="0">
+            <div class="form-switch switch-primary py-12 px-16 border radius-8 position-relative mb-16 mt-3">
+
+              <label for="companzNew" class="position-absolute w-100 h-100 start-0 top-0"></label>
+              <div class="d-flex align-items-center gap-3 justify-content-between">
+                <span class="form-check-label line-height-1 fw-medium text-secondary-light">Company News</span>
+                <input class="form-check-input" type="checkbox" role="switch" id="companzNew">
+              </div>
+            </div>
+            <div class="form-switch switch-primary py-12 px-16 border radius-8 position-relative mb-16">
+              <label for="pushNotifcation" class="position-absolute w-100 h-100 start-0 top-0"></label>
+              <div class="d-flex align-items-center gap-3 justify-content-between">
+                <span class="form-check-label line-height-1 fw-medium text-secondary-light">Push Notification</span>
+                <input class="form-check-input" type="checkbox" role="switch" id="pushNotifcation" checked>
+              </div>
+            </div>
+            <div class="form-switch switch-primary py-12 px-16 border radius-8 position-relative mb-16">
+              <label for="weeklyLetters" class="position-absolute w-100 h-100 start-0 top-0"></label>
+              <div class="d-flex align-items-center gap-3 justify-content-between">
+                <span class="form-check-label line-height-1 fw-medium text-secondary-light">Weekly News Letters</span>
+                <input class="form-check-input" type="checkbox" role="switch" id="weeklyLetters" checked>
+              </div>
+            </div>
+            <div class="form-switch switch-primary py-12 px-16 border radius-8 position-relative mb-16">
+              <label for="meetUp" class="position-absolute w-100 h-100 start-0 top-0"></label>
+              <div class="d-flex align-items-center gap-3 justify-content-between">
+                <span class="form-check-label line-height-1 fw-medium text-secondary-light">Meetups Near you</span>
+                <input class="form-check-input" type="checkbox" role="switch" id="meetUp">
+              </div>
+            </div>
+            <div class="form-switch switch-primary py-12 px-16 border radius-8 position-relative mb-16">
+              <label for="orderNotification" class="position-absolute w-100 h-100 start-0 top-0"></label>
+              <div class="d-flex align-items-center gap-3 justify-content-between">
+                <span class="form-check-label line-height-1 fw-medium text-secondary-light">Orders
+                  Notifications</span>
+                <input class="form-check-input" type="checkbox" role="switch" id="orderNotification" checked>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+{% endblock %}

@@ -1,0 +1,174 @@
+{% extends 'base.html' %}  
+{% block content %}
+{% load static %}
+
+<div class="dashboard-main-body">
+
+    <div class="dash-title">View Profile gf</div> 
+
+  <!-- <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-24">
+<h6 class="fw-semibold mb-0"></h6>
+<ul class="d-flex align-items-center gap-2">
+<li class="fw-medium">
+<a href="{% url 'view_profile' %}" class="d-flex align-items-center gap-1 hover-text-primary">
+
+</a>
+</li>
+</ul>
+</div> -->
+  <div class="row gy-4">
+      <div class="col-lg-4">
+          <div class="user-grid-card position-relative border radius-16 overflow-hidden bg-base h-100">
+              <img src="{% static 'assets/images/user-grid/user-grid-bg1.png' %}" alt="" class="w-100 object-fit-cover">
+              <div class="pb-24 ms-16 me-16 mt--100">
+                  <div class="userprofiletop">
+                    <div class="userprofileimages">
+                    {% if request.user.profile_image %}
+                    <img src="{{ request.user.profile_image.url }}" alt="site logo">
+                    {% else %}
+                    <img src="{% static 'assets/images/main_profile.jpg' %}" alt="site logo">
+                    {% endif %}
+                </div>
+
+                   <div class="userprofiletoptext">
+                    <h6>{{ admin.name }}</h6>
+                    <p>{{ admin.email }}</p>
+                   </div>
+                  </div>
+                  <div class="userprofiletopPersonal">
+                      <h6>Personal Info</h6>
+
+                      <ul>
+                          <li>
+                              <span>Full Name</span>{{ admin.name }}
+                          </li>
+                          <li>
+                            <span> Email</span> {{ admin.email }}
+                        </li>
+
+                        {% comment %} <li>
+                            <span> call</span>{{ admin.call  }}
+                        </li> {% endcomment %}
+       
+                       
+                      </ul>
+                  </div>
+              </div> 
+          </div>
+      </div>
+      <div class="col-lg-8">
+          <div class="card h-100">
+            <div class="border-bottom title-part-padding">
+              {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-success">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+              {% endif %}
+              {% comment %} <h4 class="card-title mb-0">Welcome {{ user.name }}</h4> {% endcomment %}
+              {% comment %} <h4 class="card-title mb-0">Welcome {{ admin.name }}</h4> {% endcomment %}
+            </div>
+              <div class="card-body p-24">
+                  <ul class="nav border-gradient-tab nav-pills mb-20" id="pills-tab" role="tablist">
+                      <li class="nav-item" role="presentation">
+                        <button class="nav-link d-flex align-items-center px-24 active" id="pills-edit-profile-tab" data-bs-toggle="pill" data-bs-target="#pills-edit-profile" type="button" role="tab" aria-controls="pills-edit-profile" aria-selected="true">
+                          Edit Profile 
+                        </button>
+                      </li>
+                      {% comment %} <li class="nav-item" role="presentation">
+                        <button class="nav-link d-flex align-items-center px-24" id="pills-change-passwork-tab" data-bs-toggle="pill" data-bs-target="#pills-change-passwork" type="button" role="tab" aria-controls="pills-change-passwork" aria-selected="false" tabindex="-1">
+                          Change Password 
+                        </button>
+                      </li> {% endcomment %}
+                      <li class="nav-item" role="presentation">
+                        <button class="nav-link d-flex align-items-center px-24" id="pills-notification-tab" data-bs-toggle="pill" data-bs-target="#pills-notification" type="button" role="tab" aria-controls="pills-notification" aria-selected="false" tabindex="-1">
+                            Settings
+                        </button>
+                      </li>
+                  </ul>
+
+                  <div class="tab-content" id="pills-tabContent">   
+                      <div class="tab-pane fade show active" id="pills-edit-profile" role="tabpanel" aria-labelledby="pills-edit-profile-tab" tabindex="0">
+               
+                    
+                          <form action="{% url 'view_profile' %}" method="POST" enctype="multipart/form-data">
+                            {% csrf_token %}
+                     
+                                <!-- <div class="avatar-upload">
+                                      
+                                           
+                                        <label for="imageUpload" class="w-32-px h-32-px d-flex justify-content-center align-items-center bg-primary-50 text-primary-600 border border-primary-600 bg-hover-primary-100 text-lg rounded-circle">
+                                                <iconify-icon icon="solar:camera-outline" class="icon"></iconify-icon>
+                                            </label> 
+                                      
+                                       <div class="avatar-preview">
+                                            <div id="imagePreview">
+                                        </div>
+                                    </div>
+                                </div> -->
+                         
+                            {% comment %} <div class="row">
+                                <div class="col-md-12 mb-12 mb-3">
+                                    <label for="validationDefault01">User ID</label>
+                                      <input type="number" class="form-control" placeholder="{{admin.email}}" name="admin_id" value="{{admin.admin_id}}" disabled>
+                                    </div>
+                                  </div> {% endcomment %}
+                              <div class="row">
+                                <div class="col-sm-6">
+                                    <div class="mb-20">
+    
+                                <label class="fw-semibold text-primary-light text-sm mb-8" for="">Profile Image</label>
+                                <input type='file' id="imageUpload" class="form-control" name="profile_image" accept=".png, .jpg, .jpeg">
+                            </div>
+                        </div>
+                                  <div class="col-sm-6">
+                                      <div class="mb-20">
+                                          <label for="name" class="fw-semibold text-primary-light text-sm mb-8">Full Name <span class="text-danger-600">*</span></label>
+                                          <input type="text" class="form-control radius-8" id="name" name="name" placeholder="Enter Full Name" value="{{ admin.name }}">
+                                      </div>
+                                  </div>
+                                  <div class="col-sm-6">
+                                      <div class="mb-20">
+                                          <label for="email" class="fw-semibold text-primary-light text-sm mb-8">Email <span class="text-danger-600">*</span></label>
+                                          <input type="email" class="form-control radius-8" id="email" name="email" placeholder="Enter email address" value="{{ admin.email }}">
+                                      </div>
+                                  </div>
+                                  {% comment %} <div class="col-sm-6">
+                                      <div class="mb-20">
+                                          <label for="call" class="fw-semibold text-primary-light text-sm mb-8">Call</label>
+                                          <input type="number" class="form-control radius-8" id="call" placeholder="Ente call" value="{{ admin.call }}">
+                                      </div>
+                                  </div> {% endcomment %}
+                              </div>
+                              <div class="d-flex align-items-center mt-3 gap-3">
+                                  <input type="submit" class="btn text-md px-56 py-12 radius-8">
+                              </div>
+                          </form>
+                      </div>
+
+                      <div class="tab-pane fade" id="pills-notification" role="tabpanel" aria-labelledby="pills-notification-tab" tabindex="0">
+                        <form action="{% url 'view_profile' %}" method="POST" enctype="multipart/form-data">
+                            {% csrf_token %}
+                        <div class="row">
+                            <div class="col-sm-8">
+                                <div class="mb-20">
+                                    <input type="text" name="tag" id="" value="logo" hidden>
+                                    <label for="name" class="fw-semibold text-primary-light text-sm mb-8">Logo <span class="text-danger-600">*</span></label>
+                                    <input type="file" class="form-control radius-8" id="logo" name="logo" value="">
+                                </div>
+                            </div>
+                            <div class="gap-3 mt-3">
+                                <input type="submit" class="btn text-md px-56 py-12 radius-8">
+                            </div>
+                        </div>
+                        </form>
+                      </div>
+
+                  </div>
+              </div>
+          </div>
+      </div>
+  </div>
+</div>
+{% endblock %}

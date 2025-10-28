@@ -1,0 +1,65 @@
+{% extends 'admin_dashboard/team_leader/base.html' %}  
+{% block content %}
+{% load static %} 
+
+<div class="dashboard-main-body">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-24">
+      <h6 class="fw-semibold mb-0">Add User</h6>
+      <ul class="d-flex align-items-center gap-2">
+        <li class="fw-medium">
+          <a href="index.html" class="d-flex align-items-center gap-1 hover-text-primary">
+            <iconify-icon icon="solar:home-smile-angle-outline" class="icon text-lg"></iconify-icon>
+            Dashboard
+          </a>
+        </li>
+        <li>-</li>
+        <li class="fw-medium">Add User</li>
+      </ul>
+    </div>
+  
+    <div class="card h-100 p-0 radius-12">
+      <div class="card-body p-24">
+        <div class="row justify-content-center">
+          <div class="col-xxl-6 col-xl-8 col-lg-10">
+            <div class="card border">
+              <div class="card-body">
+                <h6 class="text-md text-primary-light mb-16">Profile Image</h6>
+  
+                <!-- Upload Image Start -->
+                <div class="mb-24 mt-16">
+                  <div class="avatar-upload">
+                    <div class="avatar-edit position-absolute bottom-0 end-0 me-24 mt-16 z-1 cursor-pointer">
+                      <input type='file' id="imageUpload" accept=".png, .jpg, .jpeg" hidden>
+                      <label for="imageUpload" class="w-32-px h-32-px d-flex justify-content-center align-items-center bg-primary-50 text-primary-600 border border-primary-600 bg-hover-primary-100 text-lg rounded-circle">
+                        <iconify-icon icon="solar:camera-outline" class="icon"></iconify-icon>
+                      </label>
+                    </div>
+                    <div class="avatar-preview">
+                      <div id="imagePreview"> </div>
+                    </div>
+                  </div>
+                </div>
+                <!-- Upload Image End -->
+                
+                <form method="POST" action="{% url 'add_user' %}">
+                  {% csrf_token %}
+                  <div class="mb-20">
+                    <label for="name" class="form-label fw-semibold text-primary-light text-sm mb-8">Name <span class="text-danger-600">*</span></label>
+                    <input type="text" class="form-control radius-8" id="name" name="name" placeholder="Enter Full Name" value="{{ admin.name }}">
+                  </div>
+                  <div class="mb-20">
+                    <label for="call-link" class="form-label fw-semibold text-primary-light text-sm mb-8">Call Link</label>
+                    <input  class="form-control radius-8"  name="call" placeholder="Enter call link" value="{{ admin.call }}">
+                  </div>
+                <div class="d-flex align-items-center justify-content-center gap-3">
+                  <input type="submit" class="btn btn-primary border border-primary-600 text-md px-56 py-12 radius-8">
+                </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endblock %}

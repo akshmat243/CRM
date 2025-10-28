@@ -1,0 +1,741 @@
+<!-- meta tags and other links -->
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<!-- Mirrored from wowdash.wowtheme7.com/demo/index.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 01 Jul 2024 09:05:16 GMT -->
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>lead crm</title>
+  <link rel="icon" type="image/png" href="{% static 'assets/images/ats_logo2.jpeg' %}" sizes="16x16">
+  <!-- remix icon font css  -->
+  <link rel="stylesheet" href="{% static 'assets/css/remixicon.css' %}">
+  <!-- BootStrap css -->
+  <link rel="stylesheet" href="{% static 'assets/css/lib/bootstrap.min.css' %}">
+  <!-- Apex Chart css -->
+  <link rel="stylesheet" href="{% static 'assets/css/lib/apexcharts.css' %}">
+  <!-- Data Table css -->
+  <link rel="stylesheet" href="{% static 'assets/css/lib/dataTables.min.css' %}">
+  <!-- Text Editor css -->
+  <link rel="stylesheet" href="{% static 'assets/css/lib/editor-katex.min.css' %}">
+  <link rel="stylesheet" href="{% static 'assets/css/lib/editor.atom-one-dark.min.css' %}">
+  <link rel="stylesheet" href="{% static 'assets/css/lib/editor.quill.snow.css' %}">
+  <!-- Date picker css -->
+  <link rel="stylesheet" href="{% static 'assets/css/lib/flatpickr.min.css' %}">
+  <!-- Calendar css -->
+  <link rel="stylesheet" href="{% static 'assets/css/lib/full-calendar.css' %}">
+  <!-- Vector Map css -->
+  <link rel="stylesheet" href="{% static 'assets/css/lib/jquery-jvectormap-2.0.5.css' %}">
+  <!-- Popup css -->
+  <link rel="stylesheet" href="{% static 'assets/css/lib/magnific-popup.css' %}">
+  <!-- Slick Slider css -->
+  <link rel="stylesheet" href="{% static 'assets/css/lib/slick.css' %}">
+  <!-- main css -->
+  <link rel="stylesheet" href="{% static 'assets/css/style.css' %}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+  <style>
+    [data-theme=dark] .sidebar-logo img.light-logo {
+      display: block !important;
+    }
+
+    /* .sidebar-hidden {
+      display: none;
+    } */
+
+    #popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1050;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+        }
+        #popup h4 {
+            margin-bottom: 10px;
+        }
+      
+  </style>
+</head>
+
+<body>
+  <aside class="sidebar dashboard_sidebar_bg " id="sidebar">
+    <button type="button" class="sidebar-close-btn">
+      <iconify-icon icon="radix-icons:cross-2"></iconify-icon>
+    </button>
+    <div class="bg-white">
+      <a href="{% url 'staff_user' %}" class="sidebar-logo">
+        <img id="site-logo" alt="site logo" class="light-logo m-auto" width="60px" height="60px">         
+        <img src="{% static 'assets/images/ats_logo2.jpeg' %}" alt="site logo" class="light-logo m-auto side_bar_active d-none"style="width: 100px;">         
+         <!-- <b
+          style="color: #333; transition: color 0.3s ease; font-size: 1.07em;" onmouseover="this.style.color='BLUE'"
+          onmouseout="this.style.color='#333'">
+          Vrindavan
+        </b> -->
+      </a>
+    </div>
+    <div class="sidebar-menu-area">
+      <ul class="sidebar-menu " id="sidebar-menu">
+           
+        <!-- profile image  -->
+       
+       
+       
+       
+        <li class="mb-2 mt-2">
+          <a href="{% url 'staff_user' %}" class="">
+            <iconify-icon icon="mdi:view-dashboard-outline" class="menu-icon "></iconify-icon>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        {% if request.user.on_boarding_manager %}
+        <li class="dropdown mb-2">
+          <a href="javascript:void(0)" class="">
+            <iconify-icon icon="mdi:file-chart-outline" class="menu-icon "></iconify-icon>
+            <span class="hide-menu">Customer Inquiry Lists</span>
+          </a>
+          
+          <ul class="sidebar-submenu ">
+            <li><a href="{% url 'inquiry_lists'  'new_inquiry' %}" class="">
+              <i class="ri-circle-fill circle-icon  w-auto"></i>New Inquiry Lists</a>
+          </ul>
+
+        </li>
+        {% elif request.user.delivery_manager %}
+        <li class="dropdown mb-2">
+          <a href="javascript:void(0)" class="">
+            <iconify-icon icon="mdi:file-chart-outline" class="menu-icon "></iconify-icon>
+            <span class="hide-menu">Delivery Inquiry Lists</span>
+          </a>
+          
+          <ul class="sidebar-submenu ">
+            <li><a href="{% url 'inquiry_lists'  'new_inquiry' %}" class="">
+              <i class="ri-circle-fill circle-icon  w-auto"></i>New Inquiry Lists</a>
+          </li>
+            <li><a href="{% url 'inquiry_lists' 'pending' %}" class="">
+              <i class="ri-circle-fill circle-icon  w-auto"></i>Pending Delivery</a>
+          </li>
+          <li><a href="{% url 'inquiry_lists' 'completed' %}" class="">
+              <i class="ri-circle-fill circle-icon  w-auto"></i>Completed Delivery</a>
+          </li>
+          
+          </ul>
+
+        </li>
+        {% elif request.user.dsr_manager %}
+        <li class="mb-2">
+          <a href="{% url 'activitylogs' %}" class=" ">
+            <span> Inquiry Lists </span>
+          </a>
+        </li>
+        {% elif request.user.executive_manager %}
+        <li class="dropdown mb-2">
+          <a href="javascript:void(0)" class="">
+            <iconify-icon icon="mdi:file-chart-outline" class="menu-icon "></iconify-icon>
+            <span class="hide-menu">Delivery Inquiry Lists</span>
+          </a>
+          
+          <ul class="sidebar-submenu ">
+            <li><a href="{% url 'inquiry_lists'  'new_inquiry' %}" class="">
+              <i class="ri-circle-fill circle-icon  w-auto"></i>New Inquiry Lists</a>
+          </li>
+            <li><a href="{% url 'inquiry_lists' 'pending' %}" class="">
+              <i class="ri-circle-fill circle-icon  w-auto"></i>Pending Delivery</a>
+          </li>
+          <li><a href="{% url 'inquiry_lists' 'completed' %}" class="">
+              <i class="ri-circle-fill circle-icon  w-auto"></i>Completed Delivery</a>
+          </li>
+          
+          </ul>
+
+        </li>
+        {% elif request.user.is_team_leader %}
+        <li class="dropdown mb-2">
+          <a href="javascript:void(0)" class="">
+            <iconify-icon icon="solar:home-smile-angle-outline" class="menu-icon"></iconify-icon>
+            <span class="hide-menu">Productivity</span>
+          </a>
+          <ul class="sidebar-submenu">
+            <li><a href="{% url 'staff_productivity_view' %}" class="">
+                <i class="ri-circle-fill circle-icon  w-auto"></i>Staff</a>
+            </li>
+            <!-- <li><a href="#" class="">
+                <i class="ri-circle-fill circle-icon  w-auto"></i>Team Leader</a>
+            </li>
+            <li><a href="#" class="">
+                <i class="ri-circle-fill circle-icon  w-auto"></i>Admin</a>
+            </li>-->
+            <li><a href="{% url 'freelancer_productivity_view' %}" class="">
+              <i class="ri-circle-fill circle-icon  w-auto"></i>Associates</a>
+            </li> 
+            <!-- <li><a href="{% url 'teammaybe' %}">
+                <i class="ri-circle-fill circle-icon  w-auto"></i>Other Location</a>
+              </li> -->
+          </ul>
+        </li>
+
+        <!-- <li class="mb-2">
+          <a href="{% url 'productivity_index' %}">
+            <iconify-icon icon="solar:home-smile-angle-outline" class="menu-icon"></iconify-icon>
+            <span>Productivity</span>
+          </a>
+        </li> -->
+
+        <li class="">
+          <a href="{% url 'lead' %}" class="">
+            <iconify-icon icon="mdi:account-multiple-outline" class="menu-icon "></iconify-icon>
+            <span>Leads</span>
+          </a>
+        </li>
+        <li class="dropdown mb-2">
+          <a href="javascript:void(0)" class="">
+            <iconify-icon icon="mdi:file-chart-outline" class="menu-icon "></iconify-icon>
+            <span class="hide-menu">Leads Report</span>
+          </a>
+          
+          <ul class="sidebar-submenu ">
+            <li><a href="{% url 'teamcustomer' 'today_follow' %}" class="">
+              <i class="ri-circle-fill circle-icon  w-auto"></i>Today FollowUps</a>
+          </li>
+          <li><a href="{% url 'teamcustomer' 'tommorrow_follow' %}" class="">
+              <i class="ri-circle-fill circle-icon  w-auto"></i>Toworrow FollowUps</a>
+          </li>
+          <li><a href="{% url 'teamcustomer' 'pending_follow' %}" class="">
+            <i class="ri-circle-fill circle-icon  w-auto"></i>Pending FollowUps</a>
+        </li>
+            <li><a href="{% url 'teamcustomer' 'Intrested' %}" class="">
+                <i class="ri-circle-fill circle-icon  w-auto"></i>Intrested</a>
+            </li>
+            
+            <li><a href="{% url 'visit_team_leader_side' %}" class="">
+                <i class="ri-circle-fill circle-icon  w-auto"></i>Visit</a>
+            </li>
+          </ul>
+
+          <!-- <ul class="sidebar-submenu">
+            <li><a href="{% url 'teamcustomer' 'None' %}" class="">
+            <i class="ri-circle-fill circle-icon text-primary-600 w-auto"></i>Intrested</a>
+            </li>
+            <li><a href="{% url 'teamlost_leads' %}" class="">
+              <i class="ri-circle-fill circle-icon text-primary-600 w-auto"></i>Not Interested</a>
+            </li>
+            <li><a href="{% url 'teammaybe' %}" class="">
+              <i class="ri-circle-fill circle-icon text-primary-600 w-auto"></i>Other Location</a>
+            </li>
+              <li><a href="{% url 'teamnot_picked' %}" class="">
+                <i class="ri-circle-fill circle-icon text-primary-600 w-auto"></i>Not Picked</a>
+              </li>
+              <li><a href="{% url 'teamlost' %}" class="">
+                <i class="ri-circle-fill circle-icon text-primary-600 w-auto"></i>Lost</a>
+              </li>
+              <li><a href="{% url 'visit_team_leader_side' %}" class="">
+                <i class="ri-circle-fill circle-icon text-primary-600 w-auto"></i>Visit</a>
+              </li>
+          </ul> -->
+        </li>
+
+        <li class="dropdown mb-2">
+          <a href="javascript:void(0)" class="">
+            <iconify-icon icon="mdi:bullhorn-outline" class="menu-icon "></iconify-icon>
+            <span>Marketing</span>
+          </a>
+          <ul class="sidebar-submenu">
+            <li><a
+              type="button"
+              class=""
+              data-bs-toggle="modal"
+              data-bs-target="#basicModal"
+              onClick="editUser('whatsapp', '{{request.user}}')"
+            >
+            <i class="ri-circle-fill circle-icon text-primary-600 w-auto"></i> Whatsapp
+            </a>
+            </li>
+            <li><a
+              type="button"
+              class=""
+              data-bs-toggle="modal"
+              data-bs-target="#basicModal"
+              onClick="editUser('google', '{{request.user}}')"
+            ><i class="ri-circle-fill circle-icon text-warning-main w-auto"></i> Google</a>
+            </li>
+            <li><a
+              type="button"
+              class=""
+              data-bs-toggle="modal"
+              data-bs-target="#basicModal"
+              onClick="editUser('facebook', '{{request.user}}')"
+            ><i class="ri-circle-fill circle-icon text-info-main w-auto"></i> Facebook</a>
+            </li>
+            <li><a
+              type="button"
+              class=""
+              data-bs-toggle="modal"
+              data-bs-target="#basicModal"
+              onClick="editUser('linkedin', '{{request.user}}')"
+            ><i class="ri-circle-fill circle-icon text-danger-main w-auto"></i> Linked In</a>
+            </li>
+          </ul>
+        </li>
+
+        <li class="mb-2">
+          <a href="{% url 'activitylogs' %}" class=" ">
+            <iconify-icon icon="mdi:clock-outline" class="menu-icon "></iconify-icon>
+            <span>Time Sheet</span>
+          </a>
+        </li>
+        <li class="mb-2">
+          <a href="{% url 'add_sell_freelancer' 0 %}" class="">
+            <iconify-icon icon="mdi:clipboard-text-outline" class="menu-icon"></iconify-icon>
+            <span>Add Sell</span>
+          </a>
+        </li>
+      
+        {% endif  %}
+        {% comment %} <li class="dropdown">
+          <a class="sidebar-link has-arrow" href="{% url 'staff' %}" aria-expanded="false">
+            <span class="d-flex">
+              <i class="ti ti-chart-donut-3"></i>
+            </span>
+            <span class="hide-menu">Staff</span>
+          </a>
+        </li> {% endcomment %}
+        {% comment %} <li>
+          <a href="sign-in.html"><i class="ri-circle-fill circle-icon text-primary-600 w-auto"></i> Login In</a>
+        </li> {% endcomment %}
+        {% comment %}
+      </ul> {% endcomment %}
+      </li>
+      {% comment %} <li>
+        <a href="notification.html"><i class="ri-circle-fill circle-icon text-warning-main w-auto"></i> Notification</a>
+      </li>
+      <li>
+        <a href="notification-alert.html"><i class="ri-circle-fill circle-icon text-info-main w-auto"></i> Notification
+          Alert</a>
+      </li> {% endcomment %}
+      </ul>
+      </li>
+      </ul>
+    </div>
+  </aside>
+  <main class="dashboard-main">
+
+    <div id="popup" class="text-center">
+      <h4>Follow Up Alert!</h4>
+      <p id="lead-message"></p>
+      <button class="btn btn-primary" onclick="closePopup()">Close</button>
+    </div>
+  
+    <audio id="alert-audio" src="{% static 'audio/follow_up_alert.mp3' %}" preload="auto"></audio>
+
+
+    <div class="navbar-header dashboard_sidebar_bg">
+      <div class="row align-items-center  custom-row justify-content-between">
+        <!-- Left Side: Sidebar Toggles -->
+        <div class="col-auto d-flex align-items-center gap-4">
+          <button type="button" class="sidebar-toggle">
+            <iconify-icon icon="heroicons:bars-3-solid" class="icon   non-active"></iconify-icon>
+            <iconify-icon icon="iconoir:arrow-right" class="icon   active"></iconify-icon>
+          </button>
+          <button type="button" class="sidebar-mobile-toggle">
+            <iconify-icon icon="heroicons:bars-3-solid" class="icon "></iconify-icon>
+          </button>
+        </div>
+
+        <!-- Center: Title or Logo -->
+        <div class="col text-center">
+          <a href="{% url 'staff_user' %}" class="d-block">
+            <!-- <b style="color: #333; transition: color 0.3s ease; font-size: 1.07em;"
+              onmouseover="this.style.color='BLUE'" onmouseout="this.style.color='#333'">
+              Vrindavan Real Estate
+            </b> -->
+            <!-- <img src="{% static 'assets/images/logo_new.png' %}" alt="site logo" class="light-logo m-auto" style="width: 150px;">          -->
+          </a>
+        </div>
+
+        <!-- Right Side: Theme Toggle, Notifications, Profile Dropdown -->
+        <div class="col-auto d-flex align-items-center gap-3">
+          <!-- <button type="button" data-theme-toggle
+            class="w-40-px h-40-px bg-neutral-200 rounded-circle d-flex justify-content-center align-items-center"></button> -->
+
+          <div class="dropdown">
+            <!-- <button
+              class="has-indicator w-40-px h-40-px  d-flex justify-content-center align-items-center"
+              type="button" data-bs-toggle="dropdown">
+              <iconify-icon icon="iconoir:bell" class=" text-xl"></iconify-icon>
+            </button> -->
+
+            <!-- <button
+              class="has-indicator w-40-px h-40-px d-flex justify-content-center align-items-center position-relative"
+              type="button" data-bs-toggle="dropdown">
+              <iconify-icon icon="iconoir:bell" class=" text-xl"></iconify-icon>
+
+              <span class="position-absolute top-1 start-100 translate-middle badge rounded-pill bg-danger">
+                {{ interested_leads_count }}
+                <span class="visually-hidden">unread messages</span>
+              </span>
+            </button> -->
+
+            <!-- <button
+              class="has-indicator w-40-px h-40-px d-flex justify-content-center align-items-center position-relative"
+              type="button" data-bs-toggle="dropdown">
+              <iconify-icon icon="iconoir:bell" class=" text-xl"></iconify-icon>
+              <span id="notification-badge" class="position-absolute top-1 start-100 translate-middle badge rounded-pill bg-danger" style="display: none;">
+                0
+                <span class="visually-hidden">unread notifications</span>
+              </span>
+            </button> -->
+
+            <button
+              class="has-indicator w-40-px h-40-px d-flex justify-content-center align-items-center position-relative"
+              type="button" data-bs-toggle="dropdown">
+              <iconify-icon icon="iconoir:bell" class=" text-xl"></iconify-icon>
+              <span id="notification-badge" class="position-absolute start-100 translate-middle badge rounded-pill bg-danger" style="display: none;">
+                0
+                <span class="visually-hidden">unread notifications</span>
+              </span>
+            </button>
+
+  
+
+            <div class="dropdown-menu to-top dropdown-menu-lg p-0">
+          
+                <div id="lead-list" class="mt-2">
+                 
+                </div>
+        
+         
+            </div>
+          </div>
+          
+
+          <div class="avatar-previe">
+   
+
+
+        
+                  <div id="imagePreview rounded-circle m-auto">
+                    {% if request.user.profile_image %}
+                    <img src="{{ request.user.profile_image.url }}" alt="site logo" class="light-logo w-90-px h-90-px rounded-circle m-auto">
+                    {% else %}
+                    <img src="{% static 'assets/images/main_profile.jpg' %}" alt="site logo" class="light-logo rounded-circle m-auto">
+                    {% endif %}
+                  </div>
+                 
+     
+              
+         
+          </div>
+
+
+          <!-- Notification dropdown end -->
+
+          <div class="dropdown">
+            <button class="userdropdown" type="button"
+              data-bs-toggle="dropdown">
+              <p class="mb-0">Welcome {{ request.user.name }}</p>
+              {% comment %} <img src="{% static 'assets/images/user.png' %}" alt="image"
+                class="w-40-px h-40-px object-fit-cover rounded-circle"> {% endcomment %}
+            </button>
+            <div class="dropdown-menu to-top px-8 dropdown-menu-sm">
+              <div class="dropdownheaduser">
+                <div>
+                  <h6 class="text-lg text-primary-light fw-semibold mb-0">{{ request.user.name}}</h6>
+                  {% comment %} <h6 class="text-lg text-primary-light fw-semibold mb-0">Welcome {{ request.user.name }}
+                  </h6> {% endcomment %}
+                  {% comment %} <span class="text-secondary-light fw-medium text-sm">Admin</span> {% endcomment %}
+                </div>
+                <button type="button" class="hover-text-danger">
+                  <iconify-icon icon="radix-icons:cross-1" class="icon text-xl"></iconify-icon>
+                </button>
+              </div>
+              <ul class="to-top-list">
+                <li>
+                  <a class="dropdown-item"
+                    href="{% url 'team_view_profile' %}">
+                    <iconify-icon icon="solar:user-linear" class="icon text-xl"></iconify-icon> My Profile</a>
+                </li>
+                <li>
+                  <a class="dropdown-item"
+                    href="{% url 'logout' %}">
+                    <iconify-icon icon="lucide:power" class="icon text-xl"></iconify-icon> Log Out</a>
+                </li>
+              </ul>
+            </div>
+          </div><!-- Profile dropdown end -->
+        </div>
+      </div>
+    </div>
+
+
+
+    {% block content %}
+
+    {% endblock %}
+
+
+    <footer class="d-footer">
+      <div class="row align-items-center justify-content-between">
+        <div class="col-auto">
+          <p class="mb-0">Address: Codercom building, A4, Ajmer Rd, Purani Chungi, Vidhyut Nagar, Jaipur, Rajasthan 302021</p>
+        </div>
+
+      </div>
+    </footer>
+  </main>
+
+      <!-- Modal -->
+      <div class="modal fade marketingpopup " id="basicModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h6 class="modal-title" id="exampleModalLabel1">Marketing</h6>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <form action="">
+              <div class="row">
+                <div class="col mb-3">
+                  <!-- <input type="text" name="m_id", id="form-id-marketing" hidden> -->
+                  <input type="text" name="create_id", id="form-created-id" hidden>
+                  <input type="text" name="source", id="form-source" hidden>
+                  <label for="nameBasic" class="form-label">Message</label>
+                  <!-- <input type="text" id="form-message" value="" name="message" class="form-control" placeholder="Enter Message" /> -->
+                  <textarea id="form-message" value="" name="message" class="form-control" placeholder="Enter Message" rows="4"></textarea>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col mb-3">
+                  <label for="nameBasic" class="form-label">URL</label>
+                  <input type="text" id="form-url" name="url" class="form-control" placeholder="Enter url" />
+                </div>
+              </div>
+              <div class="row">
+                <div class="col mb-3">
+                  <label for="nameBasic" class="form-label">Media File</label>
+                  <input type="file" id="form-media" name="media_file" class="form-control" placeholder="select media file" />
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+            
+              <button type="submit" class="btn btn-outline-secondary">Save changes</button>
+            </div>
+          </div>
+        </form>
+        </div>
+      </div>
+
+  <!-- jQuery library js -->
+  <script src="{% static 'assets/js/lib/jquery-3.7.1.min.js' %}"></script>
+  <!-- Bootstrap js -->
+  <script src="{% static 'assets/js/lib/bootstrap.bundle.min.js' %}"></script>
+  <!-- Apex Chart js -->
+  <script src="{% static 'assets/js/lib/apexcharts.min.js' %}"></script>
+  <!-- Data Table js -->
+  <script src="{% static 'assets/js/lib/dataTables.min.js' %}"></script>
+  <!-- Iconify Font js -->
+  <script src="{% static 'assets/js/lib/iconify-icon.min.js' %}"></script>
+  <!-- jQuery UI js -->
+  <script src="{% static 'assets/js/lib/jquery-ui.min.js' %}"></script>
+  <!-- Vector Map js -->
+  <script src="{% static 'assets/js/lib/jquery-jvectormap-2.0.5.min.js' %}"></script>
+  <script src="{% static 'assets/js/lib/jquery-jvectormap-world-mill-en.js' %}"></script>
+  <!-- Popup js -->
+  <script src="{% static 'assets/js/lib/magnifc-popup.min.js' %}"></script>
+  <!-- Slick Slider js -->
+  <script src="{% static 'assets/js/lib/slick.min.js' %}"></script>
+  <!-- main js -->
+  <script src="{% static 'assets/js/app.js' %}"></script>
+
+  <script src="{% static 'assets/js/homeOneChart.js' %}"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+  $(document).ready(function() {
+    $.ajax({
+      url: '{% url "get_logo" %}',
+      method: 'GET',
+      success: function(response) {
+        if (response.logo_url) {
+          $('#site-logo').attr('src', response.logo_url);
+        } else {
+          console.error('Logo URL not found');
+        }
+      },
+      error: function() {
+        console.error('Failed to fetch logo');
+      }
+    });
+  });
+</script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const sidebarToggleBtn = document.querySelector(".sidebar-toggle");
+      const sidebar = document.getElementById("sidebar");
+
+      sidebarToggleBtn.addEventListener("click", function () {
+        sidebar.classList.toggle("sidebar-hidden");
+      });
+    });
+    
+
+    function editUser(source, user) {    
+    $.ajax({
+        url: `/edit-marketing/${source}/`,
+        type: 'GET',
+        success: function(data) {                        
+            $('#form-source').val(data.source);
+            $('#form-url').val(data.url);
+            $('#form-message').val(data.message);
+            $('#form-media').val(data.media_file);
+            $('#form-created-id').val(data.create_id);
+            // $('#form-id-marketing').val(data.m_id);
+            
+            $('#basicModal').modal('show');
+        }
+        
+    });
+}
+
+
+  $('#basicModal form').on('submit', function(e) {
+    e.preventDefault();
+    const data = {
+        // m_id: $('#form-id-marketing').val(),
+        source: $('#form-source').val(),
+        message: $('#form-message').val(),
+        url: $('#form-url').val(),
+        media_file: $('#form-media').val(),
+        create_id: $('#form-created-id').val(),
+    };
+
+    $.ajax({
+        url: `/update-record/`,
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        success: function(response) {
+            if (response.status === "200") {
+                $('#basicModal').modal('hide');
+                alert(response.message)
+                location.reload(); // Refresh the page to reflect changes
+            }else{
+                alert(response.message)
+            }
+            // $('#exampleModal').modal('hide');
+            // alert(response.message)
+            // location.reload(); // Refresh the page to reflect changes
+        },
+        error: function(response) {
+            alert('An error occurred. Please try again.');
+        }
+    });
+});
+  </script>
+
+
+<!-- for follow up popup -->
+<script>
+  function fetchLeads() {
+      fetch('/api/get-matching-leads/')
+          .then(response => response.json())
+          .then(data => {
+              if (data.status === 'success') {
+                  document.getElementById('lead-message').textContent = data.message;
+                  showPopup();
+                  playAudio();
+              }
+          })
+          .catch(error => console.error('Error fetching leads:', error));
+  }
+
+  function showPopup() {
+      document.getElementById('popup').style.display = 'block';
+  }
+
+  function closePopup() {
+      document.getElementById('popup').style.display = 'none';
+      stopAudio();
+  }
+
+  function playAudio() {
+      const audio = document.getElementById('alert-audio');
+      audio.play();
+  }
+
+  function stopAudio() {
+      const audio = document.getElementById('alert-audio');
+      audio.pause();
+      audio.currentTime = 0;
+  }
+
+  setInterval(fetchLeads, 300000); // 300000 ms = 5 minutes
+  // setInterval(fetchLeads, 30000);
+
+  fetchLeads();
+
+
+  function fetchInterestedLeads() {
+    fetch('/api/today-interested-leads/')
+        .then(response => response.json())
+        .then(data => {
+            const badge = document.getElementById('notification-badge');
+            const leadList = document.getElementById('lead-list');
+            const count = data.count;
+            const leads = data.leads;            
+
+            if (count > 0) {
+                badge.textContent = count;
+                badge.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+            }
+
+            leadList.innerHTML = '';
+
+            leads.forEach((lead, index) => {
+                const leadItem = document.createElement('p');
+                leadItem.className = 'text-primary-light mb-0';
+                leadItem.textContent = `${index + 1}. Scheduled ${lead.name}'s follow-up at ${lead.follow_up_time}`;
+                leadList.appendChild(leadItem);
+
+                const separator = document.createElement('hr');
+                separator.className = 'my-2';
+                leadList.appendChild(separator);
+            });
+        })
+        .catch(error => console.error('Error fetching interested leads:', error));
+}
+
+// setInterval(fetchInterestedLeads, 30000);
+fetchInterestedLeads();
+
+
+</script>
+
+<!-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script> -->
+
+
+</body>
+
+<!-- Mirrored from wowdash.wowtheme7.com/demo/index.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 01 Jul 2024 09:05:52 GMT -->
+
+</html>

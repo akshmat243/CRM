@@ -1,0 +1,159 @@
+{% extends 'admin_dashboard/staff/base.html' %}
+{% block content %}
+{% load static %}
+
+<div class="dashboard-main-body">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-24">
+        <h6 class="fw-semibold mb-0">Interested</h6>
+    </div>
+
+    <div class="card h-100 p-0 radius-12">
+        <div class="card-header border-bottom bg-base py-16 px-24 d-flex align-items-center flex-wrap gap-3 justify-content-between">
+            <div class="d-flex align-items-center flex-wrap gap-3">
+                {% comment %} <form class="navbar-search">
+                    <input type="text" id="searchInput" class="bg-base h-40-px w-100" name="search" placeholder="Search" onkeyup="searchTable()">
+                    <iconify-icon icon="ion:search-outline" class="icon"></iconify-icon>
+                </form> {% endcomment %}
+                <form class="navbar-search">
+                    <input type="text" id="searchInput" class="bg-base h-40-px w-100" name="search" placeholder="Search"
+                      onkeyup="searchTable()">
+                    <iconify-icon icon="ion:search-outline" class="icon"></iconify-icon>
+                  </form>
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-1 mb-8">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="mb-0 w-25-px h-25-px bg-success-main flex-shrink-0 text-white d-flex justify-content-center align-items-center rounded-circle h6">
+                            <iconify-icon icon="iconamoon:discount-fill" class="icon"></iconify-icon>
+                        </span>
+                        <div>
+                            <span class="mb-2 fw-medium text-secondary-light text-sm">Total Lead : {{ assign_count }}</span>
+                        </div>
+                    </div>
+                    <div id="active-user-chart" class="remove-tooltip-title rounded-tooltip-value"></div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-24">
+            <div class="table-responsive scroll-sm">
+                <table class="table bordered-table sm-table mb-0" id="myTable">
+                    <thead>
+                        <tr>
+                            <th scope="col">Name</th>
+                            <th scope="col">Call</th>
+                            <th scope="col">Whatsapp</th>
+                            <th scope="col">Send</th>
+                            <th scope="col">Status</th>
+                            <th>Change Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users_lead_lost %}
+                        <tr>
+                            <td><a href="{% url 'customer_details' user.assigned_to.email %}">{{ user.name }}</a></td>
+                            <td>
+                                <a href="tel:{{ user.call }}">
+                                    <i class="fas fa-phone" style="font-size:1.1em;"></i>
+                                </a>
+                            </td>
+                            <td>
+                                <a href="https://wa.me/{{ user.call }}" target="_blank">
+                                    <i class="fab fa-whatsapp menu-icon" style="font-size:1.5em;"></i>
+                                </a>
+                            </td>
+                            <td>
+                                <button class="btn btn-toggle" onclick="toggleSendStatus({{ user.id }}, this)">
+                                    {% if user.send %}
+                                    <span class="badge bg-success">Send</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Don't Send</span>
+                                    {% endif %}
+                                </button>
+                            </td>
+                            <td>{{ user.status }}</td>
+                            <td>
+                                <form action="{% url 'status_update' %}" method="POST">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="leads_id" value="{{ user.id }}">
+                                    <div class="dropdown">
+                                        <button class="btn btn-primary dropdown-toggle" aria-expanded="false" data-bs-toggle="dropdown" type="button">
+                                            {{ user.status }}&nbsp;
+                                        </button>
+                                        <div class="dropdown-menu">
+                                            <button class="dropdown-item" type="submit" name="new_status" value="Leads">Leads</button>
+                                            <button class="dropdown-item" type="submit" name="new_status" value="Interested">Interested</button>
+                                            <button class="dropdown-item" type="submit" name="new_status" value="Not Interested">Not Interested</button>
+                                            <button class="dropdown-item" type="submit" name="new_status" value="Other Location">Other Location</button>
+                                            <button class="dropdown-item" type="submit" name="new_status" value="Not Picked">Not Picked</button>
+                                            <button class="dropdown-item" type="submit" name="new_status" value="Lost">Lost</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function searchTable() {
+        var input, filter, table, tr, td, i, txtValue;
+        input = document.getElementById("searchInput");
+        filter = input.value.toUpperCase();
+        table = document.getElementById("myTable");
+        tr = table.getElementsByTagName("tr");
+
+        for (i = 0; i < tr.length; i++) {
+            var rowShouldBeVisible = false;
+            for (var j = 0; j < tr[i].cells.length; j++) {
+                td = tr[i].cells[j];
+                if (td) {
+                    txtValue = td.textContent || td.innerText;
+                    if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                        rowShouldBeVisible = true;
+                        break;
+                    }
+                }
+            }
+            if (rowShouldBeVisible) {
+                tr[i].style.display = "";
+            } else {
+                tr[i].style.display = "none";
+            }
+        }
+    }
+
+    function toggleSendStatus(userId, button) {
+        var currentStatus = button.querySelector('.badge').textContent.trim() === 'Send';
+        var newSendStatus = !currentStatus;
+
+        fetch('{% url "update_send_status" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                id: userId,
+                send: newSendStatus
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (data.new_send_status) {
+                    button.innerHTML = '<span class="badge bg-success">Send</span>';
+                } else {
+                    button.innerHTML = '<span class="badge bg-danger">Don\'t Send</span>';
+                }
+            } else {
+                alert('Failed to update status: ' + data.message);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+</script>
+
+{% endblock %}

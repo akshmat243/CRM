@@ -1,0 +1,699 @@
+{% extends 'admin_dashboard/team_leader/base.html' %}
+{% block content %}
+{% load static %}
+
+<style>
+  .btn[disabled] {
+    background-color: #ccc;
+    /* A gray color to indicate the button is disabled */
+    cursor: not-allowed;
+    /* Show a "not allowed" cursor */
+    opacity: 0.6;
+    /* Reduce opacity */
+  }
+
+  #wrap_d {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+  }
+  
+    .staff-card-leads {
+        display:flex;
+        margin-top:18px;
+    }
+    {% comment %} .desh-card {
+      height: 100px;
+  } {% endcomment %}
+  .card {
+    width:100%;
+  }
+  {% comment %} @media (min-width:0- max-width: 388px) {
+  .admin-title{
+    font-size: 11px;
+  }
+
+} {% endcomment %}
+
+@media (min-width: 100px) and (max-width: 450px) { 
+  .admin-title { font-size: 11px; } 
+}
+
+
+</style>
+
+<div class="dashboard-main-body admin_dashboard">
+  <div class="dash-title">Leads Users</div>
+  {% if not request.user.is_it_staff %}
+
+  <div class="pb-3 mb-1">
+    <form method="GET" class="row align-items-center">
+      <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+        <input type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" class="form-control"
+          placeholder="Start Date">
+      </div>
+      <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+        <input type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="form-control"
+          placeholder="End Date">
+      </div>
+      <div class="col-12 col-md-4 col-lg-2">
+        <button type="submit" class="btn w-100">Filter</button>
+      </div>
+    </form>
+
+
+  </div>
+
+  <div class="col-xxl-12">
+    <div class="row gy-4">
+      <div class="col-xxl-3 col-md-4 col-6">
+        <a href="{% url 'leads' %}" style="display: block;">
+          <div class="desh-card">
+            <div class="desh-card-body">
+              <div class="admin-icon">
+                <iconify-icon icon="mingcute:user-follow-fill" class="icon total_lead"></iconify-icon>
+              </div>
+              <div class="admin-title">Total Leads : {{ total_leads }}</div>
+              <!-- <p class="fw-semibold">{{ logged_in_count }}</p> -->
+              <!-- <div id="active-user-chart" class="remove-tooltip-title rounded-tooltip-value"></div> -->
+            </div>
+          </div>
+        </a>
+      </div>
+
+      <div class="col-xxl-3 col-md-4 col-6">
+        <a href="{% url 'visits_staff' %}" style="display: block;">
+          <div class="desh-card p">
+            <div class="desh-card-body">
+              <div class="admin-icon">
+                <iconify-icon icon="mingcute:user-follow-fill" class="icon total_visit"></iconify-icon>
+              </div>
+              <div class="admin-title">Total Visit : {{ total_visits_leads }}</div>
+              <!-- <p class="fw-semibold">{{ logged_in_count }}</p> -->
+              <!-- <div id="active-user-chart" class="remove-tooltip-title rounded-tooltip-value"></div> -->
+            </div>
+          </div>
+        </a>
+      </div>
+
+      <div class="col-xxl-3 col-md-4 col-6">
+        <a href="{% url 'lost_leads' 'Intrested' %}" style="display: block;">
+          <div class="desh-card">
+            <div class="desh-card-body">
+              <div class="admin-icon">
+                <iconify-icon icon="mingcute:user-follow-fill" class="icon team_interented"></iconify-icon>
+              </div>
+              <div class="admin-title">Interested : {{ total_interested_leads }}</div>
+              <!-- <p class="fw-semibold">{{ logged_in_count }}</p> -->
+              <!-- <div id="active-user-chart" class="remove-tooltip-title rounded-tooltip-value"></div> -->
+            </div>
+          </div>
+        </a>
+      </div>
+
+      <div class="col-xxl-3 col-md-4 col-6">
+        <a href="{% url 'customer' %}" style="display: block;">
+          <div class="desh-card">
+            <div class="desh-card-body">
+              <div class="admin-icon">
+                <iconify-icon icon="iconamoon:discount-fill" class="icon team_ntint"></iconify-icon>
+              </div>
+              <div class="admin-title">Not Interested : {{ total_not_interested_leads }}</div>
+              <!-- <p class="fw-semibold">{{ logged_in_count }}</p> -->
+              <!-- <div id="active-user-chart" class="remove-tooltip-title rounded-tooltip-value"></div> -->
+       
+      </div>
+    </div>
+  </a>
+  </div>
+
+  <div class="col-xxl-3 col-md-4 col-6">
+    <a href="{% url 'maybe' %}" style="display: block;">
+      <div class="desh-card">
+        <div class="desh-card-body">
+          <div class="admin-icon">
+            <iconify-icon icon="iconamoon:discount-fill" class="icon team_ltion"></iconify-icon>
+          </div>
+          <div class="admin-title">Other Location : {{ total_other_location_leads }}</div>
+          <!-- <p class="fw-semibold">{{ logged_in_count }}</p> -->
+          <!-- <div id="active-user-chart" class="remove-tooltip-title rounded-tooltip-value"></div> -->
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-xxl-3 col-md-4 col-6">
+    <a href="{% url 'not_picked' %}" style="display: block;">
+      <div class="desh-card">
+        <div class="desh-card-body">
+          <div class="admin-icon">
+            <iconify-icon icon="iconamoon:discount-fill" class="icon team_ntpck"></iconify-icon>
+          </div>
+          <div class="admin-title">Not Picked : {{ total_not_picked_leads }}</div>
+          <!-- <p class="fw-semibold">{{ logged_in_count }}</p> -->
+          <!-- <div id="active-user-chart" class="remove-tooltip-title rounded-tooltip-value"></div> -->
+        </div>
+      </div>
+    </a>
+  </div>
+
+
+</div>
+</a>
+</div>
+{% endif %}
+
+<div class="staff-card-leads">
+
+
+  <div class="card h-100 p-0 radius-12">
+    <div
+      class="card-header border-bottom bg-base search_bar py-16 px-24 d-flex align-items-center flex-wrap gap-3 justify-content-between">
+      {% comment %} 
+      <div class="dropdown">
+        <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+          style="background-color: transparent; color: #7f8285; border: 1px solid #a9acb133; font-weight: 400; width: 180px; height: 40px; border-radius: 50px;">
+          Assigned
+        </button>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" href="#"></a></li>
+
+        </ul>
+      </div>
+      <div class="dropdown">
+        <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+          style="background-color: transparent; color: #7f8285; border: 1px solid #a9acb133; font-weight: 400; width: 180px; height: 40px; border-radius: 50px;">
+          Customer
+        </button>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" href="#"></a></li>
+
+        </ul>
+      </div>
+      <div class="dropdown">
+        <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+          style="background-color: transparent; color: #7f8285; border: 1px solid #a9acb133; font-weight: 400; width: 180px; height: 40px; border-radius: 50px;">
+          IT-Team
+        </button>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" href="#"></a></li>
+
+        </ul>
+      </div>
+      <div class="dropdown">
+        <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+          style="background-color: transparent; color: #7f8285; border: 1px solid #a9acb133; font-weight: 400; width: 180px; height: 40px; border-radius: 50px;">
+          Lost
+        </button>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" href="{% url 'leads' %}"></a></li>
+          lost_leads
+        </ul>
+      </div>
+    
+    {% endcomment %}
+      <!------------------------------dropdownend--------------------------->
+      <div class="d-flex align-items-center flex-wrap gap-3">
+        <form class="navbar-search">
+          <input type="text" id="searchInput" class="bg-base h-40-px w-100" name="search" placeholder="Search"
+            onkeyup="searchTable()">
+          <iconify-icon icon="ion:search-outline" class="icon"></iconify-icon>
+        </form>
+
+      </div>
+      {% comment %} <form action="{% url 'excel_upload' %}" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="submit" class="btn" value="Upload">
+        <input type="file" name="excel_file" id="excel_file">
+        {% if message %}
+        <p>{{ message }}</p>
+        {% endif %}
+      </form> {% endcomment %}
+
+      {% if not request.user.is_it_staff %}
+      <a href="{% url 'add_lead_by_self' %}"
+        class="btn text-sm btn-sm" id="auto-assign-btn-1">
+        Add New Lead
+      </a>
+
+      <!-- <a href="{% url 'auto_assign' %}"
+                class="btn text-sm btn-sm user-icon p-4"
+                  id="auto-assign-btn-2">
+                  <iconify-icon icon="mingcute:user-follow-fill" class="icon total_lead"></iconify-icon>
+              </a>  -->
+      {% if total_leads == 0 %}
+      <a href="{% url 'auto_assign' %}"
+        class="btn text-sm btn-sm text-content "
+        id="auto-assign-btn-1">
+        <!-- <iconify-icon icon="ic:baseline-plus" class="icon text-xl"></iconify-icon> -->
+        Auto Assign
+      </a>
+
+      <a href="{% url 'auto_assign' %}"
+        class="btn text-sm btn-sm user-icon "
+        id="auto-assign-btn-2">
+        <iconify-icon icon="ic:baseline-plus" class="icon text-xl"></iconify-icon>
+      </a>
+      {% endif %}
+      <!-- <a href="{% url 'export_leads_staff' %}" class="btn  text-sm btn-sm "> 
+                Export 
+            </a>  -->
+      {% elif request.user.is_it_staff %}
+
+      {% endif %}
+    </div>
+
+
+    {% comment %} <div class="modal-body">
+      <form method="POST" action="{% url 'import_data' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="row">
+          <div class="col-md-8">
+            <div class="mb-3">
+              <label for="recipient-name" class="col-form-label" style="float: left;">Upload Excel File</label>
+              <input type="file" name="xls" required accept=".xls" class="form-control" id="recipient-names">
+            </div>
+          </div>
+        </div>
+    </div> {% endcomment %}
+
+
+
+    <div class="card-body p-24" id="team-leads">
+      <div class="table-responsive scroll-sm">
+        {% if not request.user.is_it_staff %}
+        <table class="table bordered-table sm-table mb-0">
+          <thead>
+            <tr class="">
+              <th scope="col">SN</th>
+              <th scope="col">Name</th>
+              <th scope="col">Call</th>
+              <th scope="col">Whatsapp</th>
+              <!-- <th scope="col" class="team_status">Status</th> -->
+              <th class="team_status">Change Status</th>
+              <th class="team_status">Project</th>
+            </tr>
+          </thead>
+          <tbody id="myTable">
+            {% for user in users %}
+            <tr>
+              <td>
+                <p class="d-flex m-auto">
+                  <span class="me-6 d-none d-sm-block">{{ forloop.counter }}</span>
+                  <a href="#collapseRow{{ forloop.counter }}" data-bs-toggle="collapse" role="button"
+                    aria-expanded="false" aria-controls="collapseRow{{ forloop.counter }}" class="d-block d-sm-none">
+                    <i class="bi bi-plus-circle"></i>
+                  </a>
+                </p>
+
+              </td>
+              <td>{{ user.name }}</td>
+              <td>
+                <a href="tel:+91{{ user.call }}" class="log-activity" data-id="{{ request.user.email }}"
+                  data-activity="Called user">
+                  <i class="bi bi-telephone-fill" style="font-size:1.1em; transform: rotate(95deg);"></i>
+                </a>
+              </td>
+              <td>
+
+
+                <a href="https://wa.me/+91{{ user.call }}?text=*%0A{{ whatsapp_marketing.message|striptags|urlencode }}%0A{{ whatsapp_marketing.url }}%0A{{ request.user.name|urlencode }}"
+                  data-id="{{ request.user.email }}" class="log-activity" data-activity="Whatsapp user" target="_blank">
+                  <i class="fab fa-whatsapp menu-icon " style="font-size:1.5em; color: #25D366;"></i>
+                </a>
+
+              </td>
+              <!-- <td class="team_status">{{ user.status }}</td> -->
+              <td class="team_status">
+                <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#basicModal1"
+                  data-id="{{ user.id }}">
+                  <!-- <i class="bi bi-pencil-square " style="font-size:1.3em;"></i>  -->
+                  {{ user.status }} <i class="bi bi-arrow-down-short"></i>
+                </button>
+              </td>
+              <td class="team_status">
+                <!-- <form action="" method="POST">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="leads_id" value="{{ user.id }}"> -->
+                <div class="dropdown projectsdropdown">
+
+                  <button class="btn" aria-expanded="false" data-bs-toggle="dropdown"
+                    type="button">select&nbsp;</button>
+                  <div class="dropdown-menu">
+                    {% for proj in projects %}
+                   
+
+                    <a href="https://wa.me/+91{{ user.call }}?text=*{{ proj.name|urlencode }}*%0A{{ proj.message|striptags|urlencode }}%0A%0AYoutube URL : {{ proj.youtube_link|urlencode }}%0A{{ request.user.name|urlencode }}"
+                      data-id="{{ request.user.email }}" class="log-activity" data-activity="Whatsapp user"
+                      target="_blank">
+                      <button class="dropdown-item" type="submit" name="new_status" value="Leads">{{
+                        proj.name }}</button>
+                    </a>
+
+                    {% endfor %}
+
+                  </div>
+                </div>
+                <!-- </form> -->
+              </td>
+            </tr>
+            <tr class="collapse" id="collapseRow{{ forloop.counter }}">
+              <td colspan="6">
+                <div class="p-2 row">
+                  <!-- <div class="mb-2"><strong>Name :</strong> {{ user.name }}</div>
+                                    <div class="mb-2"><strong>Call :</strong> <a href="tel:{{ user.call }}"><i class="bi bi-telephone-fill" style="font-size:1.1em;"></i></a></div>
+                                    <div class="mb-2"><strong>Whatsapp :</strong> <a href="https://wa.me/{{ user.call }}?text={{ whatsapp_marketing.message }}%20{{ whatsapp_marketing.url }}%20{{ user.name }}" target="_blank"><i class="fab fa-whatsapp menu-icon" style="font-size:1.5em;"></i></a></div> -->
+                  <!-- <div class="mb-2"><strong>Status :</strong> {{ user.status }}</div> -->
+                  <div class="mb-2 col-6 " style="font-size: 11px;">
+                    <strong style="font-size: 11px;">Change Status :</strong>
+                    <br class="break_line d-none" />
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#basicModal1"
+                      data-id="{{ user.id }}">
+                      <!-- <i class="bi bi-pencil-square" style="font-size:1.3em;"></i> -->
+                      {{ user.status }} <i class="bi bi-arrow-down-short"></i>
+                    </button>
+                  </div>
+
+                  <div class="mb-2 col-6 " style="font-size: 11px;">
+                    <strong style="font-size: 11px;">Project Send :</strong>
+                    <br class="break_line d-none" />
+                    <button class="btn btn-primary dropdown-toggle" aria-expanded="false" data-bs-toggle="dropdown"
+                      type="button">
+                      Select
+                    </button>
+                    <div class="dropdown-menu">
+                      {% for proj in projects %}
+                      <a href="https://wa.me/+91{{ user.call }}?text=*{{ proj.name|urlencode }}*%0A{{ proj.message|striptags|urlencode }}%0A%0AYoutube URL : {{ proj.youtube_link|urlencode }}%0A{{ request.user.name|urlencode }}"
+                        data-id="{{ request.user.email }}" class="log-activity dropdown-item"
+                        data-activity="Whatsapp user" target="_blank">
+                        {{ proj.name }}
+                      </a>
+                      {% endfor %}
+                    </div>
+                  </div>
+
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        {% elif request.user.is_it_staff %}
+        <!-- <form method="POST">
+                  {% csrf_token %}
+                  <textarea name="description" placeholder="Add today's task..." required></textarea><br>
+                  <button type="submit">Add Task</button>
+              </form> -->
+
+        <div class="card h-100 p-0 radius-12">
+          <div class="card-body p-24">
+            <div class="row justify-content-center">
+              <div class="col-xxl-6 col-xl-8 col-lg-10">
+                <div class="card border">
+                  <div class="card-body">
+                    <form method="POST">
+                      {% csrf_token %}
+                      <div class="modal-body " style="text-align: left;">
+
+                        <div class="row" style="margin-top: 10px;">
+                          <div class="col-12">
+                            <label class="form-label">Today Task</label>
+                            <textarea class="form-control" placeholder="Add today's task..." name="description"
+                              id="address" rows="3" required></textarea>
+                          </div>
+                        </div>
+                        <br>
+                        <div class="d-flex align-items-center justify-content-center gap-3">
+                          <input type="submit"
+                            class="btn btn-primary border border-primary-600 text-md px-56 py-12 radius-8">
+                        </div>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</div>
+
+
+
+<!-- Modal -->
+<div class="modal fade marketingpopup" id="basicModal1" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <form id="leadUpdateForm">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h6 class="modal-title" id="exampleModalLabel1">Leads Update</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">        
+          <div class="row">
+            <div class="col mb-3"> 
+              <!-- <label for="form-id" class="form-label">Id</label> -->
+              <input type="text" id="form-id" class="form-control" readonly hidden />
+            </div>
+          </div>
+          <div class="row g-2">
+            <div class="col-12 mb-3">
+              <label for="status" class="form-label">Status</label>
+              <select id="status" class="form-select " aria-label="Default select example">
+                <option selected class="">Open this select menu</option>
+                <option value="Leads" class="">Leads</option>
+                <option value="Intrested" class="">Intrested</option>
+                <option value="Not Interested" class="">Not Interested</option>
+                <option value="Other Location" class="">Other Location</option>
+                <option value="Not Picked" class="">Not Picked</option>
+                <option value="Lost" class="">Lost</option>
+                <option value="Visit" class="">Visit</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label for="dobBasic" class="form-label">Message</label>
+              <textarea name="message" id="dobBasic" class="form-control"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" id="saveChangesBtn">Update Status</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+  function disableButtons() {
+    var button1 = document.getElementById('auto-assign-btn-1');
+    var button2 = document.getElementById('auto-assign-btn-2');
+
+    button1.onclick = function (event) { event.preventDefault(); };
+    button2.onclick = function (event) { event.preventDefault(); };
+
+    button1.style.pointerEvents = 'none';
+    button1.style.opacity = '0.6';
+    button2.style.pointerEvents = 'none';
+    button2.style.opacity = '0.6';
+
+    button1.innerHTML = 'Processing...';
+    button2.innerHTML = 'Processing...';
+  }
+
+  document.getElementById('auto-assign-btn-1').addEventListener('click', disableButtons);
+  document.getElementById('auto-assign-btn-2').addEventListener('click', disableButtons);
+</script>
+
+<script>
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const logActivityElements = document.querySelectorAll('.log-activity');
+
+    logActivityElements.forEach(element => {
+      element.addEventListener('click', function (event) {
+        event.preventDefault();
+
+        const userId = this.getAttribute('data-id');
+        const activityType = this.getAttribute('data-activity');
+        const href = this.href;
+
+        fetch("{% url 'log_activity_add' %}", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}',
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            activity_type: activityType
+          }),
+        })
+          .then(response => response.json())
+          .then(data => {
+            console.log('Activity logged:', data);
+            window.open(href, '_blank');
+          })
+          .catch(error => console.error('Error logging activity:', error));
+      });
+    });
+  });
+
+
+  document.addEventListener('DOMContentLoaded', function () {
+    $('#basicModal1').on('show.bs.modal', function (event) {
+      var button = $(event.relatedTarget);
+      var id = button.data('id');
+
+      $.ajax({
+        url: '/lead_user/' + id,
+        method: 'GET',
+        success: function (data) {
+          $('#form-id').val(data.id);
+          $('#dobBasic').val(data.message);
+          $('select.form-select').val(data.status);
+        },
+        error: function () {
+          alert('Failed to retrieve data.');
+        }
+      });
+    });
+  });
+
+  $(document).ready(function () {
+    $('#saveChangesBtn').on('click', function (e) {
+      e.preventDefault();
+
+      console.log("Button clicked");
+
+      var id = $('#form-id').val();
+      var status = $('#status').val();
+      var message = $('#dobBasic').val();
+
+      $.ajax({
+        url: '/lead_user/update/' + id + '/',
+        method: 'POST',
+        data: {
+          'status': status,
+          'message': message,
+          'csrfmiddlewaretoken': '{{ csrf_token }}',
+        },
+        success: function (response) {
+          alert('Changes saved successfully.');
+          location.reload();
+        },
+        error: function () {
+          alert('Failed to save changes.');
+        }
+      });
+    });
+  });
+
+
+
+
+
+  function searchTable() {
+    var input, filter, table, tr, td, i, txtValue;
+    input = document.getElementById("searchInput");
+    filter = input.value.toUpperCase();
+    table = document.getElementById("myTable");
+    tr = table.getElementsByTagName("tr");
+
+    // Loop through all table rows, and hide those that don't match the search query
+    for (i = 0; i < tr.length; i++) {
+      var rowShouldBeVisible = false;
+
+      // Loop through all cells of current row
+      for (j = 0; j < tr[i].cells.length; j++) {
+        td = tr[i].cells[j];
+        if (td) {
+          txtValue = td.textContent || td.innerText;
+          if (txtValue.toUpperCase().indexOf(filter) > -1) {
+            rowShouldBeVisible = true;
+            break; // If a match is found in this row, no need to check further
+          }
+        }
+      }
+      if (rowShouldBeVisible) {
+        tr[i].style.display = "";
+      } else {
+        tr[i].style.display = "none";
+      }
+    }
+
+  }
+</script>
+<script>
+  function toggleSendStatus(userId, button) {
+    var currentStatus = button.querySelector('.badge').textContent.trim() === 'Send';
+    var newSendStatus = !currentStatus;
+
+    fetch('{% url "update_send_status" %}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'  // Include CSRF token for security
+      },
+      body: JSON.stringify({
+        id: userId,
+        send: newSendStatus
+      })
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Update button text based on the new status
+          if (data.new_send_status) {
+            button.innerHTML = '<span class="badge bg-success">Send</span>';
+          } else {
+            button.innerHTML = '<span class="badge bg-danger">Don\'t Send</span>';
+          }
+        } else {
+          alert('Failed to update status: ' + data.message);
+        }
+      })
+      .catch(error => console.error('Error:', error));
+  }
+</script>
+
+
+<!-- <td>
+                                <form action="{% url 'status_update' %}" method="POST">
+                                    {% csrf_token %}
+                                <input type="hidden" name="leads_id" value="{{ user.id }}">
+                                <div class="dropdown">
+                                    <button class="btn btn-primary dropdown-toggle" aria-expanded="false" data-bs-toggle="dropdown" type="button">{{ user.status }}&nbsp;</button>
+                                    <div class="dropdown-menu">
+                                        <button class="dropdown-item" type="submit" name="new_status" value="Leads">Leads</button>
+                                        <button class="dropdown-item" type="submit" name="new_status" value="Intrested">Intrested</button>
+                                        <button class="dropdown-item" type="submit" name="new_status" value="Not Interested">Not Interested</button>
+                                        <button class="dropdown-item" type="submit" name="new_status" value="Other Location">Other Location</button>
+                                        <button class="dropdown-item" type="submit" name="new_status" value="Not Picked">Not Picked</button>
+                                        <button class="dropdown-item" type="submit" name="new_status" value="Lost">Lost</button>
+                                    </div>
+                                </div>
+                            </form>
+                            </td>  -->
+
+<!-- <td>
+                                  <button class="btn btn-toggle" onclick="toggleSendStatus({{ user.id }}, this)">
+                                      {% if user.send == 'True' %}
+                                      <span class="badge bg-success">Send</span>
+                                      {% else %}
+                                      <span class="badge bg-danger">Don't Send</span>
+                                      {% endif %}
+                                  </button>
+                                </td>  -->
+
+{% endblock %}

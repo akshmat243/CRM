@@ -1,0 +1,666 @@
+{% extends 'base.html' %}  
+{% block content %}
+{% load static %}
+
+  <div class="dashboard-main-body staff-card-leads admin_dashboard">
+    <div class="dash-title ">Team Leader List</div>
+
+
+
+    {% comment %} <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-24">
+      <h6 class="fw-semibold mb-0">Lead</h6>
+      <ul class="d-flex align-items-center gap-2">
+        <li class="fw-medium">
+          <a href="index.html" class="d-flex align-items-center gap-1 hover-text-primary">
+            
+          </a>
+        </li>
+      </ul>
+    </div> {% endcomment %}
+  {% comment %} <div class="col-xxl-12">
+    <div class="row gy-4"> {% endcomment %}
+      
+       {% comment %} <div class="col-xxl-3 col-sm-3">
+        <div class="card p-3 shadow-2 radius-8 border input-form-light h-100 bg-gradient-end-1">
+            <div class="card-body p-0">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-1 mb-8">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="mb-0 w-25-px h-25-px bg-primary-600 flex-shrink-0 text-white d-flex justify-content-center align-items-center rounded-circle h6 mb-0">
+                            <iconify-icon icon="mingcute:user-follow-fill" class="icon"></iconify-icon>
+                        </span>
+                        <div>
+                            <span class="mb-2 fw-medium text-secondary-light text-sm">Total Leads</span>
+                            {% comment %} <p class="fw-semibold">{{ total_leads }}</p> {% endcomment %}
+                        {% comment %} </div>
+                    </div>
+                    <div id="new-user-chart" class="remove-tooltip-title rounded-tooltip-value"></div>
+                </div>
+                <p class="text-sm mb-0">Increase by <span class="bg-success-focus px-1 rounded-2 fw-medium text-success-main text-sm">+200</span> this week</p>
+            </div>
+        </div>
+    </div> {% endcomment %}
+  {% comment %} 
+    <div class="col-xxl-3 col-sm-3">
+        <div class="card p-3 shadow-2 radius-8 border input-form-light h-100 bg-gradient-end-2">
+            <div class="card-body p-0">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-1 mb-8">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="mb-0 w-25-px h-25-px bg-success-main flex-shrink-0 text-white d-flex justify-content-center align-items-center rounded-circle h6">
+                            <iconify-icon icon="mingcute:user-follow-fill" class="icon"></iconify-icon>
+                        </span>
+                        <div>
+                            <span class="mb-2 fw-medium text-secondary-light text-sm">Lost Leads</span> {% endcomment %}
+                            {% comment %} <p class="fw-semibold">{{ total_lost_leads }}</p> {% endcomment %}
+                        {% comment %} </div>
+                    </div>
+                    <div id="active-user-chart" class="remove-tooltip-title rounded-tooltip-value"></div>
+                </div>
+                <p class="text-sm mb-0">Increase by <span class="bg-success-focus px-1 rounded-2 fw-medium text-success-main text-sm">+200</span> this week</p>
+            </div>
+        </div>
+    </div> {% endcomment %}
+    
+    {% comment %} <div class="col-xxl-3 col-sm-3">
+        <div class="card p-3 shadow-2 radius-8 border input-form-light h-100 bg-gradient-end-3">
+            <div class="card-body p-0">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-1 mb-8">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="mb-0 w-25-px h-25-px bg-yellow text-white flex-shrink-0 d-flex justify-content-center align-items-center rounded-circle h6">
+                            <iconify-icon icon="iconamoon:discount-fill" class="icon"></iconify-icon>
+                        </span>
+                        <div>
+                            <span class="mb-2 fw-medium text-secondary-light text-sm">Customer</span>
+                            <p class="fw-semibold">{{ total_customer }}</p>
+                        </div>
+                    </div>
+                    <div id="total-sales-chart" class="remove-tooltip-title rounded-tooltip-value"></div>
+                </div>
+                <p class="text-sm mb-0">Increase by <span class="bg-danger-focus px-1 rounded-2 fw-medium text-danger-main text-sm">-$10k</span> this week</p>
+            </div>
+        </div>
+    </div>
+     {% endcomment %}
+    {% comment %} <div class="col-xxl-3 col-sm-3">
+        <div class="card p-3 shadow-2 radius-8 border input-form-light h-100 bg-gradient-end-4">
+            <div class="card-body p-0">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-1 mb-8">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="mb-0 w-25-px h-25-px bg-purple text-white flex-shrink-0 d-flex justify-content-center align-items-center rounded-circle h6">
+                            <iconify-icon icon="mdi:message-text" class="icon"></iconify-icon>
+                        </span>
+                        <div>
+                            <span class="mb-2 fw-medium text-secondary-light text-sm">Maybe</span>
+                            <p class="fw-semibold">{{ total_maybe }}</p>
+                        </div>
+                    </div>
+                    <div id="conversion-user-chart" class="remove-tooltip-title rounded-tooltip-value"></div>
+                </div>
+                <p class="text-sm mb-0">Increase by <span class="bg-success-focus px-1 rounded-2 fw-medium text-success-main text-sm">+5%</span> this week</p>
+            </div>
+        </div>
+    </div>
+     {% endcomment %}
+      {% comment %} <div class="col-xxl-2 col-sm-2">
+        <div class="card p-3 shadow-2 radius-8 border input-form-light h-100 bg-gradient-end-5">
+          <div class="card-body p-0">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-1 mb-8">
+              
+                <div class="d-flex align-items-center gap-2">
+                  <span class="mb-0 w-25-px h-25-px bg-pink text-white flex-shrink-0 d-flex justify-content-center align-items-center rounded-circle h6">
+                    <iconify-icon icon="mdi:leads" class="icon"></iconify-icon>  
+                  </span>
+                  <div>
+                    <span class="mb-2 fw-medium text-secondary-light text-sm">ea</span>
+                    <p class="fw-semibold">250</p>
+                  </div>
+                </div>
+              
+                <div id="leads-chart" class="remove-tooltip-title rounded-tooltip-value"></div>
+            </div>
+            <p class="text-sm mb-0">Increase by  <span class="bg-success-focus px-1 rounded-2 fw-medium text-success-main text-sm">+20</span> this week</p>
+          </div>
+        </div>
+      </div> {% endcomment %}
+      
+      {% comment %} <div class="col-xxl-2 col-sm-2">
+        <div class="card p-3 shadow-2 radius-8 border input-form-light h-100 bg-gradient-end-6">
+          <div class="card-body p-0">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-1 mb-8">
+              
+                <div class="d-flex align-items-center gap-2">
+                  <span class="mb-0 w-25-px h-25-px bg-cyan text-white flex-shrink-0 d-flex justify-content-center align-items-center rounded-circle h6">
+                    <iconify-icon icon="streamline:bag-dollar-solid" class="icon"></iconify-icon>  
+                  </span>
+                  <div>
+                    <span class="mb-2 fw-medium text-secondary-light text-sm">M</span>
+                    <p class="fw-semibold">$3,00,700</p>
+                  </div>
+                </div>
+              
+                <div id="total-profit-chart" class="remove-tooltip-title rounded-tooltip-value"></div>
+            </div>
+            <p class="text-sm mb-0">Increase by  <span class="bg-success-focus px-1 rounded-2 fw-medium text-success-main text-sm">+$15k</span> this week</p>
+          </div>
+        </div>
+      </div> {% endcomment %}
+  
+    {% comment %} </div>
+  </div> {% endcomment %}
+  
+  
+  
+  
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-24">
+
+          <div class="col-xxl-12">
+            <div class="f">
+              <span class="mb-8 fw-medium text-black  text-lg pt-1 d-sm-none">FollowUps:</span>
+              <!-- <p class="fw-semibold">{{ logged_in_count }}</p> -->
+            </div>
+            <div class="row gy-4">
+                     <!-- follow ups section start -->
+              <div class="col-xxl-3 col-md-4 col-6">
+                <a  style="display: block;">
+                <div  class="desh-card">
+                  <div class="desh-card-body">
+                    <div class="admin-icon">
+                     
+                          <iconify-icon icon="mingcute:user-follow-fill" class="icon total_visit"></iconify-icon>
+                     </div>
+                        <div  class="admin-title">Pending FollowUps:</div>
+                          <!-- <span class="mb-2 fw-medium text-white  text-md pt-1 text-md-sm d-sm-none">Pending:</span>
+                          <span class="mb-2 fw-medium text-white  text-md pt-1 text-md-sm d-none d-sm-block">Pending FollowUps:</span> -->
+                       <!-- <div id="active-user-chart" class="remove-tooltip-title rounded-tooltip-value"></div> -->
+                   
+                  </div>
+                </div>
+              </a>
+              </div>
+
+              <div class="col-xxl-3 col-md-4 col-6">
+                <a style="display: block;">
+                <div  class="desh-card">
+                  
+                  <div class="desh-card-body">
+                    <div class="admin-icon">
+                          <iconify-icon icon="mingcute:user-follow-fill" class="icon total_lead"></iconify-icon>
+                          </div>
+                      
+                        <div class="admin-title">Toworrow FollowUps :</div>
+                          <!-- <span class="mb-2 fw-medium text-white  text-md pt-1 text-md-sm d-none d-sm-block">Toworrow FollowUps : </span>
+                          <span class="mb-2 fw-medium text-white  text-md pt-1 text-md-sm  d-sm-none">Toworrow: </span> -->
+                             <!-- <div id="active-user-chart" class="remove-tooltip-title rounded-tooltip-value"></div> -->
+                  
+                  </div>
+                </div>
+              </a>
+            </div>
+            <div class="col-xxl-3 col-md-4 col-6">
+              <a style="display: block;">
+              <div class="desh-card">
+                
+                <div class="desh-card-body">
+                  <div class="admin-icon">
+                        <iconify-icon icon="mingcute:user-follow-fill" class="icon total_lead"></iconify-icon>
+                        </div>
+                     
+                      <div class="admin-title">Today FollowUps :</div>
+                        <!-- <span class="mb-2 fw-medium text-white  text-md pt-1 text-md-sm  d-sm-none">Today:</span>
+                        <span class="mb-2 fw-medium text-white  text-md pt-1 text-md-sm d-none d-sm-block">Today FollowUps :</span> -->
+                        <!-- <p class="fw-semibold">{{ logged_in_count }}</p> -->
+                        <!-- <div id="active-user-chart" class="remove-tooltip-title rounded-tooltip-value"></div> -->
+                      
+                </div>
+              </div>
+            </a>
+          </div>
+
+          <!-- follow ups section end -->
+            
+              <div class="col-xxl-3 col-md-4 col-6">
+                <a href="{% url 'super_user_side_staff_leads' 'total_lead' %}" style="display: block;">
+                <div class="desh-card">
+                  
+                  <div class="desh-card-body">
+                    <div class="admin-icon">
+                          <iconify-icon icon="mingcute:user-follow-fill" class="icon"></iconify-icon>
+                          </div>
+                        
+                        <div class="admin-title" >
+                        Total Leads : {{ total_leads }}
+                          <!-- <p class="fw-semibold">{{ logged_in_count }}</p> -->
+                               <!-- <div id="active-user-chart" class="remove-tooltip-title rounded-tooltip-value"></div> -->
+                    </div>
+                  </div>
+                </div>
+              </a>
+            </div>
+        
+              <div class="col-xxl-3 col-md-4 col-6">
+                <a href="{% url 'super_user_side_staff_leads' 'visits' %}" style="display: block;">
+                <div class="desh-card">
+                  <div class="desh-card-body">
+                    <div class="admin-icon">
+                          <iconify-icon icon="mingcute:user-follow-fill" class="icon"></iconify-icon>
+                          </div>
+                       
+                        <div class="admin-title"> Total Visit : {{ total_visits_leads }}</div>
+                          <!-- <p class="fw-semibold">{{ logged_in_count }}</p> -->
+                           <!-- <div id="active-user-chart" class="remove-tooltip-title rounded-tooltip-value"></div> -->
+                
+                  </div>
+                </div>
+              </a>
+              </div>
+        
+              <div class="col-xxl-3 col-md-4 col-6">
+                <a href="{% url 'super_user_side_staff_leads' 'interested' %}" style="display: block;">
+                <div class="desh-card">
+                  <div class="desh-card-body">
+                    <div class="admin-icon">  <iconify-icon icon="mingcute:user-follow-fill" class="icon"></iconify-icon> </div>
+                     
+                        <div class="admin-title" >
+                          Interested : {{ total_interested_leads }}
+                          <!-- <p class="fw-semibold">{{ logged_in_count }}</p> -->
+                        </div>
+                      </div>
+                      <!-- <div id="active-user-chart" class="remove-tooltip-title rounded-tooltip-value"></div> -->
+                    </div>
+                  
+                 
+              </a>
+              </div>
+
+
+        
+              <div class="col-xxl-3 col-md-4 col-6">
+                <a href="{% url 'super_user_side_staff_leads' 'not_interested' %}" style="display: block;">
+                <div class="desh-card">
+                  <div class="desh-card-body">
+                    <div class="admin-icon">
+                          <iconify-icon icon="iconamoon:discount-fill" class="icon"></iconify-icon>
+                          </div>
+                 
+                        <div class="admin-title">
+                     Not Interested : {{ total_not_interested_leads }}</div>
+                          <!-- <p class="fw-semibold">{{ logged_in_count }}</p> -->
+                            <!-- <div id="active-user-chart" class="remove-tooltip-title rounded-tooltip-value"></div> -->
+                        </div>
+                      </div>
+                     
+                  
+                  </a>
+                  </div>
+               
+              
+        
+
+
+
+              <div class="col-xxl-3 col-md-4 col-6">
+                <a href="{% url 'super_user_side_staff_leads' 'other_location' %}" style="display: block;">
+                  <div class="desh-card">
+                    <div class="desh-card-body">
+                      <div class="admin-icon">
+                        <iconify-icon icon="iconamoon:discount-fill" class="icon"></iconify-icon>
+                      </div>
+      
+                      <div class="admin-title"> Other Location : {{ total_other_location_leads }} </div>
+                      <!-- <p class="fw-semibold">{{ logged_in_count }}</p> -->
+                      <!-- <div id="active-user-chart" class="remove-tooltip-title rounded-tooltip-value"></div> -->
+                    </div>
+                  </div>
+                </a>
+              </div>
+
+
+
+               
+              <div class="col-xxl-3 col-md-4 col-6">
+                <a href="{% url 'super_user_side_staff_leads' 'not_picked' %}" style="display: block;">
+                <div class="desh-card">
+                  <div class="desh-card-body">
+                    <div class="admin-icon">
+                          <iconify-icon icon="iconamoon:discount-fill" class="icon team_ntpck"></iconify-icon>
+                          </div>
+                     
+                        <div class="admin-title">
+                         Not Picked : {{ total_not_picked_leads }}</div>
+                          <!-- <p class="fw-semibold">{{ logged_in_count }}</p> -->
+                                      <!-- <div id="active-user-chart" class="remove-tooltip-title rounded-tooltip-value"></div> -->
+                      
+           
+                  
+                  </div>
+                </div>
+              </a>
+              </div>
+
+              <div class="col-xxl-3 col-md-4 col-6">
+                <a href="{% url 'super_user_side_staff_leads' 'not_picked' %}" style="display: block;">
+                <div class="desh-card">
+                  <div class="desh-card-body">
+                    <div class="admin-icon">
+                          <iconify-icon icon="iconamoon:discount-fill" class="icon team_ntpck"></iconify-icon>
+                          </div>
+                       
+                        <div class="admin-title">
+                          Total Staff : {{ all_staff }} </div>
+                          <!-- <p class="fw-semibold">{{ logged_in_count }}</p> -->
+                      <!-- <div id="active-user-chart" class="remove-tooltip-title rounded-tooltip-value"></div> -->
+                       
+                  
+                  </div>
+                </div>
+              </a>
+              </div>
+
+              <div class="col-xxl-3 col-md-4 col-6">
+                <a href="{% url 'super_user_side_staff_leads' 'not_picked' %}" style="display: block;">
+                <div class="desh-card">
+                  <div class="desh-card-body">
+             
+                     
+                        <div class="admin-icon">
+                          <iconify-icon icon="iconamoon:discount-fill" class="icon team_ntpck"></iconify-icon>
+                        </div>
+                        <div>
+                          <div class="admin-title">Active Staff : {{ active_staff_instance }}</div>
+                          <!-- <p class="fw-semibold">{{ logged_in_count }}</p> -->
+                        </div>
+                      
+                      <!-- <div id="active-user-chart" class="remove-tooltip-title rounded-tooltip-value"></div> -->
+                 
+                  
+                  </div>
+                </div>
+              </a>
+              </div>  
+            </div>
+            </a>
+          </div>
+
+      <ul class="d-flex align-items-center gap-2">
+      <li class="fw-medium">
+      </li>
+      </div>
+      
+        <div class="card h-100 p-0 radius-12">
+            <div class="card-header border-bottom bg-base py-16 px-24 d-flex align-items-center flex-wrap gap-3 justify-content-between">
+              {% comment %} <div class="dropdown" >
+                <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background-color: transparent; color: #7f8285; border: 1px solid #a9acb133; font-weight: 400; width: 180px; height: 40px; border-radius: 50px;">
+                  Assigned
+                </button>
+                <ul class="dropdown-menu">
+                  <li><a class="dropdown-item" href="#"></a></li>
+                  
+                </ul>
+              </div>
+              <div class="dropdown" >
+                <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background-color: transparent; color: #7f8285; border: 1px solid #a9acb133; font-weight: 400; width: 180px; height: 40px; border-radius: 50px;">
+                  Customer
+                </button>
+                <ul class="dropdown-menu">
+                  <li><a class="dropdown-item" href="#"></a></li>
+                  
+                </ul>
+              </div>
+              <div class="dropdown" >
+                <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background-color: transparent; color: #7f8285; border: 1px solid #a9acb133; font-weight: 400; width: 180px; height: 40px; border-radius: 50px;">
+                  IT-Team
+                </button>
+                <ul class="dropdown-menu">
+                  <li><a class="dropdown-item" href="#"></a></li>
+                  
+                </ul>
+              </div>
+              <div class="dropdown" >
+                <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background-color: transparent; color: #7f8285; border: 1px solid #a9acb133; font-weight: 400; width: 180px; height: 40px; border-radius: 50px;">
+                  Lost
+                </button>
+                {% comment %} <ul class="dropdown-menu"> {% endcomment %}
+                  {% comment %} <li><a class="dropdown-item" href="{% url 'leads' %}"></a></li>
+                  lost_leads
+                </ul> {% endcomment %}
+              {% comment %} </div>
+              <br>
+              <br> {% endcomment %}
+              <!------------------------------dropdownend--------------------------->
+              <div class="d-flex align-items-center flex-wrap gap-3">
+                <form class="navbar-search">
+                  <input type="text" id="searchInput" class="bg-base h-40-px w-100" name="search" placeholder="Search" onkeyup="searchTable()">
+                  <iconify-icon icon="ion:search-outline" class="icon"></iconify-icon>
+                </form>
+                </div>
+                <a href="{% url 'add_team_leader_user' %}" class="btn  text-content text-sm btn-sm radius-8 d-flex align-items-center gap-2"> 
+                    <!-- <iconify-icon icon="ic:baseline-plus" class="icon text-xl line-height-1"></iconify-icon> -->
+                    Add Team Leader
+                </a>
+                <a href="{% url 'add_team_leader_user' %}" class="btn  user-icon text-sm btn-sm p-4 radius-8 d-flex align-items-center gap-2"> 
+                  <iconify-icon icon="ic:baseline-plus" class="icon text-xl line-height-1"></iconify-icon>
+                  <!-- Add Team Leader -->
+              </a>
+            </div>
+            <button type="button" class="btn btn-success m-1" data-bs-toggle="modal" data-bs-target="#statusSuccessModal" hidden>Success Modal</button>
+            {% if messages %}
+            <script>
+                document.addEventListener("DOMContentLoaded", function() {
+                    var myModal = new bootstrap.Modal(document.getElementById('statusSuccessModal'));
+                    myModal.show();
+                });
+            </script>
+            {% endif %}
+            <div class="card-body p-24">
+              <!-- {% if messages %}
+                  {% for message in messages %}
+                      <div class="alert alert-success">
+                          {{ message }}
+                      </div>
+                      {% endfor %}
+                  {% endif %} -->
+                <div class="table-responsive scroll-sm">
+                  
+                    <table class="table bordered-table sm-table mb-0" id="myTable">
+                      <thead>
+                        <tr>
+                            <th>S.N.</th>
+                            <th>Name</th>
+                            <th>Admin</th>
+                            <!-- <th>Email id</th> -->
+                            <th>Mobile No</th>
+                            {% comment %} <th>Admin id</th> {% endcomment %}
+                            {% comment %} <th>Status</th> {% endcomment %}
+                            <th>Created Date</th>
+                            <!-- <th>Updated Date</th> -->
+                          
+                            <th>Leads Report</th>
+                            <th class="text-center">Active/Non-Active</th>
+                            <th>Edit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                      {% for user in users %}
+                      <tr>
+                            <td>{{ forloop.counter}}</td>
+                            <td>{{user.name}}</td>
+                            <td>{{user.admin.name}}</td>
+                            <!-- <td>{{user.email}}</td> -->
+                            <td>{{user.mobile}}</td>
+                            <td>{{ user.created_date|date:"d-M-Y" }}</td>
+                            <!-- <td>{{user.updated_date}}</td> -->
+                       
+
+                              <td>
+                                <select class="form-select form-select-sm w-100" aria-label=".form-select-sm example" onchange="navigateToUrl(this)">
+                                    <option selected>Select Type</option>
+                                    <option value="{% url 'team_lead_leads_report' user.id 'Intrested' %}">Intrested</option>
+                                    <option value="{% url 'team_lead_leads_report' user.id 'Not Interested' %}">Not Interested</option>
+                                    <option value="{% url 'team_lead_leads_report' user.id 'Other Location' %}">Other Location</option>
+                                    <option value="{% url 'team_lead_leads_report' user.id 'Lost' %}">Lost</option>
+                                    <option value="{% url 'team_lead_leads_report' user.id 'Visit' %}">Visit</option>
+                                </select>
+                            </td>
+
+                              <form method="post">
+                                {% csrf_token %}
+                                <td class="active_staff">
+                                  <div class="form-check form-switch  d-flex m-auto align-items-center justify-content-center">
+                                      <input type="text" name="user_type" value="teamlead" id="user_type_id" hidden>
+                                      <input 
+                                          class="form-check-input toggle-user-active" 
+                                          type="checkbox" 
+                                          role="switch" 
+                                          id="flexSwitchCheckDefault" 
+                                          data-user-id="{{ user.id }}" 
+                                          {% if user.user.user_active %}checked{% endif %}
+                                      >
+                                  </div>
+                              </td>
+                              </form>
+
+                            {% comment %} <td><a class="btn  btn-sm" data-toggle="modal" data-target="#ModalLoginForm{{user.id}}"
+                              href="{% url 'teamedit' user.id%}">Edit</a></td> {% endcomment %}
+                            {% comment %} <td>{{userdata.status}}</td> {% endcomment %}
+  
+                      
+                            {% comment %} <tr>
+                                <td>{{ user.name }}</td>
+                                <td><a href="tel:{{ user.call }}">{{ user.call }}</a></td>
+                                {% comment %} <td><a href="https://wa.me/">https://wa.me/tel:</a></td> {% endcomment %}
+                                {% comment %} <td><a href="https://wa.me/{{ user.call }}">https://wa.me/{{ user.call }}</a></td>
+                                <td>{{ user.send }}</td>
+                                <td>{{user.status}}</td> {% endcomment %}
+                                {% comment %} <td>
+                                  <form action="{% url 'status_update' %}" method="POST">
+                                      {% csrf_token %}
+                                  {% comment %} <input type="hidden" name="leads"> {% endcomment %}
+                                  {% comment %} <input type="hidden" name="leads_id" value="{{ user.id }}">
+                                  <div class="dropdown">
+                                      
+                                      <button class="btn  dropdown-toggle" aria-expanded="false" data-bs-toggle="dropdown" type="button">{{ user.status }}&nbsp;</button>
+                                      <div class="dropdown-menu">
+                                          <button class="dropdown-item" type="submit" name="new_status" value="Leads">Leads</button>
+                                          <button class="dropdown-item" type="submit" name="new_status" value="Lost_Leads">Lost Lead</button>
+                                          <button class="dropdown-item" type="submit" name="new_status" value="Customer">Coustomer</button>
+                                          <button class="dropdown-item" type="submit" name="new_status" value="Maybe">Maybe</button>
+  
+                                      </div>
+                                  </div>
+                              </form>
+                              </td> {% endcomment %}
+                                {% comment %} <td class="text-center">
+                                  <select name="status">
+                                      <option value="leads" {% if user.status == "leads" %}selected{% endif %}>Leads</option>
+                                      <option value="coustomer " {% if user.status == "coustomer" %}selected{% endif %}>Coustomer</option>
+                                      <option value="lost leads" {% if user.status == "lost lead" %}selected{% endif %}>Lost Lead</option>
+                                      <option value="maybe" {% if user.status == "maybe" %}selected{% endif %}>Maybe</option>
+                                  </select>
+                              </td> {% endcomment %}
+
+                              <td><a class="btn btn-sm" data-toggle="modal" data-target="#ModalLoginForm{{user.id}}"
+                                href="{% url 'teamedit' user.id%}">Edit</a></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+      </div>
+    </div>
+  
+  
+    <!-- Your existing modal code -->
+  <div class="modal fade" id="statusSuccessModal" tabindex="-1" role="dialog" data-bs-backdrop="static" data-bs-keyboard="false"> 
+      <div class="modal-dialog modal-dialog-centered modal-sm" role="document"> 
+          <div class="modal-content"> 
+              <div class="modal-body text-center p-lg-4"> 
+                  <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 130.2 130.2">
+                      <circle class="path circle" fill="none" stroke="#198754" stroke-width="6" stroke-miterlimit="10" cx="65.1" cy="65.1" r="62.1" />
+                      <polyline class="path check" fill="none" stroke="#198754" stroke-width="6" stroke-linecap="round" stroke-miterlimit="10" points="100.2,40.2 51.5,88.8 29.8,67.5 " /> 
+                  </svg> 
+                  <h4 class="text-success mt-3">Oh Yeah!</h4> 
+                  <p class="mt-3"> {% for message in messages %}
+            {{ message }}
+        {% endfor %}</p>
+                  <button type="button" class="btn btn-sm mt-3 btn-success" data-bs-dismiss="modal">Ok</button> 
+              </div> 
+          </div> 
+      </div> 
+  </div>
+  
+  
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script>
+      $(document).ready(function() {
+          $('.toggle-user-active').change(function() {
+              var userId = $(this).data('user-id');
+              var isActive = $(this).is(':checked');
+              var userType = $('#user_type_id').val();
+              
+              $.ajax({
+                  url: '{% url "toggle_user_active" %}',  
+                  type: 'POST',
+                  data: {
+                      'user_id': userId,
+                      'is_active': isActive,
+                      'user_type': userType,
+                      'csrfmiddlewaretoken': '{{ csrf_token }}'
+                  },
+                  success: function(response) {
+                      if(response.status === 'success') {
+                          alert('User active status updated successfully');
+                      } else {
+                          alert('Failed to update user active status');
+                      }
+                  },
+                  error: function(xhr, errmsg, err) {
+                      console.log(xhr.status + ": " + xhr.responseText);
+                  }
+              });
+          });
+      });
+  </script>
+
+  <script>
+    function navigateToUrl(selectElement) {
+        var selectedValue = selectElement.value;
+        if (selectedValue) {
+            window.location.href = selectedValue;
+        }
+    }
+  </script>
+  
+    <script>
+      function searchTable() {
+        var input, filter, table, tr, td, i, txtValue;
+        input = document.getElementById("searchInput");
+        filter = input.value.toUpperCase();
+        table = document.getElementById("myTable");
+        tr = table.getElementsByTagName("tr");
+    
+        // Loop through all table rows, and hide those that don't match the search query
+        for (i = 0; i < tr.length; i++) {
+          var rowShouldBeVisible = false;
+    
+          // Loop through all cells of current row
+          for (j = 0; j < tr[i].cells.length; j++) {
+            td = tr[i].cells[j];
+            if (td) {
+              txtValue = td.textContent || td.innerText;
+              if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                rowShouldBeVisible = true;
+                break; // If a match is found in this row, no need to check further
+              }
+            }
+          }
+          if (rowShouldBeVisible) {
+            tr[i].style.display = "";
+          } else {
+            tr[i].style.display = "none";
+          }
+        }
+    
+      }
+    </script>
+{% endblock %}

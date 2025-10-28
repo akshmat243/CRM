@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% block content %}
+{% load static %}
+
+<head>
+    <script type="text/javascript" src="https://canvasjs.com/assets/script/jquery-1.11.1.min.js"></script>
+    <script type="text/javascript" src="https://cdn.canvasjs.com/jquery.canvasjs.min.js"></script>
+    <script>
+        window.onload = function () {
+            // Productivity Chart
+            var chart1 = new CanvasJS.Chart("chartContainer1", {
+                animationEnabled: true,
+                title: {
+                    text: "Productivity Chart",
+                    fontFamily: "Arial", 
+                    fontColor: "#000", 
+                   horizontalAlign: "left", 
+                   margin: 20 ,
+                   fontWeight: "bold",
+                    fontSize: 20 
+                },
+                data: [{
+                    type: "column",
+                    dataPoints: {{ data_points | safe }},
+                    indexLabel: "{y}",
+                    indexLabelPlacement: "outside",
+                }]
+            });
+            chart1.render();
+    
+            // Freelancer Chart
+            var chart4 = new CanvasJS.Chart("chartContainer4", {
+                animationEnabled: true,
+                title: {
+                    text: "Freelancer Chart",
+                    fontFamily: "Arial", 
+                    fontColor: "#000", 
+                   horizontalAlign: "left", 
+                   margin: 20 ,
+                   fontWeight: "bold",
+                    fontSize: 20 
+
+                },
+                data: [{
+                    type: "column",
+                    showInLegend: true,
+                    indexLabel: "{name} - {y}",
+                    dataPoints: [
+                        { y: {{ total_users }}, name: "Total Employees", exploded: true },
+                        { y: {{ logged_in_users }}, name: "Login" },
+                        { y: {{ logged_out_users }}, name: "Not Login" },
+                        { y: 7, name: "Freelancer" }
+                    ],
+                
+                }]
+            });
+            chart4.render();
+    
+            // Staff Management Chart
+            var chart2 = new CanvasJS.Chart("chartContainer2", {
+                exportEnabled: true,
+                animationEnabled: true,
+                title: {
+                    text: "Staff Management",
+                    fontFamily: "Arial", 
+                    fontColor: "#000", 
+                   horizontalAlign: "left", 
+                   margin: 20 ,
+                   fontWeight: "bold",
+                    fontSize: 20 
+                },
+                legend: {
+                    cursor: "pointer",
+                    itemclick: explodePie
+                },
+                data: [{
+                    type: "pie",
+                    showInLegend: true,
+                    toolTipContent: "{name}: <strong>{y}</strong>",
+                    indexLabel: "{name} - {y}",
+                    dataPoints: [
+                        { y: {{ total_users }}, name: "Total Employees", exploded: true },
+                        { y: {{ logged_in_users }}, name: "Login" },
+                        { y: {{ logged_out_users }}, name: "Not Login" },
+                        { y: 3, name: "In Office" },
+                        { y: 7, name: "Freelancer" }
+                    ],
+                }]
+            });
+            chart2.render();
+    
+            // Source Chart
+            var chart3 = new CanvasJS.Chart("chartContainer3", {
+                exportEnabled: true,
+                animationEnabled: true,
+                title: {
+                    text: "Source",
+                    fontFamily: "Arial", 
+                    fontColor: "#000", 
+                   horizontalAlign: "left", 
+                   margin: 20 ,
+                   fontWeight: "bold",
+                    fontSize: 20 
+                },
+                legend: {
+                    cursor: "pointer",
+                    itemclick: explodePie
+                },
+                data: [{
+                    type: "pie",
+                    showInLegend: true,
+                    toolTipContent: "{name}: <strong>{y}</strong>",
+                    indexLabel: "{name} - {y}",
+                    dataPoints: [
+                        { y: 100, name: "Websites", exploded: true }
+                    ],
+                }]
+            });
+            chart3.render();
+        };
+    
+        function explodePie(e) {
+            if (typeof (e.dataSeries.dataPoints[e.dataPointIndex].exploded) === "undefined" || !e.dataSeries.dataPoints[e.dataPointIndex].exploded) {
+                e.dataSeries.dataPoints[e.dataPointIndex].exploded = true;
+            } else {
+                e.dataSeries.dataPoints[e.dataPointIndex].exploded = false;
+            }
+            e.chart.render(); // Fixed reference to `e.chart.render()`
+        }
+    </script>
+    
+
+<style>
+    .second_piechart .canvasjs-chart-toolbar{
+        display: none !important;
+    }
+</style>
+</head>
+
+<div class="dashboard-main-body">
+<div class="dash-title">Admin Users</div> 
+
+    <div class="Filter-card">
+        <form method="GET" class="row gy-3">
+            <div class="col-lg-3 col-md-6 col-sm-12">
+                <input type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" class="form-control"
+                    placeholder="Start Date">
+            </div>
+            <div class="col-lg-3 col-md-6 col-sm-12">
+                <input type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="form-control"
+                    placeholder="End Date">
+            </div>
+            <div class="col-lg-2 col-md-6 col-sm-12">
+                <button type="submit" class="btn w-100">Filter</button>
+            </div>
+        </form>
+    </div>
+
+
+    <div class="row chartboxrow">
+        <div class="col-sm-6">
+            <div class="chartbox" id="chartContainer1" style="height: 380px; width: 100%;"></div>
+        </div>
+        <div class="col-sm-6">
+            <div class="chartbox"  id="chartContainer2" style="height: 380px; width: 100%;"></div>
+        </div>   
+   
+
+        <div class="col-sm-6">
+            <div class="chartbox"  id="chartContainer3" style="height: 380px; width: 100%;"></div>
+        </div>
+        <div class="col-sm-6">
+            <div class="chartbox"  id="chartContainer4" style="height: 380px; width: 100%;"></div>
+        </div>
+       
+    </div>
+
+</div>
+
+
+<script src="https://cdn.canvasjs.com/canvasjs.min.js"></script>
+
+
+<script src="{% static 'canvasjs.min.js' %}"></script>
+
+
+{% endblock %}

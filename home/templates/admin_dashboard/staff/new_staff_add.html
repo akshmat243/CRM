@@ -1,0 +1,87 @@
+{% extends 'admin_dashboard/team_leader/base.html' %}  
+{% block content %}
+{% load static %} 
+
+<div class="dashboard-main-body add_user_profile">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-24">
+      <h6 class="fw-semibold mb-0">Staff Member gfh</h6>
+      <ul class="d-flex align-items-center gap-2">
+        <li class="fw-medium">
+          <a href="index.html" class="d-flex align-items-center gap-1 hover-text-primary">
+            
+          </a>
+        </li>
+      </ul>
+    </div>
+  
+    <div class="card h-100 p-0 radius-12">
+      <div class="card-body p-24">
+        <div class="row justify-content-center">
+          <div class="col-xxl-6 col-xl-8 col-lg-10">
+            <div class="card border">
+              <div class="card-body">
+                <h6 class="text-md text-primary-light mb-16">Profile Image</h6>
+  
+                <div class="mb-24 mt-16">
+                  <div class="avatar-upload">
+                    <div class="avatar-edit position-absolute bottom-0 end-0 me-24 mt-16 z-1 cursor-pointer">
+                      <input type='file' id="imageUpload" accept=".png, .jpg, .jpeg" hidden>
+                      <label for="imageUpload" class="w-32-px h-32-px d-flex justify-content-center align-items-center bg-primary-50 text-primary-600 border border-primary-600 bg-hover-primary-100 text-lg rounded-circle">
+                        <iconify-icon icon="solar:camera-outline" class="icon"></iconify-icon>
+                      </label>
+                    </div>
+                    <div class="avatar-preview">
+                      <div id="imagePreview"> </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <form method="POST" action="{% url 'new_staff_add' %}">
+                  {% csrf_token %}
+                  <div class="modal-body" style="text-align: left;">
+                    <div class="row" style="margin-top: 10px;">
+                      <div class="col-md-6 col-sm-12"><label class="form-label">Name</label>
+                        <input type="text" class="form-control radius-8"  id="name" name="name" placeholder="Name" style="width: 100%;" maxlength="50" required value="{{ admin.name }}">
+                      </div>
+                      <div class="col-md-6 col-sm-12"><label for="email" class="form-label">E-Mail Address</label>
+                        <input type="email" class="form-control radius-8"  id="email" name="email" placeholder="email" style="width: 100%;" maxlength="50" required value="{{admin.email}}">
+                      </div>
+                    </div>
+                    <div class="row" style="margin-top: 10px;">
+                      <div class="col-md-6 col-sm-12"><label class="form-label ">Password</label>
+                        <input type="password" class="form-control radius-8" id="password" name="password" placeholder="XXXXXXXXXXXXXXX" style="width: 100%;" maxlength="50" required value="{{admin.password}}">
+                      </div>
+                      <div class="col-md-6 col-sm-12"><label class="form-label">Mobile</label>
+                        <input type="number" class="form-control radius-8" id="mobile" name="mobile" placeholder="number" style="width: 100%;" maxlength="50" required value="{{admin.mobile}}" >
+                      </div>
+                    </div>
+                    <div class="row" style="margin-top: 10px;">
+                      <div class="col-md-6 col-sm-12"><label class="form-label">Address</label>
+                        <input type="text" class="form-control radius-8" id="address" name="address" placeholder="address"  value="{{admin.address}}">
+                      </div>
+                      <div class="col-md-6 col-sm-12"><label for="city" class="form-label">City</label>
+                        <input type="text" class="form-control radius-8" id="city" name="city" placeholder="city" style="width: 100%;" maxlength="50" required value="{{admin.city}}" >
+                      </div>
+                    </div>
+                    <div class="row" style="margin-top: 10px;">
+                      <div class="col-md-6 col-sm-12"><label for="pincode" class="form-label">Pincode</label>
+                        <input type="number" class="form-control radius-8" id="pincode" name="pincode" placeholder="pincode" style="width: 100%;" maxlength="50" required value="{{admin.pincode}}">
+                      </div>
+                      <div class="col-md-6 col-sm-12"><label class="form-label">State</label>
+                        <input type="text" class="form-control radius-8" id="state" name="state" placeholder="state" style="width: 100%;" maxlength="50" required value="{{admin.state}}">
+                      </div>
+                    </div>
+                      <br>
+                    <div class="d-flex align-items-center justify-content-center gap-3">
+                    <input type="submit" class="btn btn-primary border border-primary-600 text-md px-56 py-12 radius-8">
+                  </div>
+                </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endblock %}

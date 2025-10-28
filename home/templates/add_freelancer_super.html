@@ -1,0 +1,471 @@
+{% extends 'base.html' %}  
+{% block content %}
+{% load static %}
+
+
+<div class="dashboard-main-body admin_dashboard">
+  <div class="dash-title">Associate Users</div>
+
+
+      <div class="row gy-4 pb-2">
+
+  
+        <div class="col-xxl-3 col-md-4 col-6">
+          <a href="{% url 'super_user_side_staff_leads' 'visits' %}" style="display: block;">
+          <div class="desh-card">
+            <div class="desh-card-body">
+                  <div class="admin-icon">
+                    <iconify-icon icon="mingcute:user-follow-fill" class="icon total_visit"></iconify-icon>
+                  </div>
+                    <div class="admin-title">Total Visit : {{ total_visits_leads }}</div>
+                    <!-- <p class="fw-semibold">{{ logged_in_count }}</p> -->
+                <!-- <div id="active-user-chart" class="remove-tooltip-title rounded-tooltip-value"></div> -->
+            </div>
+          </div>
+        </a>
+        </div>
+  
+        <div class="col-xxl-3 col-md-4 col-6">
+          <a href="{% url 'super_user_side_staff_leads' 'interested' %}" style="display: block;">
+          <div class="desh-card">
+            <div class="desh-card-body">
+    
+     
+                  <div class="admin-icon">
+                    <iconify-icon icon="mingcute:user-follow-fill" class="icon team_interented"></iconify-icon>
+                  </div>
+             
+                    <div class="admin-title">Interested : {{ total_interested_leads }}</div>
+                    <!-- <p class="fw-semibold">{{ logged_in_count }}</p> -->
+         
+         
+                <!-- <div id="active-user-chart" class="remove-tooltip-title rounded-tooltip-value"></div> -->
+   
+            
+            </div>
+          </div>
+        </a>
+        </div>
+  
+        <div class="col-xxl-3 col-md-4 col-6">
+          <a href="{% url 'super_user_side_staff_leads' 'not_interested' %}" style="display: block;">
+          <div class="desh-card">
+            <div class="desh-card-body">
+          
+             
+                  <div
+                    class="admin-icon">
+                    <iconify-icon icon="iconamoon:discount-fill" class="icon team_ntint"></iconify-icon>
+                  </div>
+               
+                    <div class="admin-title">Not Interested : {{ total_not_interested_leads }}</div>
+                    <!-- <p class="fw-semibold">{{ logged_in_count }}</p> -->
+              
+              
+                <!-- <div id="active-user-chart" class="remove-tooltip-title rounded-tooltip-value"></div> -->
+              </div>
+            </div>
+            </a>
+          
+        </div>
+  
+        <div class="col-xxl-3 col-md-4 col-6">
+          <a href="{% url 'super_user_side_staff_leads' 'other_location' %}" style="display: block;">
+          <div class="desh-card">
+            <div class="desh-card-body">
+         
+          
+                  <div
+                    class="admin-icon">
+                    <iconify-icon icon="iconamoon:discount-fill" class="icon team_ltion"></iconify-icon>
+                  </div>
+            
+                    <div class="admin-title">Other Location : {{ total_other_location_leads }}</div>
+                    <!-- <p class="fw-semibold">{{ logged_in_count }}</p> -->
+             
+              
+                <!-- <div id="active-user-chart" class="remove-tooltip-title rounded-tooltip-value"></div> -->
+        
+            
+            </div>
+          </div>
+        </a>
+        </div>
+        
+        <div class="col-xxl-3 col-md-4 col-6">
+          <a href="{% url 'super_user_side_staff_leads' 'not_picked' %}" style="display: block;">
+          <div class="desh-card">
+            <div class="desh-card-body">
+          
+            
+                  <div
+                    class="admin-icon">
+                    <iconify-icon icon="iconamoon:discount-fill" class="icon team_ntpck"></iconify-icon>
+                  </div>
+       
+                    <div class="admin-title">Not Picked : {{ total_not_picked_leads }}</div>
+                    <!-- <p class="fw-semibold">{{ logged_in_count }}</p> -->
+          
+             
+                <!-- <div id="active-user-chart" class="remove-tooltip-title rounded-tooltip-value"></div> -->
+            
+            
+            </div>
+          </div>
+        </a>
+        </div>
+
+        <div class="col-xxl-3 col-md-4 col-6">
+          <a href="{% url 'super_user_side_staff_leads' 'not_picked' %}" style="display: block;">
+          <div class="desh-card">
+            <div class="desh-card-body">
+        
+          
+                  <div
+                    class="admin-icon">
+                    <iconify-icon icon="iconamoon:discount-fill" class="icon team_ntpck"></iconify-icon>
+                  </div>
+              
+                    <div class="admin-title">Total Earning : {{ total_salary_all_staff|floatformat:2 }}</div>
+                    <!-- <p class="fw-semibold">{{ logged_in_count }}</p> -->
+                 
+                <!-- <div id="active-user-chart" class="remove-tooltip-title rounded-tooltip-value"></div> -->
+          
+            
+            </div>
+          </div>
+        </a>
+        </div>
+  
+      </div>
+     
+  
+
+
+
+
+    <div class="card h-100 mt-3 radius-12">
+      <div class="card-header border-bottom bg-base py-16 px-24 d-flex align-items-center flex-wrap gap-3 justify-content-between">
+        
+        <div class="d-flex align-items-center flex-wrap gap-3">
+          <form class="navbar-search">
+            <input type="text" id="searchInput" class="bg-base h-40-px w-100" name="search" placeholder="Search"
+              onkeyup="searchTable()">
+            <iconify-icon icon="ion:search-outline" class="icon"></iconify-icon>
+          </form>
+        </div>
+
+        <!-- <a href="{% url 'add_staff' %}"
+          class="btn btn-primary text-sm btn-sm text-content radius-8 d-flex align-items-center gap-2">
+          Add new staff
+        </a>
+        <a href="{% url 'add_staff' %}"
+        class="btn btn-primary text-sm btn-sm user-icon p-4 radius-8 d-flex align-items-center gap-2">
+        <iconify-icon icon="ic:baseline-plus" class="icon text-xl line-height-1"></iconify-icon> -->
+      </a>
+      </div>
+      <div>
+        <!-- <a href="newlead.html" style="margin: 1%;" class="btn btn-primary ">
+          <iconify-icon icon="ic:baseline-plus" class="icon text-xl line-height-1"></iconify-icon>
+          NEW LEAD
+        </a> -->
+
+      </div>
+      <button type="button" class="btn btn-success m-1" data-bs-toggle="modal" data-bs-target="#statusSuccessModal" hidden>Success Modal</button>
+          {% if messages %}
+          <script>
+              document.addEventListener("DOMContentLoaded", function() {
+                  var myModal = new bootstrap.Modal(document.getElementById('statusSuccessModal'));
+                  myModal.show();
+              });
+          </script>
+          {% endif %}
+      <div class="card-body p-24">
+        <div class="table-responsive scroll-sm">
+          <!-- {% if messages %}
+          {% for message in messages %}
+          <div class="alert alert-success">
+            {{ message }}
+          </div>
+          {% endfor %}
+          {% endif %} -->
+
+
+          <table class="table bordered-table sm-table mb-0" id="myTable">
+            <thead>
+              <tr>
+                <th>SR. NO</th>
+                <th>Name</th>
+                <th>Team Lead</th>
+                <!-- <th>Email id</th> -->
+                <!-- <th>Persional Email id</th> -->
+                <th>Mobile No</th>
+                <th>Created Date</th>
+                {% comment %} <th>Updated Date</th> {% endcomment %}
+               
+
+                <th>Leads</th>
+                <th class="text-center">Active/Non-Active</th>
+                <th>Earn</th>
+                <th>Add Sell</th>
+                <th>Edit Now</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tbody>
+                {% for log in my_staff %}  
+                <tr>
+                  <td>{{ forloop.counter}}</td>
+                  <td>{{ log.name }}</td>
+                  <td>{{ log.team_leader.name }}</td>
+                  <!-- <td>{{ log.email }}</td> -->
+                  <!-- <td>{{ log.email }}</td> -->
+                  <td>{{ log.mobile }}</td>
+                  <td>{{ log.created_date|date:"d-M-Y" }}</td>
+                  {% comment %} <td>{{log.updated_date}}</td> {% endcomment %}
+                   
+                      <td>
+                          <a class="btn btn-outline-success btn-sm" href="{% url 'leam_lead_show' log.id 'None' %}"><i class="bi bi-eye"></i>View</a>
+                      </td>
+                      <form method="post" >
+                        {% csrf_token %}
+                        <td class="active_staff">
+                        <div class="form-check form-switch d-flex m-auto align-items-center justify-content-center">
+                              <input type="text" name="user_type" value="staff" id="user_type_id" hidden>
+                              <input 
+                                  class="form-check-input toggle-user-active" 
+                                  type="checkbox" 
+                                  role="switch" 
+                                  id="flexSwitchCheckDefault" 
+                                  data-user-id="{{ log.id }}" 
+                                  {% if log.user.user_active %}checked{% endif %}
+                              >
+                              
+                          </div>
+
+                          
+                      </td>
+                      </form>
+               
+                    <td>
+                      <a class="btn btn-outline-success btn-sm" href="{% url 'incentive_slap_staff' log.id %}"><i class="bi bi-eye"></i>Earn</a>
+                    </td>
+                    <td>
+                        <a class="btn btn-outline-info btn-sm" href="{% url 'add_sell_freelancer' log.id %}"><i class="bi bi-eye"></i>Add Sell</a>
+                      </td>
+                      {% comment %} <td>
+                        <a class="btn btn-sm" data-toggle="modal" data-target="#ModalLoginForm{{staff.id}}" href="{% url 'staffedit' log.id %}">Edit</a>
+                    </td> {% endcomment %}
+                      <td>
+                        <a class="btn btn-sm" data-toggle="modal" data-target="#ModalLoginForm{{user.id}}" href="{% url 'staffedit' log.id %}">Edit</a>
+                    </td>
+                  </tr>
+                  {% endfor %}
+              </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Your existing modal code -->
+  <div class="modal fade" id="statusSuccessModal" tabindex="-1" role="dialog" data-bs-backdrop="static" data-bs-keyboard="false"> 
+    <div class="modal-dialog modal-dialog-centered modal-sm" role="document"> 
+      <div class="modal-content"> 
+        <div class="modal-body text-center p-lg-4"> 
+          <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 130.2 130.2">
+            <circle class="path circle" fill="none" stroke="#198754" stroke-width="6" stroke-miterlimit="10" cx="65.1" cy="65.1" r="62.1" />
+            <polyline class="path check" fill="none" stroke="#198754" stroke-width="6" stroke-linecap="round" stroke-miterlimit="10" points="100.2,40.2 51.5,88.8 29.8,67.5 " /> 
+          </svg> 
+          <h4 class="text-success mt-3">Oh Yeah!</h4> 
+          <p class="mt-3"> {% for message in messages %}
+            {{ message }}
+        {% endfor %}</p>
+          <button type="button" class="btn btn-sm mt-3 btn-success" data-bs-dismiss="modal">Ok</button> 
+        </div> 
+      </div> 
+    </div> 
+  </div>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script>
+      $(document).ready(function() {
+          $('.toggle-user-active').change(function() {
+              var userId = $(this).data('user-id');
+              var isActive = $(this).is(':checked');
+              var userType = $('#user_type_id').val();
+              
+              $.ajax({
+                  url: '{% url "toggle_user_active" %}',  
+                  type: 'POST',
+                  data: {
+                      'user_id': userId,
+                      'is_active': isActive,
+                      'user_type': userType,
+                      'csrfmiddlewaretoken': '{{ csrf_token }}'
+                  },
+                  success: function(response) {
+                      if(response.status === 'success') {
+                          alert('User active status updated successfully');
+                      } else {
+                          alert('Failed to update user active status');
+                      }
+                  },
+                  error: function(xhr, errmsg, err) {
+                      console.log(xhr.status + ": " + xhr.responseText);
+                  }
+              });
+          });
+      });
+  </script>
+  
+<script>
+  function searchTable() {
+    var input, filter, table, tr, td, i, txtValue;
+    input = document.getElementById("searchInput");
+    filter = input.value.toUpperCase();
+    table = document.getElementById("myTable");
+    tr = table.getElementsByTagName("tr");
+
+    // Loop through all table rows, and hide those that don't match the search query
+    for (i = 0; i < tr.length; i++) {
+        var rowShouldBeVisible = false;
+
+        // Loop through all cells of current row
+        for (j = 0; j < tr[i].cells.length; j++) {
+            td = tr[i].cells[j];
+            if (td) {
+                txtValue = td.textContent || td.innerText;
+                if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                    rowShouldBeVisible = true;
+                    break; // If a match is found in this row, no need to check further
+                }
+            }
+        }
+        if (rowShouldBeVisible) {
+            tr[i].style.display = "";
+        } else {
+            tr[i].style.display = "none";
+        }
+    }
+
+}
+  function showInputRows() {
+    const input = document.getElementById("rowInput").value;
+    const count = parseInt(input) || 'all';
+    showRows(count);
+  }
+
+  function showRows(count) {
+    const rows = document.querySelectorAll("#myTable tbody tr");
+    rows.forEach((row, index) => {
+      if (count === 'all' || index < count) {
+        row.style.display = "";
+      } else {
+        row.style.display = "none";
+      }
+    });
+  }
+
+  function toggleRow(button) {
+    var row = button.parentNode.parentNode;
+    if (row.classList.contains('selected')) {
+      row.classList.remove('selected');
+      button.style.backgroundColor = 'white';
+    } else {
+      row.classList.add('selected');
+      button.style.backgroundColor = 'black';
+    }
+  }
+
+  function toggleAllRows() {
+    var buttons = document.querySelectorAll('.select-button');
+    var allSelected = true;
+    buttons.forEach(function (button) {
+      var row = button.parentNode.parentNode;
+      if (!row.classList.contains('selected')) {
+        allSelected = false;
+      }
+    });
+
+    buttons.forEach(function (button) {
+      var row = button.parentNode.parentNode;
+      if (allSelected) {
+        row.classList.remove('selected');
+        button.style.backgroundColor = 'white';
+      } else {
+        row.classList.add('selected');
+        button.style.backgroundColor = 'black';
+      }
+    });
+  }
+
+</script>
+<style>
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+
+  .table th,
+  .table td {
+    padding: 10px;
+    text-align: left;
+  }
+
+  .select-button {
+    width: 16px;
+    height: 16px;
+    border: 1px solid black;
+    display: inline-block;
+    cursor: pointer;
+    margin: 0;
+    padding: 0;
+    background-color: white;
+    position: relative;
+  }
+
+  .select-button::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 5px;
+    width: 5px;
+    height: 10px;
+    /* border: solid black; */
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .selected .select-button::before {
+    opacity: 3;
+  }
+
+  .selected {
+    background-color: #d3d3d3;
+    /* Light grey background for selected rows */
+  }
+
+  .input-container {
+    margin-bottom: 10px;
+  }
+
+  #rowInput {
+    border: 1px solid black;
+    padding: 4px;
+    width: 50px;
+    /* Adjust width as needed */
+    font-size: 14px;
+    /* Adjust font size as needed */
+  }
+  .desh-card {
+    height: 65px;
+}
+</style>
+
+
+{% endblock %}

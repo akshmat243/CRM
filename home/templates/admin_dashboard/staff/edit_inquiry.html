@@ -1,0 +1,464 @@
+{% extends 'admin_dashboard/staff/base.html' %}
+{% block content %}
+{% load static %}
+<style>
+    .form-group input[type="checkbox"] {
+        margin-right: 10px;
+        vertical-align: middle;
+    }
+    .form-group label.text-label {
+        font-weight: normal;
+        cursor: pointer;
+    }
+    input[type="checkbox"] {
+    appearance: checkbox; /* Ensure checkboxes appear as default */
+    width: 20px; /* Adjust as per your design */
+    height: 20px; /* Adjust as per your design */
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
+</style>
+
+<div class="form-section">
+    <div class="row">
+        <div class="card-step">
+            <!-- Step 1: Merchant Register Forms -->
+            <div class="tab">
+                <div class="formbg-title">Merchant Register Forms</div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="text-label">Merchant Legal Name*</label>
+                            <input disabled type="text" name="merchant_legal_name" id="merchant_legal_name"
+                                class="form-control" placeholder="Legal Name"
+                                value="{{ merchant_forms_data.legal_name }}">
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="text-label">Merchant DBA Name*</label>
+                            <input disabled type="text" name="merchant_dba_name" id="merchant_dba_name"
+                                class="form-control" placeholder="DBA Name"
+                                value="{{ merchant_forms_data.marchant_dba_name }}">
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="text-label">Installation Address*</label>
+                            <textarea disabled name="installation_address" id="installation_address"
+                                class="form-control"
+                                placeholder="Installation Address">{{ merchant_forms_data.installation_address }}</textarea>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="text-label">City*</label>
+                            <input disabled type="text" name="city" id="city" class="form-control" placeholder="City"
+                                value="{{ merchant_forms_data.city }}">
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="text-label">Pincode*</label>
+                            <input disabled type="text" name="pincode" id="pincode" class="form-control"
+                                placeholder="Pincode" value="{{ merchant_forms_data.pincode }}">
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="text-label">State*</label>
+                            <input disabled type="text" name="state" id="state" class="form-control" placeholder="State"
+                                value="{{ merchant_forms_data.state }}">
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="text-label">Contact Person Name*</label>
+                            <input disabled type="text" name="contact_person_name" id="contact_person_name"
+                                class="form-control" placeholder="Contact Person Name"
+                                value="{{ merchant_forms_data.contact_person }}">
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="text-label">Telephone No.</label>
+                            <input disabled type="text" name="telephone_no" id="telephone_no" class="form-control"
+                                placeholder="Telephone No." value="{{ merchant_forms_data.telephone }}">
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="text-label">Primary Mobile No*</label>
+                            <input disabled type="text" name="primary_mobile_no" id="primary_mobile_no"
+                                class="form-control" placeholder="Primary Mobile No"
+                                value="{{ merchant_forms_data.primary_mobile }}">
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="text-label">Secondary Mobile No</label>
+                            <input disabled type="text" name="secondary_mobile_no" id="secondary_mobile_no"
+                                class="form-control" placeholder="Secondary Mobile No"
+                                value="{{ merchant_forms_data.secondary_mobile }}">
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="text-label">Email Address</label>
+                            <input disabled type="email" name="email_address" id="email_address" class="form-control"
+                                placeholder="Email Address" value="{{ merchant_forms_data.email }}">
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="text-label">PAN Number*</label>
+                            <input disabled type="text" name="pan_no" id="pan_no" class="form-control"
+                                placeholder="PAN Number" value="{{ merchant_forms_data.pan_no }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Merchant Settlement Details -->
+            <div class="tab">
+                <div class="formbg-title">Merchant Settlement Details</div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="text-label">Beneficiary Name*</label>
+                            <input disabled type="text" name="beneficiary_name" id="beneficiary_name"
+                                class="form-control" placeholder="Beneficiary Name"
+                                value="{{ merchant_forms_data.beneficiary_name }}">
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="text-label">Account Number*</label>
+                            <input disabled type="text" name="bank_account_no" id="bank_account_no" class="form-control"
+                                placeholder="Account Number" value="{{ merchant_forms_data.bank_account_no }}">
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="text-label">Bank Name*</label>
+                            <input disabled type="text" name="bank_name" id="bank_name" class="form-control"
+                                placeholder="Bank Name" value="{{ merchant_forms_data.bank_name }}">
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="text-label">IFSC Code*</label>
+                            <input disabled type="text" name="ifsc_code" id="ifsc_code" class="form-control"
+                                placeholder="IFSC Code" value="{{ merchant_forms_data.ifsc_code }}">
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="text-label">Branch Name*</label>
+                            <input disabled type="text" name="branch_name" id="branch_name" class="form-control"
+                                placeholder="Branch Name" value="{{ merchant_forms_data.branch_name }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% if request.user.on_boarding_manager or request.user.delivery_manager %}
+            <form action="#fdgfd" method="POST" id="multiStepForm">
+                {% csrf_token %}
+                <!-- Step 3: Add Machine Details -->
+                <div class="tab" id="machineDetailsTab" style="display: none;">
+                    <div class="formbg-title">Add Machine Details</div>
+                    <div class="row" id="machineDetailsContainer">
+                      
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="text-label">POS Type Opted*</label>
+                                {%  if  merchant_forms_data.pos_type_opted %}
+                                <select name="pos_type_opted" class="form-control" required>
+                                    <option  value="{{ merchant_forms_data.pos_type_opted }}">{{ merchant_forms_data.pos_type_opted }}</option>
+                                    <option value="android_wifi">Andswipe Android/WIFI (AL9220) (With Printer)</option>
+                                    <option value="gprs_wifi">Andswipe GPRS/WIFI (L7220) (With Printer)</option>
+                                </select>
+                                {% else %}
+                                <select name="pos_type_opted" class="form-control" required>
+                                    <option value="android_wifi">Andswipe Android/WIFI (AL9220) (With Printer)</option>
+                                    <option value="gprs_wifi">Andswipe GPRS/WIFI (L7220) (With Printer)</option>
+                                </select>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="text-label">Number of POS Terminals*</label>
+                                {%  if  merchant_forms_data.number_of_pos_terminals %}
+                                <input type="number" name="number_of_pos_terminals"  class="form-control"
+                                    placeholder="Enter number" required  value="{{ merchant_forms_data.number_of_pos_terminals }}">
+                                    {% else %}
+                                    <input type="number" name="number_of_pos_terminals"  class="form-control"
+                                    placeholder="Enter number" required >
+                                    {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="text-label">
+                                    <input type="checkbox" name="value_added_services_required" 
+                                           {% if merchant_forms_data.value_added_services_required %}checked{% endif %}> 
+                                    Value Added Services Required
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="text-label">
+                                    <input type="checkbox" name="emi_facility_on_credit_card" 
+                                           {% if merchant_forms_data.emi_facility_on_credit_card %}checked{% endif %}> 
+                                    EMI Facility on Credit Card
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="text-label">
+                                    <input type="checkbox" name="sodexo" 
+                                           {% if merchant_forms_data.sodexo %}checked{% endif %}> 
+                                    SODEXO
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="text-label">
+                                    <input type="checkbox" name="amex" 
+                                           {% if merchant_forms_data.amex %}checked{% endif %}> 
+                                    AMEX
+                                </label>
+                            </div>
+                        </div>
+                        
+                        
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="text-label">Operation Model*</label>
+                                {%  if  merchant_forms_data.operation_model %}
+                                <select name="operation_model" class="form-control" required>
+                                    <option value="{{ merchant_forms_data.operation_model }}">{{ merchant_forms_data.operation_model }}</option>
+                                    <option value="monthly_rental">Monthly Rental</option>
+                                    <option value="fixed_cost">Fixed Cost</option>
+                                </select>
+                                {% else %}
+                                <select name="operation_model" class="form-control" required>
+                                    <option value="monthly_rental">Monthly Rental</option>
+                                    <option value="fixed_cost">Fixed Cost</option>
+                                </select>
+                                {% endif %} 
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">    
+                                <label class="text-label">Monthly Rental Amount</label>
+                                {%  if  merchant_forms_data.monthly_rental_amount %}
+                                <input type="text" name="monthly_rental_amount" class="form-control"
+                                    placeholder="Enter amount"  value="{{ merchant_forms_data.monthly_rental_amount }}">
+                                    {% else %}
+                                    <input type="text" name="monthly_rental_amount" class="form-control"
+                                    placeholder="Enter amount" >
+                                    {% endif %} 
+
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="text-label">Fixed Cost Amount</label>
+                                {%  if  merchant_forms_data.fixed_cost_amount %}
+                                <input type="text" name="fixed_cost_amount" class="form-control"
+                                    placeholder="Enter amount"  value="{{ merchant_forms_data.fixed_cost_amount }}">
+                                {% else %}
+                                <input type="text" name="fixed_cost_amount" class="form-control"
+                                    placeholder="Enter amount">
+                                {% endif %} 
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="text-label">Device Security Charge*</label>
+                                {%  if  merchant_forms_data.device_security_charge %}
+                                <input type="text" name="device_security_charge" class="form-control"
+                                    placeholder="Enter amount" required  value="{{ merchant_forms_data.device_security_charge }}">
+                                {% else %}
+                                <input type="text" name="device_security_charge" class="form-control"
+                                    placeholder="Enter amount" required >
+                                {% endif %} 
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="text-label">Setup Fee*</label>
+                                {%  if  merchant_forms_data.setup_fee %}
+                                <input type="text" name="setup_fee" class="form-control" placeholder="Enter amount"
+                                    required  value="{{ merchant_forms_data.setup_fee }}">
+                                {% else %}
+                                <input type="text" name="setup_fee" class="form-control" placeholder="Enter amount"
+                                    required >
+                                {% endif %}    
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="text-label">Mode of Payment (MOP)*</label>
+                                <select name="mop" class="form-control" required>
+                                    {%  if  merchant_forms_data.mop %}
+                                    <option  value="{{ merchant_forms_data.mop }}">{{ merchant_forms_data.mop }}</option>
+                                    <option value="upi_neft_rtgs">UPI/NEFT/RTGS</option>
+                                    <option value="cheque">Cheque</option>
+                                    <option value="e_nach">E-Nach</option>
+                                    <option value="amount">Amount</option>
+                                    {% else %}
+                                    <option value="upi_neft_rtgs">UPI/NEFT/RTGS</option>
+                                    <option value="cheque">Cheque</option>
+                                    <option value="e_nach">E-Nach</option>
+                                    <option value="amount">Amount</option>
+                                    {% endif %}    
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="text-label">Amount</label>
+                                {%  if  merchant_forms_data.mop_amount %}
+                                    <input type="text" name="mop_amount" class="form-control"
+                                        placeholder="Enter amount"  value="{{ merchant_forms_data.mop_amount }}">
+                                {% else %}
+                                <input type="text" name="mop_amount" class="form-control"
+                                        placeholder="Enter amount">
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="text-label">Cheque Number</label>
+                                {%  if  merchant_forms_data.cheque_number %}
+                                <input type="text" name="cheque_number" class="form-control"
+                                    placeholder="Enter cheque number"  value="{{ merchant_forms_data.cheque_number }}">
+                                {% else %}
+                                <input type="text" name="cheque_number" class="form-control"
+                                    placeholder="Enter cheque number" >
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="text-label">Payment Reference Number</label>
+                                {%  if  merchant_forms_data.payment_ref_number %}
+                                <input type="text" name="payment_ref_number" class="form-control"
+                                    placeholder="Enter reference number"  value="{{ merchant_forms_data.payment_ref_number }}">
+                                {% else %}
+                                <input type="text" name="payment_ref_number" class="form-control"
+                                    placeholder="Enter reference number">
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        </div>
+    </div>
+    {% endif %}
+    <!-- Navigation Buttons -->
+    <div class="btnstep">
+        <button type="button" class="btn btn-secondary" id="prevBtn" onclick="navigateTabs(-1)">Previous</button>
+        <button type="submit" class="btn btn-primary" id="submitBtn" style="display: none;">Submit</button>
+        <button type="button" class="btn btn-primary" id="nextBtn" onclick="navigateTabs(1)">Continue</button>
+    </div>
+    </form>
+
+
+</div>
+</div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        let currentTab = 0; // Initial tab index
+        const tabs = document.querySelectorAll(".tab");
+
+        const showTab = (n) => {
+            tabs.forEach((tab, index) => {
+                tab.style.display = index === n ? "block" : "none";
+            });
+
+            // Handling the visibility of Previous, Continue/Submit buttons
+            if (n === tabs.length - 1) {
+                document.getElementById("nextBtn").style.display = "none"; // Hide Continue
+                document.getElementById("submitBtn").style.display = "inline"; // Show Submit
+            } else {
+                document.getElementById("nextBtn").style.display = "inline"; // Show Continue
+                document.getElementById("submitBtn").style.display = "none"; // Hide Submit
+            }
+
+            document.getElementById("prevBtn").style.display = n === 0 ? "none" : "inline"; // Hide Prev on first tab
+        };
+
+        const navigateTabs = (step) => {
+            // Hide the current tab
+            tabs[currentTab].style.display = "none";
+
+            // Update current tab index
+            currentTab += step;
+
+            // Show the next/previous tab
+            showTab(currentTab);
+        };
+
+        // Initialize the form with the first tab visible
+        showTab(currentTab);
+
+        // Attach event listeners to buttons
+        document.getElementById("prevBtn").addEventListener("click", () => navigateTabs(-1));
+        document.getElementById("nextBtn").addEventListener("click", () => navigateTabs(1));
+
+        // Add machine details dynamically if needed
+        document.getElementById("addMoreMachineDetailsBtn").addEventListener("click", () => {
+            const machineDetailsContainer = document.getElementById("machineDetailsContainer");
+
+            const newMachineDetailRow = document.createElement("div");
+            newMachineDetailRow.classList.add("row");
+
+            newMachineDetailRow.innerHTML = `
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label class="text-label">Machine Name*</label>
+                    <input type="text" name="machine_name" class="form-control" placeholder="Machine Name" required>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label class="text-label">Machine Model*</label>
+                    <input type="text" name="machine_model" class="form-control" placeholder="Machine Model" required>
+                </div>
+            </div>
+        `;
+
+            machineDetailsContainer.appendChild(newMachineDetailRow);
+        });
+    });
+
+</script>
+
+{% endblock %}

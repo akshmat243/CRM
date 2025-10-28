@@ -1,0 +1,492 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<!-- Mirrored from wowdash.wowtheme7.com/demo/sign-in.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 01 Jul 2024 09:07:01 GMT -->
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="{% static 'assets/images/favicon.png' %}" sizes="16x16">
+    <!-- remix icon font css  -->
+    <link rel="stylesheet" href="{% static 'assets/css/remixicon.css' %}">
+    <!-- BootStrap css -->
+    <link rel="stylesheet" href="{% static 'assets/css/lib/bootstrap.min.css' %}">
+    <!-- Apex Chart css -->
+    <link rel="stylesheet" href="{% static 'assets/css/lib/apexcharts.css' %}">
+    <!-- Data Table css -->
+    <link rel="stylesheet" href="{% static 'assets/css/lib/dataTables.min.css' %}">
+    <!-- Text Editor css -->
+    <link rel="stylesheet" href="{% static 'assets/css/lib/editor-katex.min.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/lib/editor.atom-one-dark.min.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/lib/editor.quill.snow.css' %}">
+    <!-- Date picker css -->
+    <link rel="stylesheet" href="{% static 'assets/css/lib/flatpickr.min.css' %}">
+    <!-- Calendar css -->
+    <link rel="stylesheet" href="{% static 'assets/css/lib/full-calendar.css' %}">
+    <!-- Vector Map css -->
+    <link rel="stylesheet" href="{% static 'assets/css/lib/jquery-jvectormap-2.0.5.css' %}">
+    <!-- Popup css -->
+    <link rel="stylesheet" href="{% static 'assets/css/lib/magnific-popup.css' %}">
+    <!-- Slick Slider css -->
+    <link rel="stylesheet" href="{% static 'assets/css/lib/slick.css' %}">
+    <!-- main css -->
+    <link rel="stylesheet" href="{% static 'assets/css/style.css' %}">
+</head>
+<style>
+    @media screen and (min-width: 768px) {
+        .modal {
+            --bs-modal-zindex: 1055;
+            --bs-modal-width: 60% !important;
+        }
+    }
+    @media (max-width: 600px) {
+        .login-container {
+            width: 90%;
+            padding: 20px;
+        }
+    }
+</style>
+
+<body>
+
+    <!-- <section class="auth  d-flex flex-wrap bg-danger">   -->
+    <section class="login-custom-section">
+        <div class="loginbox">
+            <div class="row">
+                <div class="col-sm-6">
+
+                    <div class="loginbox-left">
+                      <div class="top-login-info">
+                    
+                              {% if messages %}
+                              {% for message in messages %}
+                              <div class="red">
+                                  {{ message }}
+                              </div>
+                              {% endfor %}
+                              {% endif %}
+                              <h4>Welcome back!</h4>
+                              {% comment %}  {% endcomment %}
+                              <p>Enter your login credentials </p>
+                      
+                      </div>
+      
+                      <form method="post" id="login-form" class="col-12-sm" action="{% url 'login' %}">
+                          {% csrf_token %}
+                          <div class="form-group">
+                              <label for="username">Username</label>
+                           
+                                  <input type="text" name="username" class="form-control" id="username" placeholder="Email ">
+                              
+                          </div>
+      
+                          <div class="form-group">
+                              <div class="d-flex justify-content-between">
+                                <label for="password">Password</label>
+                                <a class="Forgetpassword" href="#">Forget password?</a>
+                              </div>
+                           
+                                  <input type="password" name="password" class="form-control" id="password" placeholder="Password">
+                          
+                          </div>
+                          <div class="form-group">
+                            <div class="form-check">
+                                  <input type="checkbox" class="form-check-input" id="rememberMe">
+                                  <label class="form-check-label" for="rememberMe">
+                                    Remember for 30 days
+                                  </label>
+                            </div>
+                          </div>
+                        
+                          <div class="form-group">
+                              <button type="Login" class="btn loginbtn">Login</button>
+                          </div>
+                      </form>
+
+                      <div class="or-form">
+                        <span>or</span>
+                      </div>
+
+                      <div class="other-login">
+                        <button type="button" class="btn googlebtn">
+                          <img src="{% static 'assets/images/google-icon.png' %}" alt="Google Sign-In">
+                          Sign in with Google
+                        </button>
+                        <button type="button" class="btn apple-btn">
+                          <img src="{% static 'assets/images/apple-icon.png' %}" alt="apple Sign-In">
+                          Sign in with Apple
+                        </button>
+                      </div>
+
+
+
+      
+                              <div class="Register-login">
+                                  <a href="#" data-bs-toggle="modal" data-bs-target="#exampleModal">Not Register?</a> Create an account
+                              </div>
+      
+                          <form method="POST" action="{% url 'add_freelancer' %}" enctype="multipart/form-data">
+                              {% csrf_token %}
+                              <div class="modal fade modallogin" id="exampleModal" tabindex="-1"
+                                  aria-labelledby="exampleModalLabel" aria-hidden="true">
+                                  <div class="modal-dialog">
+                                      <div class="modal-content">
+                                          <div class="modal-header">
+                                              <h5 class="modal-title" id="exampleModalLabel">Freelancer Registration</h5>
+                                              <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                  aria-label="Close"></button>
+                                          </div>
+                                         
+                                              <div class="modal-body">
+                                                <div class="row">
+                                              
+                                                      <div class="col-md-6 col-sm-12 form-group-modal">
+                                                        <label class="form-label">Name</label>
+                                                          <input type="text" class="form-control" id="name"
+                                                              name="name" placeholder="Name" required>
+                                                      </div>
+                                                      <div class="col-md-6 col-sm-12 form-group-modal">
+                                                        <label for="email" class="form-label">E-Mail Address</label>
+                                                          <input type="email" class="form-control" id="email"
+                                                              name="email" placeholder="email" required>
+                                                      </div>
+                                                
+                                                  <!-- password/mobile -->
+                                     
+                                                      <div class="col-md-6 col-sm-12 form-group-modal">
+                                                        <label class="form-label ">Password</label>
+                                                          <input type="password" class="form-control"
+                                                              id="password" name="password"
+                                                              placeholder="XXXXXXXXXXXXXXX" required>
+                                                      </div>
+                                                      <div class="col-sm-6 col-12 form-group-modal">
+                                                          <label for="exampleFormControlInput1" class="form-label">Date Of Birth</label>
+                                                          <input type="date" class="form-control"
+                                                              id="exampleFormControlInput1"
+                                                              placeholder="Select a date" name="dob">
+                                                      </div>
+                                               
+      
+                                                  <!-- pan/addhar -->
+                                             
+                                                      <div class="col-sm-6 col-12 form-group-modal"><label class="form-label">Pan
+                                                              Card</label>
+                                                          <input type="text" class="form-control"
+                                                              id="pancard" name="pancard" placeholder="pancard"
+                                                             >
+                                                      </div>
+                                                      <div class="col-sm-6 col-12 form-group-modal"><label class="form-label">Aadhar
+                                                              Card</label>
+                                                          <input type="number" class="form-control"
+                                                              id="mobile" name="aadharCard" placeholder="number">
+                                                      </div>
+                               
+      
+                                                  <!-- marksheet/degree -->
+                                                  <!-- 
+                                                      <div class="col-sm-6 col-12 form-group-modal"><label
+                                                              class="form-label">MarkSheets</label>
+                                                          <input type="text" class="form-control"
+                                                              id="pancard" name="marksheet" placeholder="MarkSheets">
+                                                      </div>
+      
+                                                      <div class="col-sm-6 col-12 form-group-modal"><label
+                                                              class="form-label">Degree</label>
+                                                          <input type="text" class="form-control" id="degree"
+                                                              name="degree" placeholder="Degree">
+                                                      </div>
+                                                  -->
+      
+                                                  <!-- city/state -->
+                                                
+                                                      <!-- <div class="col-sm-6 col-12 form-group-modal"><label class="form-label">Address</label>
+                                                        <input type="text" class="form-control" id="address" name="address"
+                                                            placeholder="address" required
+                                                            value="{{ staff.address }}">
+                                                    </div> -->
+                                                      <div class="col-sm-6 col-12 form-group-modal"><label for="city"
+                                                              class="form-label">City</label>
+                                                          <input type="text" class="form-control" id="city"
+                                                              name="city" placeholder="city" required>
+                                                      </div>
+                                                      <div class="col-sm-6 col-12 form-group-modal">
+                                                          <label for="stateSelect" class="form-label">State</label>
+                                                          <select class="form-select" name="state"
+                                                              aria-label="Default select example" required>
+                                                              <option value="">Select a state</option>
+                                                              <option value="Andhra Pradesh">Andhra Pradesh</option>
+                                                              <option value="Arunachal Pradesh">Arunachal Pradesh
+                                                              </option>
+                                                              <option value="Assam">Assam</option>
+                                                              <option value="Bihar">Bihar</option>
+                                                              <option value="Chhattisgarh">Chhattisgarh</option>
+                                                              <option value="Goa">Goa</option>
+                                                              <option value="Gujarat">Gujarat</option>
+                                                              <option value="Haryana">Haryana</option>
+                                                              <option value="Himachal Pradesh">Himachal Pradesh
+                                                              </option>
+                                                              <option value="Jharkhand">Jharkhand</option>
+                                                              <option value="Karnataka">Karnataka</option>
+                                                              <option value="Kerala">Kerala</option>
+                                                              <option value="Madhya Pradesh">Madhya Pradesh</option>
+                                                              <option value="Maharashtra">Maharashtra</option>
+                                                              <option value="Manipur">Manipur</option>
+                                                              <option value="Meghalaya">Meghalaya</option>
+                                                              <option value="Mizoram">Mizoram</option>
+                                                              <option value="Nagaland">Nagaland</option>
+                                                              <option value="Odisha">Odisha</option>
+                                                              <option value="Punjab">Punjab</option>
+                                                              <option value="Rajasthan">Rajasthan</option>
+                                                              <option value="Sikkim">Sikkim</option>
+                                                              <option value="Tamil Nadu">Tamil Nadu</option>
+                                                              <option value="Telangana">Telangana</option>
+                                                              <option value="Tripura">Tripura</option>
+                                                              <option value="Uttar Pradesh">Uttar Pradesh</option>
+                                                              <option value="Uttarakhand">Uttarakhand</option>
+                                                              <option value="West Bengal">West Bengal</option>
+                                                          </select>
+                                                      </div>
+      
+                                               
+                                                  <!-- mobile -->
+                                              
+                                                      <div class="col-md-6 col-sm-12 form-group-modal"><label
+                                                              class="form-label">Mobile</label>
+                                                          <input type="number" class="form-control"
+                                                              id="mobile" name="mobile" placeholder="number"
+                                                              oninput="if(this.value.length > 10) this.value = this.value.slice(0, 10);"
+                                                              min="999999999" max="9999999999" required>
+                                                      </div>
+                                                      <div class="col-sm-6 col-12 form-group-modal"><label
+                                                          class="form-label">Degree</label>
+                                                      <input type="text" class="form-control" id="degree"
+                                                          name="degree" placeholder="Degree" >
+                                                  </div>
+                                                 
+                                                      
+                                                  <div class="col-sm-6 col-12 form-group-modal"><label class="form-label">Reffrel Code
+                                                      </label>
+                                                  <input type="text" class="form-control"
+                                                      id="referral_code" name="referral_code" placeholder="Reffrel Code">
+                                                  </div>
+                                                  <div class="col-sm-6 col-12 form-group-modal"><label
+                                                      class="form-label">Profile Image</label>
+                                                      <input class="form-control" type='file' id="imageUpload" name="profile_image" accept=".png, .jpg, .jpeg">
+                                                  </div>
+                                                     
+                                                
+      
+                                                  <!-- account details -->
+                                                  <div class="col-12 form-group-modal">
+                                                     <h5> Account Details</h5>
+                                                  </div>
+                                                  
+                                     
+                                                     
+                                                          <div class="col-sm-6 col-12 form-group-modal">
+                                                              <label class="form-label">Account Number</label>
+                                                              <input type="number" class="form-control"
+                                                                  id="account_number" name="account_number"
+                                                                  placeholder="Account Number" style="width: 100%;"
+                                                                  oninput="if(this.value.length > 16) this.value = this.value.slice(0, 16);">
+                                                          </div>
+                                                          <div class="col-sm-6 col-12 form-group-modal">
+                                                              <label class="form-label">Add UPI</label>
+                                                              <input type="text" class="form-control"
+                                                                  id="upi_id" name="upi_id" placeholder="Enter UPI ID"
+                                                                  style="width: 100%;" maxlength="50">
+                                                          </div>
+      
+                                                 
+      
+                                           
+                                                          <div class="col-sm-6 col-12 form-group-modal">
+                                                              <label class="form-label">Bank Name</label>
+                                                              <input type="text" class="form-control"
+                                                                  id="bank_name" name="bank_name"
+                                                                  placeholder="Bank Name" style="width: 100%;"
+                                                                  maxlength="50">
+                                                          </div>
+                                                          <div class="col-sm-6 col-12 form-group-modal">
+                                                              <label class="form-label">IFSC Code</label>
+                                                              <input type="text" class="form-control"
+                                                                  id="ifsc_code" name="ifsc_code"
+                                                                  placeholder="IFSC Code" style="width: 100%;"
+                                                                  maxlength="15">
+                                                          </div>
+                                                     
+                                              
+      
+                                        
+                                                      <div class="col-sm-6 col-12 form-group-modal"><label for="pincode"
+                                                              class="form-label">Pincode</label>
+                                                          <input type="number" class="form-control"
+                                                              id="pincode" name="pincode" placeholder="pincode"
+                                                              style="width: 100%;"
+                                                              oninput="if(this.value.length > 6) this.value = this.value.slice(0, 6);"
+                                                              min="99999" max="999999" required>
+                                                      </div>
+                                                      <div class="col-sm-6 col-12 form-group-modal">
+                                                          <label for="userTypeSelect" class="form-label">User Type</label>
+                                                          <select class="form-select" name="user_type"
+                                                              aria-label="Default select example" required>
+                                                              <option value="">Select a User Type</option>
+                                                              <option value="freelancer">Freelancer</option>
+                                                              <option value="it_staff">IT Staff</option>
+                                                          </select>
+                                                      </div>
+                                      
+                                             
+                                     
+                                                      <div class="col-12 form-group-modal">
+                                                          <label class="form-label">Address</label>
+                                                          <textarea class="form-control" name="address" id="address"
+                                                              rows="3" required></textarea>
+                                                      </div>
+                                                  
+      
+      
+      
+      
+                                         
+                                                  <div class="form-group-modal-btn">
+                                                      <input type="submit" class="btn">
+                                                  </div>
+                                                </div>
+                                              </div>
+
+                                      </div>
+                                  </div>
+                              </div>
+                          </form>
+                  
+      
+                    </div>
+                  </div>
+              
+
+
+                  <div class="col-sm-6">
+                    <div class="login-right">
+                      <img src="../static/assets/images/login-right.jpg" alt="">
+                    </div>
+                  </div>
+            </div>
+        </div>
+
+        
+
+
+    </section>
+
+
+
+
+
+
+
+    <!-- jQuery library js -->
+    <script src="{% static 'assets/js/lib/jquery-3.7.1.min.js' %}"></script>
+    <!-- Bootstrap js -->
+    <script src="{% static 'assets/js/lib/bootstrap.bundle.min.js' %}"></script>
+    <!-- Apex Chart js -->
+    <script src="{% static 'assets/js/lib/apexcharts.min.js' %}"></script>
+    <!-- Data Table js -->
+    <script src="{% static 'assets/js/lib/dataTables.min.js' %}"></script>
+    <!-- Iconify Font js -->
+    <script src="{% static 'assets/js/lib/iconify-icon.min.js' %}"></script>
+    <!-- jQuery UI js -->
+    <script src="{% static 'assets/js/lib/jquery-ui.min.js' %}"></script>
+    <!-- Vector Map js -->
+    <script src="{% static 'assets/js/lib/jquery-jvectormap-2.0.5.min.js' %}"></script>
+    <script src="{% static 'assets/js/lib/jquery-jvectormap-world-mill-en.js' %}"></script>
+    <!-- Popup js -->
+    <script src="{% static 'assets/js/lib/magnifc-popup.min.js' %}"></script>
+    <!-- Slick Slider js -->
+    <script src="{% static 'assets/js/lib/slick.min.js' %}"></script>
+    <!-- main js -->
+    <script src="{% static 'assets/js/app.js' %}"></script>
+
+    <script>
+        // ================== Password Show Hide Js Start ==========
+        function initializePasswordToggle(toggleSelector) {
+            $(toggleSelector).on('click', function () {
+                $(this).toggleClass("ri-eye-off-line");
+                var input = $($(this).attr("data-toggle"));
+                if (input.attr("type") === "password") {
+                    input.attr("type", "text");
+                } else {
+                    input.attr("type", "password");
+                }
+            });
+        }
+        // Call the function
+        initializePasswordToggle('.toggle-password');
+        // ========================= Password Show Hide Js End ===========================
+    </script>
+
+    <script>
+        function checkSuperuser() {
+            const username = document.getElementById('username').value;
+
+            fetch("{% url 'check_superuser' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({ 'username': username })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.is_superuser) {
+                        document.getElementById('login-form').submit();
+                    } else {
+                        getLocation();
+                    }
+                });
+        }
+
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(sendPosition);
+            } else {
+                alert("Geolocation is not supported by this browser.");
+            }
+        }
+
+        function sendPosition(position) {
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+            console.log(latitude, longitude, 'AAAAAAAAAAAAAAA');
+
+
+            fetch("{% url 'check_location' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({ latitude: latitude, longitude: longitude })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.allowed) {
+                        document.getElementById('login-form').submit();
+                    } else {
+                        alert("You are not within the allowed area.");
+                    }
+                });
+        }
+    </script>
+
+
+
+
+
+</body>
+
+<!-- Mirrored from wowdash.wowtheme7.com/demo/sign-in.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 01 Jul 2024 09:07:02 GMT -->
+
+</html>

@@ -1,0 +1,477 @@
+{% extends template %}
+{% block content %}
+{% load static %}
+
+<div class="dashboard-main-body">
+
+    <div class="dash-title">Interested Leads </div>
+ 
+
+
+  <div class="card h-100 p-0 radius-12 ">
+    <div
+      class="card-header border-bottom bg-base px-24 py-16 px-sm-16 py-sm-10 d-flex align-items-center flex-wrap gap-3 justify-content-between">
+      <div class="flex-wrap col-sm-auto col-12">
+        <form class="navbar-search search_bar">
+          <input type="text" id="searchInput" class="bg-base h-40-px w-100" name="search" placeholder="Search"
+            onkeyup="searchTable()">
+          <iconify-icon icon="ion:search-outline" class="icon"></iconify-icon>
+        </form>
+      </div>
+    </div>
+    <div class="card-body p-24">
+      <div class="table-responsive scroll-sm">
+        <table class="table bordered-table sm-table mb-0">
+          <thead>
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Phone</th>
+              <th scope="col">Call</th>
+              <th scope="col">Whatsapp</th>
+              <!-- <th scope="col">Status</th> -->
+              <!-- <th>Change Status</th> -->
+              {% if request.user.is_staff_new %}
+              <th class="team_status">Change Status</th>
+              {% endif %}
+              {% if key == 1 %}
+              <th>Follow up date</th>
+              <th>Follow up time</th>
+              {% else %}
+              <th>Date</th>
+              {% endif %}
+              <th class="text-center">History</th>
+
+            </tr>
+          </thead>
+          <tbody id="myTable">
+            {% for user in users_lead_lost %}
+            <tr>
+              <td>{{ user.name }}</td>
+              <td>{{ user.call }}</td>
+
+              <td>
+                <a href="tel:{{ user.call }}" class="log-activity" data-id="{{ request.user.email }}"
+                  data-activity="Called user">
+                  <i class="bi bi-telephone-fill" style="font-size:1.1em; transform: rotate(95deg);"></i>
+                </a>
+              </td>
+              <td>
+                <a href="https://wa.me/{{ user.call }}?text={{ whatsapp_marketing.message }}%20{{ whatsapp_marketing.url }}%20{{ user.name }}"
+                  data-id="{{ request.user.email }}" class="log-activity" data-activity="Whatsapp user" target="_blank">
+                  <i class="fab fa-whatsapp menu-icon " style="font-size:1.5em; color: #25D366;"></i>
+                </a>
+              </td>
+              {% comment %} <td><a href="tel:{{ user.call }}">{{ user.call }}</a></td> {% endcomment %}
+              <!-- <td>{{user.status}}</td> -->
+              <!-- <td>
+                                <form action="{% url 'status_update' %}" method="POST">
+                                    {% csrf_token %}
+                                <input type="hidden" name="leads_id" value="{{ user.id }}">
+                                <div class="dropdown">
+                                    
+                                    <button class="btn btn-primary dropdown-toggle" aria-expanded="false" data-bs-toggle="dropdown" type="button">{{ user.status }}&nbsp;</button>
+                                    <div class="dropdown-menu">
+                                      <button class="dropdown-item" type="submit" name="new_status" value="Leads">Leads</button>
+                                      <button class="dropdown-item" type="submit" name="new_status" value="Intrested">Intrested</button>
+                                      <button class="dropdown-item" type="submit" name="new_status" value="Not Interested">Not Interested</button>
+                                      <button class="dropdown-item" type="submit" name="new_status" value="Other Location">Other Location</button>
+                                      <button class="dropdown-item" type="submit" name="new_status" value="Not Picked">Not Picked</button>
+                                      <button class="dropdown-item" type="submit" name="new_status" value="Lost">Lost</button>
+                                      <button class="dropdown-item" type="submit" name="new_status" value="Visit">Visit</button>
+                                    </div>
+                                </div>
+                            </form>
+                            </td> -->
+ <!-- <td>
+                              <button
+                                  type="button"
+                                  class="btn btn-primary"
+                                  data-bs-toggle="modal"
+                                  data-bs-target="#basicModal1"
+                                  data-id="{{ user.id }}"
+                                >
+                                  {{ user.status }} <i class="bi bi-arrow-down-short"></i>
+                              </button>
+                            </td> -->
+
+              <!-- {% if request.user.is_staff_new %} -->
+              <td class="team_status">
+                <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#basicModal1"
+                  data-id="{{ user.id }}">
+                  <!-- <i class="bi bi-pencil-square " style="font-size:1.3em;"></i>  -->
+                  Follow Up <i class="bi bi-arrow-down-short"></i>
+                </button>
+              </td>
+              <!-- {% endif %} -->
+              {% if key == 1 %}
+              <td>{{ user.follow_up_date }}</td>
+              <td>{{ user.follow_up_time }}</td>
+              {% else %}
+              <td>{{ user.updated_date|date:"Y-m-d" }}</td>
+              {% endif %}
+              <td class="text-center">
+                <a href="{% url 'lead_listory' user.id %}">
+                  <i class="bi bi-clock-history" style="font-size:1.2em;"></i>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+</div>               
+
+<!-- Modal -->
+<div class="modal fade marketingpopup " id="basicModal1" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <form id="leadUpdateForm">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h6 class="modal-title" id="exampleModalLabel1">Leads Update</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col mb-3">
+              <!-- <label for="form-id" class="form-label">Id</label> -->
+              <input type="text" id="form-id" class="form-control" readonly hidden />
+            </div>
+          </div>
+          <div class="row g-2">
+            <div class="col-12 mb-3">
+              <label for="status" class="form-label">Status</label>
+              <select id="status" class="form-select" aria-label="Default select example">
+                <option value="Intrested">Open this select menu</option>
+                <!-- <option value="Leads">Leads</option> -->
+                <!-- <option value="Intrested">Intrested</option> -->
+                <option value="Intrested">Follow Up</option>
+                <option value="Not Interested">Not Interested</option>
+                <option value="Other Location">Other Location</option>
+                <option value="Not Picked">Not Picked</option>
+                <option value="Lost">Discard</option>
+                <option value="Visit">Visit</option>
+              </select>
+            </div>
+
+            <div class="row g-2" id="follow-up-container"></div>
+
+            <div class="col-12">
+              <label for="dobBasic" class="form-label">Message</label>
+              <textarea name="message" id="dobBasic" class="form-control"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+       
+          <button type="button" class="btn btn-outline-secondary" id="saveChangesBtn">Update Status</button>
+        </div>
+      </div>
+    </form>
+
+  </div>
+</div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+
+<!-- Modal -->
+<!-- <div class="modal fade" id="basicModal1" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <form id="leadUpdateForm">
+          <div class="modal-content">
+            <div class="modal-header">
+              <p class="modal-title" id="exampleModalLabel1">Leads Update</p>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <div class="row">
+                <div class="col mb-3"> -->
+<!-- <label for="form-id" class="form-label">Id</label> -->
+<!-- <input type="text" id="form-id" class="form-control" readonly hidden/>
+                </div>
+              </div>
+              <div class="row g-2">
+                <div class="col-12 mb-3">
+                  <label for="status" class="form-label">Status</label>
+                  <select id="status" class="form-select" aria-label="Default select example">
+                    <option selected>Open this select menu</option>
+                    <option value="Leads">Leads</option>
+                    <option value="Intrested">Intrested</option>
+                    <option value="Not Interested">Not Interested</option>
+                    <option value="Other Location">Other Location</option>
+                    <option value="Not Picked">Not Picked</option>
+                    <option value="Lost">Lost</option>
+                    <option value="Visit">Visit</option>
+                  </select>
+                </div>
+                <div class="col-12">
+                  <label for="dobBasic" class="form-label">Message</label>
+                  <textarea name="message" id="dobBasic" class="form-control"></textarea>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                Close
+              </button>
+              <button type="button" class="btn btn-primary" id="saveChangesBtn">Update Status</button>
+            </div>
+          </div>
+        </form>
+        
+      </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> -->
+
+<script>
+  document.getElementById('status').addEventListener('change', function () {
+    const followUpContainer = document.getElementById('follow-up-container');
+    followUpContainer.innerHTML = ''; // Clear previous inputs if any
+
+    if (this.value === 'Intrested') {
+      // Create Date input
+      const dateDiv = document.createElement('div');
+      dateDiv.className = 'col-6';
+      const dateLabel = document.createElement('label');
+      dateLabel.className = 'form-label';
+      dateLabel.innerHTML = 'Follow Up Date';
+      const dateInput = document.createElement('input');
+      dateInput.type = 'date';
+      dateInput.className = 'form-control';
+      dateInput.id = 'follow-up-date';
+      dateDiv.appendChild(dateLabel);
+      dateDiv.appendChild(dateInput);
+
+      // Create Time input
+      const timeDiv = document.createElement('div');
+      timeDiv.className = 'col-6';
+      const timeLabel = document.createElement('label');
+      timeLabel.className = 'form-label';
+      timeLabel.innerHTML = 'Follow Up Time';
+      const timeInput = document.createElement('input');
+      timeInput.type = 'time';
+      timeInput.className = 'form-control';
+      timeInput.id = 'follow-up-time';
+      timeDiv.appendChild(timeLabel);
+      timeDiv.appendChild(timeInput);
+
+      // Append both to the container
+      followUpContainer.appendChild(dateDiv);
+      followUpContainer.appendChild(timeDiv);
+    }
+  });
+</script>
+
+<script>
+
+  document.addEventListener('DOMContentLoaded', function () {
+    $('#basicModal1').on('show.bs.modal', function (event) {
+      var button = $(event.relatedTarget);
+      var id = button.data('id');
+
+      $.ajax({
+        url: '/lead_user/' + id,
+        method: 'GET',
+        success: function (data) {
+          $('#form-id').val(data.id);
+          $('#dobBasic').val(data.message);
+          $('select.form-select').val(data.status);
+          $('#follow-up-date').val(data.follow_up_date);
+          $('#follow-up-time').val(data.follow_up_time);
+
+          const followUpContainer = $('#follow-up-container');
+          followUpContainer.empty();  // Clear previous inputs if any
+
+          // Check if follow_up_date is available in the data
+          if (data.follow_up_date && data.follow_up_time) {
+
+            // Display Follow Up Date and Time inputs
+            const followUpDateInput = `
+                          <div class="col-6">
+                            <label for="follow-up-date" class="form-label">Follow Up Date</label>
+                            <input type="date" class="form-control" id="follow-up-date" value="${data.follow_up_date}">
+                          </div>
+                          <div class="col-6">
+                            <label for="follow-up-time" class="form-label">Follow Up Time</label>
+                            <input type="time" class="form-control" id="follow-up-time" value="${data.follow_up_time}">
+                          </div>
+                      `;
+            followUpContainer.append(followUpDateInput);
+          } else {
+            // Show empty follow-up container (for cases where follow-up date/time is not available)
+            followUpContainer.append('<div class="col-12">No Follow Up Details Available</div>');
+          }
+        },
+        error: function () {
+          alert('Failed to retrieve data.');
+        }
+      });
+    });
+  });
+
+
+  $(document).ready(function () {
+    $('#saveChangesBtn').on('click', function (e) {
+      e.preventDefault();
+
+      console.log("Button clicked");
+
+      var id = $('#form-id').val();
+
+      var status = $('#status').val();
+      var message = $('#dobBasic').val();
+      var followDate = $('#follow-up-date').val();
+      var followTime = $('#follow-up-time').val();
+
+
+      $.ajax({
+        url: '/lead_user/update/' + id + '/',
+        method: 'POST',
+        data: {
+          'status': status,
+          'message': message,
+          'followDate': followDate,
+          'followTime': followTime,
+          'csrfmiddlewaretoken': '{{ csrf_token }}',
+        },
+        success: function (response) {
+          alert('Changes saved successfully.');
+          location.reload();
+        },
+        error: function () {
+          alert('Failed to save changes.');
+        }
+      });
+    });
+  });
+
+</script>
+
+
+<script>
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const logActivityElements = document.querySelectorAll('.log-activity');
+
+    logActivityElements.forEach(element => {
+      element.addEventListener('click', function (event) {
+        event.preventDefault();
+
+        const userId = this.getAttribute('data-id');
+        const activityType = this.getAttribute('data-activity');
+        const href = this.href;
+
+        fetch("{% url 'log_activity_add' %}", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}',
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            activity_type: activityType
+          }),
+        })
+          .then(response => response.json())
+          .then(data => {
+            console.log('Activity logged:', data);
+            window.open(href, '_blank');
+          })
+          .catch(error => console.error('Error logging activity:', error));
+      });
+    });
+  });
+
+
+  // document.addEventListener('DOMContentLoaded', function () {
+  //     $('#basicModal1').on('show.bs.modal', function (event) {
+  //         var button = $(event.relatedTarget);  
+  //         var id = button.data('id');           
+
+  //         $.ajax({
+  //             url: '/lead_user/' + id,  
+  //             method: 'GET',
+  //             success: function (data) {
+  //                 $('#form-id').val(data.id);
+  //                 $('#dobBasic').val(data.message);  
+  //                 $('select.form-select').val(data.status); 
+  //             },
+  //             error: function () {
+  //                 alert('Failed to retrieve data.');
+  //             }
+  //         });
+  //     });
+  // });
+
+  // $(document).ready(function() {
+  //     $('#saveChangesBtn').on('click', function (e) {
+  //         e.preventDefault();  
+
+  //         console.log("Button clicked");
+
+  //         var id = $('#form-id').val();
+  //         var status = $('#status').val();  
+  //         var message = $('#dobBasic').val();
+
+  //         $.ajax({
+  //             url: '/lead_user/update/' + id + '/',
+  //             method: 'POST',
+  //             data: {
+  //                 'status': status,
+  //                 'message': message,
+  //                 'csrfmiddlewaretoken': '{{ csrf_token }}',
+  //             },
+  //             success: function (response) {
+  //                 alert('Changes saved successfully.');
+  //                 location.reload();  
+  //             },
+  //             error: function () {
+  //                 alert('Failed to save changes.');
+  //             }
+  //         });
+  //     });
+  // });
+
+  function searchTable() {
+    var input, filter, table, tr, td, i, txtValue;
+    input = document.getElementById("searchInput");
+    filter = input.value.toUpperCase();
+    table = document.getElementById("myTable");
+    tr = table.getElementsByTagName("tr");
+
+    // Loop through all table rows, and hide those that don't match the search query
+    for (i = 0; i < tr.length; i++) {
+      var rowShouldBeVisible = false;
+
+      // Loop through all cells of current row
+      for (j = 0; j < tr[i].cells.length; j++) {
+        td = tr[i].cells[j];
+        if (td) {
+          txtValue = td.textContent || td.innerText;
+          if (txtValue.toUpperCase().indexOf(filter) > -1) {
+            rowShouldBeVisible = true;
+            break; // If a match is found in this row, no need to check further
+          }
+        }
+      }
+      if (rowShouldBeVisible) {
+        tr[i].style.display = "";
+      } else {
+        tr[i].style.display = "none";
+      }
+    }
+
+  }
+
+</script>
+
+{% endblock %}

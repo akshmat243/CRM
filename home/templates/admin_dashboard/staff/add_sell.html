@@ -1,0 +1,243 @@
+{% extends request.user.is_superuser|yesno:'base.html,admin_dashboard/staff/base.html' %}
+{% block content %}
+{% load static %}
+
+<div class="dashboard-main-body add_user_profile">
+<div class="dash-title"> Add Sell</div>
+<div class="card border">
+  <div class="card-body">
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-success">
+      {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if request.user.is_superuser %}
+    <form method="POST" action="{% url 'add_sell_freelancer' id %}" enctype="multipart/form-data">
+      {% csrf_token %}
+
+
+      {% if id == 0 %}
+
+      <div class="row">
+        <div class="col-md-4 col-sm-12">
+          <div class="form-group">
+            <label class="form-label">Admin</label>
+            <select id="admin" name="admin" class="form-control radius-8" required>
+              <option value="">Select Admin</option>
+              {% for admin in admins %}
+              <option value="{{ admin.id }}">{{ admin.name }}</option>
+              {% endfor %}
+            </select>
+
+          </div>
+        </div>
+        <div class="col-md-4 col-sm-12">
+          <div class="form-group">
+            <label class="form-label">Team Leader</label>
+            <select id="team_leader" name="team_leader" class="form-control radius-8" required>
+              <option value="">Select Team Leader</option>
+            </select>
+
+          </div>
+        </div>
+
+        <div class="col-md-4 col-sm-12">
+
+          <div class="form-group">
+            <label class="form-label">Staff</label>
+            <select id="staff" name="staff" class="form-control radius-8" required>
+              <option value="">Select Staff</option>
+            </select>
+
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      <div class="row">
+        {% if id == 0 %}
+
+        {% endif %}
+        <div class="col-md-4 col-sm-12">
+          <div class="form-group">
+            <label class="form-label"> Project Name</label>
+            <input type="text" class="form-control radius-8" id="name" name="name" placeholder="Name"
+              style="width: 100%;" maxlength="20" required>
+          </div>
+        </div>
+
+
+        <div class="col-md-4 col-sm-12">
+          <div class="form-group">
+            <label class="form-label">Plot Number</label>
+            <input type="text" class="form-control radius-8" id="name" name="amount_per_gaj" placeholder="Plot Number"
+              style="width: 100%;" maxlength="20" required>
+          </div>
+        </div>
+
+        {% if id == 0 %}
+
+        <div class="col-md-4 col-sm-12">
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input type="text" class="form-control radius-8" id="name" name="date" style="width: 100%;" maxlength="20"
+              required>
+          </div>
+        </div>
+
+        {% endif %}
+      </div>
+
+
+      {% if id != 0 %}
+
+      {% endif %}
+      {% if id == 0 %}
+      {% endif %}
+
+
+      <div class="col-md-12 col-sm-12">
+        <div class="form-group">
+          <label class="form-label">Size(Gaj)</label>
+          <input type="text" class="form-control radius-8" id="size_in_gaj" name="size_in_gaj" placeholder="Size(Gaj)"
+            style="width: 100%;" maxlength="20" required>
+        </div>
+      </div>
+
+
+      <div class="d-flex align-items-center justify-content-end gap-3">
+        <input type="submit" class="btn text-md px-56 radius-8">
+      </div>
+
+</form>
+
+{% elif request.user.is_team_leader %}
+<form method="POST" action="{% url 'add_sell_freelancer' id %}" enctype="multipart/form-data">
+  {% csrf_token %}
+
+
+
+  <div class="row" >
+    {% if id == 0 %}
+    <div class="col-md-6 col-sm-12">
+      <div class="form-group">
+      <label class="form-label">Staff</label>
+      <select id="staff" name="staff" class="form-control radius-8" required>
+        <option value="">Select Staff</option>
+        {% for staff in staffs %}
+        <option value="{{ staff.id }}">{{ staff.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    </div>
+    {% endif %}
+    <div class="col-md-6 col-sm-12">
+      <div class="form-group">
+      <label class="form-label">Project Name</label>
+      <input type="text" class="form-control radius-8" id="name" name="project_name" placeholder="Project Name"
+        style="width: 100%;" maxlength="100" required>
+      </div>
+    </div>
+    <div class="col-md-6 col-sm-12">
+      <div class="form-group">
+      <label class="form-label">Plot Number</label>
+      <input type="text" class="form-control radius-8" id="amount_per_gaj" name="amount_per_gaj"
+        placeholder="Plot Number" style="width: 100%;" maxlength="50" required>
+      </div>
+    </div>
+    {% if id == 0 %}
+    <div class="col-md-6 col-sm-12">
+      <div class="form-group">
+      <label class="form-label">Date</label>
+      <input type="date" class="form-control radius-8" id="date" name="date" style="width: 100%;" maxlength="50"
+        required>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="row">
+    {% if id != 0 %}
+    <div class="col-md-6 col-sm-12">
+      <div class="form-group">
+      <label class="form-label">Date</label>
+      <input type="date" class="form-control radius-8" id="date" name="date" style="width: 100%;" maxlength="50"
+        required>
+      </div>
+    </div>
+    {% endif %}
+  
+
+    <div class="col-md-6 col-sm-12">
+      <div class="form-group">
+      <label class="form-label">Size(Gaj)</label>
+      <input type="text" class="form-control radius-8" id="size_in_gaj" name="size_in_gaj" placeholder="Size(Gaj)"
+        style="width: 100%;" maxlength="50" required>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="d-flex align-items-center justify-content-end gap-3">
+    <input type="submit" class="btn text-md px-56  radius-8">
+  </div>
+
+</form>
+
+{% endif %}
+
+
+</div>
+
+</div>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Load team leaders when an admin is selected
+    $('#admin').change(function () {
+      var adminId = $(this).val();
+      if (adminId) {
+        $.ajax({
+          url: "{% url 'get_team_leaders' %}",
+          type: "GET",
+          data: { admin_id: adminId },
+          success: function (data) {
+            $('#team_leader').html('<option value="">Select Team Leader</option>');
+            $.each(data.team_leaders, function (index, team_leader) {
+              $('#team_leader').append('<option value="' + team_leader.id + '">' + team_leader.name + '</option>');
+            });
+          }
+        });
+      } else {
+        $('#team_leader').html('<option value="">Select Team Leader</option>');
+      }
+    });
+
+    // Load staff when a team leader is selected
+    $('#team_leader').change(function () {
+      var teamLeaderId = $(this).val();
+      if (teamLeaderId) {
+        $.ajax({
+          url: "{% url 'get_staff' %}",
+          type: "GET",
+          data: { team_leader_id: teamLeaderId },
+          success: function (data) {
+            $('#staff').html('<option value="">Select Staff</option>');
+            $.each(data.staff, function (index, staff_member) {
+              $('#staff').append('<option value="' + staff_member.id + '">' + staff_member.name + '</option>');
+            });
+          }
+        });
+      } else {
+        $('#staff').html('<option value="">Select Staff</option>');
+      }
+    });
+  });
+</script>
+{% endblock %}

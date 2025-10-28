@@ -1,0 +1,216 @@
+{% extends template %}
+{% load custom_type %}
+
+
+{% comment %} {% extends request.user.is_superuser|yesno:'base.html,admin_dashboard/team_leader/base.html' %}  {% endcomment %}
+{% block content %}
+{% load static %}
+
+<head>
+    <style>
+
+        @media (max-width: 768px) {
+            .table>:not(caption)>*>* {
+                padding: .3rem .5rem !important;
+            }
+
+            .table tbody .d-md-content {
+                display: none !important;
+            }
+
+            .table tbody td::before {
+                content: attr(data-label);
+                position: absolute;
+                left: 0;
+                width: 50%;
+                padding-left: 15px;
+                font-weight: bold;
+                text-align: left;
+                white-space: nowrap;
+            }
+        }
+        @media (max-width: 440px) {
+            .table-container {
+                overflow-x: auto; 
+                -webkit-overflow-scrolling: touch;
+            }
+        }
+        .bg-danger,
+        .bg-primary,
+        .bg-success {
+            font-size: 0.9rem;
+        }
+
+        .bg-danger .fw-bold,
+        .bg-primary .fw-bold,
+        .bg-success .fw-bold {
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="dashboard-main-body">
+
+    <div class="dash-title">
+       Incentive Detail
+     </div>
+
+        <form method="get" class="row mb-3 pb-1">
+            
+            <div class="col-md-3 col-sm-12">
+                <select name="month" id="month" class="form-control">
+                    {% for number, month_name in months_list %}
+                        <option value="{{ number }}" {% if number == month %}selected{% endif %}>{{ month_name }}</option>
+                    {% endfor %}
+                </select>
+                
+            </div>
+
+            <div class="col-md-3 col-sm-12">
+                <input type="number" id="year" name="year" class="form-control" value="{{ year }}">
+            </div>
+
+            <div class="col-lg-2 col-md-3 col-sm-12">
+                <button type="submit" class="btn w-100">Filter</button>
+            </div>
+
+        </form>
+        
+
+        <div class="card h-100 p-0 radius-12">
+            <div class="card-body p-24">
+                <div class="row">
+                    <div class="col-md-8 col-12 table-container">
+                        <table class="table bordered-table sm-table mb-0">
+                            <thead>
+                                <div class="text-center subtitle">Incentive Plan Detail</div>
+                                <tr>
+                                    <th scope="col">Date</th>
+                                    <th scope="col">Plot No</th>
+                                    <th scope="col">Sale Property (Gaj)</th>
+                                    <!-- <th scope="col">Slab</th> -->
+                                    <th scope="col">Amount</th>
+                                    <th scope="col">Earning</th>
+                                </tr>
+                            </thead>                   
+                                <tbody id="table-body">
+                                    {% for data in sell_property %}
+                                    <tr>
+                                        <th>{{ data.date }}</th>
+                                        <th>{{ data.plot_no }}</th>
+                                        <th>{{ data.size_in_gaj }}</th>
+                                        <!-- <th>{{ data.slab }}</th> -->
+                                        <th>{{ data.slab_amount }}</th>
+                                        <th>{{ data.earn_amount }}</th>
+                                    </tr>
+                                    {% endfor %}
+                                   
+                                </tbody>
+                        </table>
+                    </div>
+
+                    <div class="col-md-4 col-12">
+                        <table class="table bordered-table sm-table mb-0">
+                            <thead>
+                                <div class="text-center subtitle">Incentive Plan</div>
+                                <tr>
+                                    <th scope="col">Slab</th>
+                                    <th scope="col">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for data in slab %}
+                                <tr>
+                                    <td>{{ data.start_value }}-{{ data.end_value }}</td>
+                                    {% if user_type == True %}
+                                        <td>{{ data.amount }}</td>
+                                    {% else %}
+                                        <td>{{ data.amount|add:"-100" }}</td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+        <div class="mt-3 d-flex justify-content-between">
+            <div>
+                <h6>Total Incentive : {{ total_earn }}/- </h6>
+            </div>     
+        </div>
+
+
+
+
+
+    </div>
+
+
+</body>
+<!-- <script>
+    function getDaysInMonth(month, year) {
+        return new Date(year, month + 1, 0).getDate(); 
+    }
+
+
+    const data = [
+        { saleProperty: 1500, slab: '0-249', amount: 400, earning: 200 },
+        { saleProperty: 1800, slab: '250-499', amount: 500, earning: 250 },
+        { saleProperty: 2000, slab: '500-749', amount: 600, earning: 300 },
+        { saleProperty: 2200, slab: '750-999', amount: 700, earning: 350 },
+
+    ];
+
+    function generateTableRows(month, year) {
+        const tableBody = document.getElementById('table-body');
+        const daysInMonth = getDaysInMonth(month, year);
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(year, month, day);
+            const formattedDate = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+            const row = document.createElement('tr');
+
+            const dateCell = document.createElement('td');
+            dateCell.textContent = formattedDate;
+            
+            const rowData = data[day - 1] || { 
+                saleProperty: Math.floor(Math.random() * 2000), 
+                slab: `${Math.floor(Math.random() * 1000)}-${Math.floor(Math.random() * 1000 + 250)}`,
+                amount: Math.floor(Math.random() * 500),
+                earning: Math.floor(Math.random() * 250)
+            };
+
+            const salePropertyCell = document.createElement('td');
+            salePropertyCell.textContent = rowData.saleProperty;
+
+            const slabCell = document.createElement('td');
+            slabCell.textContent = rowData.slab;
+
+            const amountCell = document.createElement('td');
+            amountCell.textContent = rowData.amount;
+
+            const earningCell = document.createElement('td');
+            earningCell.textContent = rowData.earning;
+
+            row.appendChild(dateCell);
+            row.appendChild(salePropertyCell);
+            row.appendChild(slabCell);
+            row.appendChild(amountCell);
+            row.appendChild(earningCell);
+
+            tableBody.appendChild(row);
+        }
+    }
+
+    generateTableRows(8, 2024);
+</script> -->
+
+{% endblock %}

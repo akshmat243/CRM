@@ -1,0 +1,141 @@
+{% extends request.user.is_superuser|yesno:'base.html,admin_dashboard/team_leader/base.html' %}
+{% block content %}
+{% load static %}
+
+<style>
+    .calendar {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 10px;
+    }
+    .calendar-day {
+        padding: 10px;
+        border: 1px solid #ddd;
+        text-align: center;
+        border-radius: 5px;
+    }
+    .no-task-day {
+    background-color: hsl(120deg 100% 25.1% / 13%);
+    color: green;
+}
+
+.task-day {
+    background-color: rgb(250 18 18 / 37%);
+    color: red;
+}
+
+    #task-list .list-group-item {
+        word-wrap: break-word;
+        white-space: normal;
+    }
+    
+</style>
+<div class="dashboard-main-body admin_dashboard">
+<div class="dash-title">Attendance Calendar</div>
+
+
+<div class="card p-3">
+
+    <div class="calendartoprow">
+
+
+           <div class="PresentAbsent">
+            <div class="text-success">
+                <strong>Present:</strong> {{ present_count }}
+            </div>
+
+            <div class="text-danger">
+                <strong>Absent:</strong> {{ absent_count }}
+            </div>
+           </div>
+
+           <div class="month-title"> {{ month }} / {{ year }}</div>
+
+     
+
+               <div class="calendarPreviousNext">
+                <a href="?year={{ year }}&month={{ month|add:"-1" }}" class="Previousbtn">Previous</a>
+                
+                <a href="?year={{ year }}&month={{ month|add:"1" }}" class="PreviousNext">Next</a>
+               </div>
+      
+
+    </div>
+
+  
+
+    <div class="calendar">
+        <!-- Day Headers -->
+        <!-- {% for day in days_of_week %}
+            <div class="calendar-day day-header">{{ day }}</div>
+        {% endfor %} -->
+    
+        <!-- Calendar Days -->
+        {% for day in calendar_data %}
+            <div 
+                class="calendar-day {% if day.has_task %}task-day{% else %}no-task-day{% endif %}" 
+                data-date="{{ day.date|date:'Y-m-d' }}" 
+                onclick="showTaskDetails(this)">
+                <div>{{ day.date.day }}</div>
+                <small>{{ day.day_name }}</small>
+            </div>
+        {% endfor %}
+    </div>
+    
+
+</div>
+
+</div>
+
+<input type="text" id="task-id" value="{{ id }}" hidden>
+
+ <!-- Modal -->
+<div class="modal fade" id="taskModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <p class="modal-title">Tasks for <span id="task-date"></span></p>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="max-height: 400px; overflow-y: auto;">
+                <ul id="task-list" class="list-group"></ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showTaskDetails(element) {
+        const date = element.getAttribute('data-date');
+        const id = $('#task-id').val();
+
+        $('#task-date').text(date);
+
+        $.ajax({
+            url: "{% url 'get_task_details' %}",
+            data: { date: date, id: id },
+            success: function(response) {
+                const taskList = $('#task-list');
+                taskList.empty();
+
+                if (response.tasks.length > 0) {
+                    response.tasks.forEach(task => {
+                        taskList.append(`<li class="list-group-item" >${task.description}</li>`);
+                    });
+                } else {
+                    taskList.append('<li class="list-group-item">No tasks for this date.</li>');
+                }
+
+                $('#taskModal').modal('show');
+            },
+            error: function() {
+                alert('Failed to load tasks.');
+            }
+        });
+    }
+</script>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+
+{% endblock %}

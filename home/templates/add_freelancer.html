@@ -1,0 +1,351 @@
+<!-- meta tags and other links -->
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<!-- Mirrored from wowdash.wowtheme7.com/demo/index.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 01 Jul 2024 09:05:16 GMT -->
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vrindavan Real State</title>
+  <link rel="icon" type="image/png" href="{% static 'assets/images/fevi-icon.png' %}" sizes="16x16">
+  <!-- remix icon font css  -->
+    <link rel="stylesheet" href="{% static 'assets/css/remixicon.css' %}">
+  <!-- BootStrap css -->
+  <link rel="stylesheet" href="{% static 'assets/css/lib/bootstrap.min.css' %}">
+  <!-- Apex Chart css -->
+  <link rel="stylesheet" href="{% static 'assets/css/lib/apexcharts.css' %}">
+  <!-- Data Table css -->
+  <link rel="stylesheet" href="{% static 'assets/css/lib/dataTables.min.css' %}">
+  <!-- Text Editor css -->
+  <link rel="stylesheet" href="{% static 'assets/css/lib/editor-katex.min.css' %}">
+  <link rel="stylesheet" href="{% static 'assets/css/lib/editor.atom-one-dark.min.css' %}">
+  <link rel="stylesheet" href="{% static 'assets/css/lib/editor.quill.snow.css' %}">
+  <!-- Date picker css -->
+  <link rel="stylesheet" href="{% static 'assets/css/lib/flatpickr.min.css' %}">
+  <!-- Calendar css -->
+  <link rel="stylesheet" href="{% static 'assets/css/lib/full-calendar.css' %}">
+  <!-- Vector Map css -->
+  <link rel="stylesheet" href="{% static 'assets/css/lib/jquery-jvectormap-2.0.5.css' %}">
+  <!-- Popup css -->
+  <link rel="stylesheet" href="{% static 'assets/css/lib/magnific-popup.css' %}">
+  <!-- Slick Slider css -->
+  <link rel="stylesheet" href="{% static 'assets/css/lib/slick.css' %}">
+  <!-- main css -->
+  <link rel="stylesheet" href="{% static 'assets/css/style.css' %}">
+  <style>
+    [data-theme=dark] .sidebar-logo img.light-logo {
+      display: block !important;
+  }
+  /* .sidebar-hidden {
+        display: none;
+    } */
+  </style>
+</head>
+
+
+  <div class="content-wrapper">
+    <div class="container">
+        <div class="container-xxl flex-grow-1 container-p-y">
+            <div>
+                {% if messages %}
+                {% for message in messages %}
+                <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %} text-danger" role="alert">{{ message }}</div>
+                {% endfor %}
+                {% endif %}
+            </div>
+            <h4 class="fw-bold py-3 mb-4 text-center">
+              Add Merchant
+            </h4>
+            <form class="row g-3 needs-validation" method="post" action="" novalidate>{% csrf_token %}
+                <div class="col-md-4">
+                    <label for="validationCustom01" class="form-label">Company legal Name</label>
+                    <input type="text" class="form-control" id="validationCustom01" name="company_legal_name" oninput="this.value = this.value.slice(0, 75)" required>
+                    <div class="valid-feedback">
+                        Looks good!
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label for="validationCustom01" class="form-label">Full Name</label>
+                    <input type="text" class="form-control" id="validationCustom01" name="name" oninput="this.value = this.value.slice(0, 40)"  required>
+                    <div class="valid-feedback">
+                        Looks good!
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label for="validationCustom02" class="form-label">Mobile No.</label>
+                    <input type="number" class="form-control" id="validationCustom02" name="mobile_number" step="any" oninput="validateMobileNumber(this)" pattern="\d*" required>
+                    <div id="mobile" class="invalid-feedback">Please enter a 10-digit mobile number.</div>
+                </div>
+                <div class="col-md-4">
+                    <label for="validationCustomUsername" class="form-label">Email/Username</label>
+                    <div class="input-group has-validation">
+                        <span class="input-group-text" id="inputGroupPrepend">@</span>
+                        <input type="email" name="merchant_email" class="form-control" id="validationCustomUsername" aria-describedby="inputGroupPrepend" oninput="this.value = this.value.slice(0, 30)" required>
+                        <div class="invalid-feedback">
+                            Please choose a username.
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label for="validationCustomUsername" class="form-label">Support Email Id</label>
+                    <div class="input-group has-validation">
+                        <span class="input-group-text" id="inputGroupPrepend">@</span>
+                        <input type="email" name="support_email" class="form-control" id="validationCustomUsername" aria-describedby="inputGroupPrepend" oninput="this.value = this.value.slice(0, 30)" required>
+                        <div class="invalid-feedback">
+                            Please choose a support email.
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                <label for="validationCustom03" class="form-label">Password</label>
+                <input type="password" name="password" class="form-control" id="validationCustom03" oninput="validatePassword(this)" required>
+                <div id="password" class="invalid-feedback">
+                    Please provide a valid password. Example: Password@123
+                </div>
+                </div>
+                <div class="col-md-4">
+                    <label for="validationCustom03" class="form-label">Confirm Password</label>
+                    <input type="password" name="confirm_password" class="form-control" id="validationCustom03" oninput="validatePasswords(this)" required>
+                    <div id="cpassword" class="invalid-feedback">
+                        Please provide a valid confirm password. Example: Password@123
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label for="validationCustom03" class="form-label">Game Url</label>
+                    <input type="url" name="game_url" class="form-control" id="validationCustom03" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="validationCustom03" class="form-label">App Url</label>
+                    <input type="url" name="app_url" class="form-control" id="validationCustom03" required>
+                </div>
+                
+                
+                <div class="col-md-4 collection">
+                    <label for="validationCustom03" class="form-label">Collection Mode</label>
+                    <select id="select1" multiple name="collection_mode[]"  
+                        style="height: none;"> 
+                        <option value="UPI">UPI</option>
+                        <option value="IMPS">IMPS</option>
+                        <option value="NEFT">CC</option>
+                        <option value="RTGS">DC</option>
+                        <option value="CASH">NET BANKING</option>
+                        <option value="WALLET">WALLET</option>
+                </select>
+                  <div class="invalid-feedback">
+                      Please select a valid payout mode.
+                  </div>
+                </div>
+                <div class="col-md-4">
+                    <label for="validationCustom03" class="form-label">Support Number</label>
+                    <input type="number" name="support_number" class="form-control" id="validationCustom03" step="any" oninput="validateSupportNumber(this)" pattern="\d*" required>
+                    <div id="support" class="invalid-feedback">Please enter a 10-digit support number.</div>
+                </div>
+                <div class="col-md-4">
+                    <label for="validationCustom03" class="form-label">Ip Address</label>
+                    <input type="number" name="ip_address" class="form-control" id="validationCustom03" step="any" oninput="this.value = this.value.slice(0, 20)" pattern="\d*" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="validationCustom03" class="form-label">About</label>
+                    <textarea class="form-control" name="about" id="validationCustom03" oninput="this.value = this.value.slice(0, 250)" pattern="\d*" required></textarea>
+                </div>
+                <div class="col-md-4">
+                    <label for="validationCustom03" class="form-label">Registered Address</label>
+                    <textarea type="text" name="registered_address" class="form-control" id="validationCustom03" oninput="this.value = this.value.slice(0, 100)" pattern="\d*" required></textarea>
+                </div> 
+                <div class="col-md-4 d-flex flex-column">
+                    <label for="validationCustom04" class="form-label">Payout Mode</label>
+                    <select id="select" multiple name="payout_mode[]"  
+                          style="width:200px"> 
+                          <option value="UPI">UPI</option>
+                          <option value="IMPS">IMPS</option>
+                          <option value="NEFT">NEFT</option>
+                          <option value="RTGS">RTGS</option>
+                  </select>
+                    <div class="invalid-feedback">
+                        Please select a valid payout mode.
+                    </div>
+                </div>
+                <!-- <div class="col-md-1">
+                    <label for="validationCustom03" class="form-label">Is Payout Available</label>
+                    <input type="checkbox" name="is_payout_available" class="" id="validationCustom03" required>
+                </div> -->
+                <div class="col-12">
+                    <div class="form-check">
+                        <input class="form-check-input" name="is_payout_available" type="checkbox" value="" id="id_is_payout_available">
+                        <label class="form-check-label" for="id_is_payout_available">
+                            Is Payout Available
+                        </label>
+                    </div>
+                    </div>
+                <div class="col-12">
+                <div class="form-check">
+                    <input class="form-check-input" name="t_and_c" type="checkbox" value="" id="invalidCheck" required>
+                    <label class="form-check-label" for="invalidCheck">
+                    Agree to terms and conditions
+                    </label>
+                    <div class="invalid-feedback">
+                    You must agree before submitting.
+                    </div>
+                </div>
+                </div>
+                <div class="col-12">
+                <button class="btn btn-primary" type="submit">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Example starter JavaScript for disabling form submissions if there are invalid fields
+(function () {
+  'use strict'
+
+  // Fetch all the forms we want to apply custom Bootstrap validation styles to
+  var forms = document.querySelectorAll('.needs-validation')
+
+  // Loop over them and prevent submission
+  Array.prototype.slice.call(forms)
+    .forEach(function (form) {
+      form.addEventListener('submit', function (event) {
+        if (!form.checkValidity()) {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+
+        form.classList.add('was-validated')
+      }, false)
+    })
+})()
+function validateMobileNumber(input) {
+          var utrError = document.getElementById("mobile");
+          input.value = input.value.slice(0, 10)
+          if (input.value.length === 10) {
+              utrError.style.display = "none";
+              input.setCustomValidity('');
+          } else {
+              utrError.style.display = "block";
+              input.setCustomValidity('Please enter a 10-digit number.');
+          }
+      }
+      function validateSupportNumber(input) {
+          var utrError = document.getElementById("support");
+          input.value = input.value.slice(0, 10)
+          if (input.value.length === 10) {
+              utrError.style.display = "none";
+              input.setCustomValidity('');
+          } else {
+              utrError.style.display = "block";
+              input.setCustomValidity('Please enter a 10-digit number.');
+          }
+      }
+      function validatePassword(input) {
+        var passwordError = document.getElementById("password");
+        var password = input.value;
+
+        // Your password validation logic here
+        var passwordPattern = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
+        
+        if (passwordPattern.test(password)) {
+            passwordError.style.display = "none";
+            input.setCustomValidity('');
+        } else {
+            passwordError.style.display = "block";
+            input.setCustomValidity('Password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*#?&).');
+        }
+    }
+    function validatePasswords(input) {
+        var passwordError = document.getElementById("cpassword");
+        var password = input.value;
+
+        // Your password validation logic here
+        var passwordPattern = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
+
+        if (passwordPattern.test(password)) {
+            passwordError.style.display = "none";
+            input.setCustomValidity('');
+        } else {
+            passwordError.style.display = "block";
+            input.setCustomValidity('Password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*#?&).');
+        }
+    }
+</script>
+
+
+  <!-- Footer -->
+  <footer class="content-footer footer bg-footer-theme">
+    <div class="container-xxl d-flex flex-wrap justify-content-between py-2 flex-md-row flex-column">
+      <div class="mb-2 mb-md-0">
+        Copyright © SRO INDIA
+        <script>
+          document.write(new Date().getFullYear());
+        </script>
+      </div>
+      <div>
+        <a href="" class="footer-link me-4">License</a>
+        <!-- <a href="" target="_blank" class="footer-link me-4">More Themes</a> -->
+
+        <a
+          href=""
+          class="footer-link me-4"
+          >Documentation</a
+        >
+
+        <a
+          href=""
+          class="footer-link me-4"
+          >Support</a
+        >
+      </div>
+    </div>
+  </footer>
+  <!-- / Footer -->
+
+  <div class="content-backdrop fade"></div>
+</div>
+<!-- Content wrapper -->
+</div>
+<!-- / Layout page -->
+</div>
+
+<!-- Overlay -->
+<div class="layout-overlay layout-menu-toggle"></div>
+</div>
+<!-- / Layout wrapper -->
+
+<!-- jQuery library js -->
+<script src="{% static 'assets/js/lib/jquery-3.7.1.min.js' %}"></script>
+<!-- Bootstrap js -->
+<script src="{% static 'assets/js/lib/bootstrap.bundle.min.js' %}"></script>
+<!-- Apex Chart js -->
+<script src="{% static 'assets/js/lib/apexcharts.min.js' %}"></script>
+<!-- Data Table js -->
+<script src="{% static 'assets/js/lib/dataTables.min.js' %}"></script>
+<!-- Iconify Font js -->
+<script src="{% static 'assets/js/lib/iconify-icon.min.js' %}"></script>
+<!-- jQuery UI js -->
+<script src="{% static 'assets/js/lib/jquery-ui.min.js' %}"></script>
+<!-- Vector Map js -->
+<script src="{% static 'assets/js/lib/jquery-jvectormap-2.0.5.min.js' %}"></script>
+<script src="{% static 'assets/js/lib/jquery-jvectormap-world-mill-en.js' %}"></script>
+<!-- Popup js -->
+<script src="{% static 'assets/js/lib/magnifc-popup.min.js' %}"></script>
+<!-- Slick Slider js -->
+<script src="{% static 'assets/js/lib/slick.min.js' %}"></script>
+<!-- main js -->
+<script src="{% static 'assets/js/app.js' %}"></script>
+
+<script src="{% static 'assets/js/homeOneChart.js' %}"></script>
+<script> 
+// Initiating the chosen plugin 
+$(document).ready(function(){ 
+$("#select").chosen(); 
+}) 
+$(document).ready(function(){ 
+$("#select1").chosen(); 
+}) 
+</script>
+</body>
+</html>

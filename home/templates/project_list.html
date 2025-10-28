@@ -1,0 +1,131 @@
+
+{% extends 'base.html' %}  
+{% block content %}
+{% load static %}
+
+
+
+    <div class="dashboard-main-body">
+      <div class="dash-title"> Project Edit </div>
+    
+      <div class="card h-100 p-0 radius-12">
+          <div class="card-header border-bottom bg-base py-16 px-24 d-flex align-items-center flex-wrap gap-3 justify-content-between">
+            <div class="d-flex align-items-center flex-wrap gap-3">
+              <form class="navbar-search">
+                <input type="text" id="searchInput" class="bg-base h-40-px w-100" name="search" placeholder="Search" onkeyup="searchTable()">
+                <iconify-icon icon="ion:search-outline" class="icon"></iconify-icon>
+              </form>
+              </div>
+              <a href="{% url 'project_list' 'project_add' %}" class="btn btn-outline-secondary text-content text-sm btn-sm radius-8 d-flex align-items-center gap-2"> 
+                  Add Project
+              </a>
+
+
+           
+
+              <a href="{% url 'project_list' 'project_add' %}" class="btn btn-primary user-icon text-sm btn-sm p-4 radius-8 d-flex align-items-center gap-2"> 
+                <iconify-icon icon="ic:baseline-plus" class="icon text-xl line-height-1"></iconify-icon>
+                <!-- Add Admin -->
+            </a>
+          </div>
+          <button type="button" class="btn btn-success m-1" data-bs-toggle="modal" data-bs-target="#statusSuccessModal" hidden>Success Modal</button>
+          {% if messages %}
+          <script>
+              document.addEventListener("DOMContentLoaded", function() {
+                  var myModal = new bootstrap.Modal(document.getElementById('statusSuccessModal'));
+                  myModal.show();
+              });
+          </script>
+          {% endif %}
+          <div class="card-body p-24">
+              <div class="table-responsive scroll-sm">
+                <!-- {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-success">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %} -->
+                  <table class="table bordered-table sm-table mb-0">
+                    <thead>
+                      <tr>
+                          <th>S.N.</th>
+                          <th>Project Name</th>
+                          <th>Message</th>
+                          <th>Created Date</th>
+                          <th>Edit</th>
+                      </tr>
+                  </thead>
+                  <tbody id="myTable">
+                    {% for user in project %}
+                    <tr>
+                          <td>{{ forloop.counter}}</td>
+                          <td>{{user.name}}</td>
+                          <td>{{user.message|slice:":35"}}</td>
+                          <td>{{user.created_date}}</td>
+                          <td><a class="btn btn-outline-secondary btn-sm" data-toggle="modal"
+                            href="{% url 'project_edit' user.id %}">Edit</a></td>
+                          </tr>
+                      {% endfor %}
+                  </tbody>
+                  </table>
+              </div>
+          </div>
+      </div>
+    </div>
+  </div>
+
+    <!-- Your existing modal code -->
+<div class="modal fade" id="statusSuccessModal" tabindex="-1" role="dialog" data-bs-backdrop="static" data-bs-keyboard="false"> 
+	<div class="modal-dialog modal-dialog-centered modal-sm" role="document"> 
+		<div class="modal-content"> 
+			<div class="modal-body text-center p-lg-4"> 
+				<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 130.2 130.2">
+					<circle class="path circle" fill="none" stroke="#198754" stroke-width="6" stroke-miterlimit="10" cx="65.1" cy="65.1" r="62.1" />
+					<polyline class="path check" fill="none" stroke="#198754" stroke-width="6" stroke-linecap="round" stroke-miterlimit="10" points="100.2,40.2 51.5,88.8 29.8,67.5 " /> 
+				</svg> 
+				<h4 class="text-success mt-3">Oh Yeah!</h4> 
+				<p class="mt-3"> {% for message in messages %}
+          {{ message }}
+      {% endfor %}</p>
+				<button type="button" class="btn btn-sm mt-3 btn-success" data-bs-dismiss="modal">Ok</button> 
+			</div> 
+		</div> 
+	</div> 
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+  <script>
+    function searchTable() {
+      var input, filter, table, tr, td, i, txtValue;
+      input = document.getElementById("searchInput");
+      filter = input.value.toUpperCase();
+      table = document.getElementById("myTable");
+      tr = table.getElementsByTagName("tr");
+  
+      // Loop through all table rows, and hide those that don't match the search query
+      for (i = 0; i < tr.length; i++) {
+        var rowShouldBeVisible = false;
+  
+        // Loop through all cells of current row
+        for (j = 0; j < tr[i].cells.length; j++) {
+          td = tr[i].cells[j];
+          if (td) {
+            txtValue = td.textContent || td.innerText;
+            if (txtValue.toUpperCase().indexOf(filter) > -1) {
+              rowShouldBeVisible = true;
+              break; // If a match is found in this row, no need to check further
+            }
+          }
+        }
+        if (rowShouldBeVisible) {
+          tr[i].style.display = "";
+        } else {
+          tr[i].style.display = "none";
+        }
+      }
+  
+    }
+  </script>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends 'admin_dashboard/staff/base.html' %}  
+{% block content %}
+{% load static %} 
+
+<div class="dashboard-main-body">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-24">
+      <h6 class="fw-semibold mb-0">Bulk Actions </h6>
+    </div>
+    
+    <div class="card h-100 p-0 radius-12">
+      <div class="card-body p-24">
+        <div class="row justify-content-center">
+          <div class="col-xxl-6 col-xl-8 col-lg-10">
+            <div class="card border">
+              <div class="card-body">
+
+                {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-success">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+                <form method="POST" action="{% url 'bulk_from_data' %}">
+                  
+                  {% csrf_token %}
+                  <div class="modal-body" style="text-align: left;">
+                    <div class="row" style="margin-top: 10px;">
+                      <div class="col"><label class="form-label">Change Status</label>
+                        <input type="text" class="form-control radius-8"  id="change_status" name="change_status" placeholder="change_status" style="width: 100%;" maxlength="20" value="{{ admin.name }}">
+                      </div>
+                    </div>
+                    <div class="row" style="margin-top: 10px;">
+                      <div class="col"><label class="form-label">Lead Source</label>
+                        <input type="text" class="form-control radius-8" id="lead_source" name="lead_source" placeholder="lead_source" style="width: 100%;" maxlength="50" value="{{admin.mobile}}">
+                      </div>
+                    </div>
+                    <div class="row" style="margin-top: 10px;">
+                      <div class="col"><label class="form-label">Last Contact</label>
+                        <input type="text" class="form-control radius-8" id="last_contact" name="last_contact" placeholder="last_contact"  style="width: 100%;" maxlength="50" value="{{admin.address}}">
+                      </div>
+                    </div>
+                    <div class="row" style="margin-top: 10px;">
+                      <div class="col">
+                          <label class="form-label">Assigned</label>
+                          <select class="form-control radius-8" id="assigned_id" name="assigned_id" style="width: 100%;">
+                              {% for sta in staff_users2 %}
+                                  <option value="{{ sta.id }}">{{ sta.name }}</option>
+                              {% endfor %}
+                          </select>  
+                          {% for lead_id in selected_lead_ids %}
+                            <input type="hidden" name="user_ids" value="{{ lead_id }}">
+                          {% endfor %}             
+                      </div>
+                  </div>
+                    {% comment %} <div class="row" style="margin-top: 10px;">
+                        <div class="col">
+                            <label class="form-label">Assigned</label>
+                            <select class="form-control radius-8" id="assigned_id" name="selected-user-id" style="width: 100%;">
+                                {% for staff in staff_users %}
+                                    <option value="{{ staff.id }}">{{ staff.name }}</option>
+                                {% endfor %}
+                            </select>               
+                        </div>
+                    </div> {% endcomment %}
+                      <br>
+                    <div class="d-flex align-items-center justify-content-center gap-3">
+                      <button type="submit" name="action" value="assign_leads" class="btn btn-primary">Assign Leads</button>
+                      <button type="submit" name="action" value="delete_leads" class="btn btn-danger">Delete Leads</button>
+                      {% comment %} <input type="submit" class="btn btn-primary border border-primary-600 text-md px-56 py-12 radius-8"> {% endcomment %}
+                  </div>
+                </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock %}

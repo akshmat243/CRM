@@ -1,0 +1,298 @@
+{% extends request.user.is_superuser|yesno:'base.html,admin_dashboard/staff/base.html' %}
+{% block content %}
+{% load static %}
+
+<div class="dashboard-main-body">
+    <div class="dash-title">
+       Staff Edit
+    </div>
+
+    <div class="card border">
+        <div class="card-body position-relative">
+
+            {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-success">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            <form method="POST" enctype="multipart/form-data" action="{% url 'staffedit' staff.id %}">
+                {% csrf_token %}
+                <!-- Upload Image Start -->
+                
+                <div class="selectadmin">
+                {% if request.user.is_superuser and keys == 3 %}
+                <select id="admin-select" class="form-select mb-3" name="admin_id" aria-label="Default select example" data-url="{% url 'get_team_leaders_admin_side' %}">
+                <option selected class="mx-auto text-center">{{ staff.team_leader.admin.name }} </option>
+                {% for admin in all_admins %}
+                <option value="{{ admin.id }}">{{ admin.name }}</option>
+                {% endfor %}
+                </select>
+                <select id="team-leader-select" class="form-select" name="team_leader_id" aria-label="Default select example">
+                <option selected class="mx-auto text-center">{{ staff.team_leader.name }}</option>
+                <!-- Options will be populated by JavaScript -->
+                </select>
+                {% endif %}
+            </div>
+
+                <div class="row">
+                    <div class="col-md-6 col-sm-12">
+                        <div class="subtitle"> Personal Details </div>
+                    <div class="row">
+                
+                            <div class="col-sm-6 col-12">
+                                <div class="form-group">
+                                    <label class="form-label">Name</label>
+                                    <input type="text" class="form-control radius-8" id="name" name="name"
+                                        placeholder="Name" style="width: 100%;" maxlength="20" required
+                                        value="{{ staff.name }}">
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-12">
+                                <div class="form-group">
+                                <label for="email" class="form-label">E-Mail
+                                    Address</label>
+                                <input type="email" class="form-control radius-8" id="email" name="email"
+                                    placeholder="email" style="width: 100%;" maxlength="30" required
+                                    value="{{ staff.email }}" readonly>
+                                </div>
+                            </div>
+                      
+
+                            <div class="col-sm-6 col-12">
+                                <div class="form-group">
+                                     <label  class="form-label">Mobile No</label>
+                                    <input type="number" class="form-control radius-8" id="mobile" name="mobile"
+                                    placeholder="number" style="width: 100%;"
+                                    oninput="if(this.value.length > 10) this.value = this.value.slice(0, 10);"
+                                    min="999999999" max="9999999999" required value="{{ staff.mobile }}">
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6 col-12">
+                                <div class="form-group">
+                                    <label for="exampleFormControlInput1" class="form-label">Date Of
+                                        Birth</label>
+                                    <input type="date" value="{{ staff.dob }}" name="dob" class="form-control" id="exampleFormControlInput1"
+                                        placeholder="Select a date">
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6 col-12">
+                                <div class="form-group">
+                                    <label class="form-label">Pan Card</label>
+                                    <input type="text" class="form-control radius-8" id="pancard" name="pancard"
+                                        placeholder="pancard" style="width: 100%;" maxlength="20"
+                                        value="{{ staff.pancard }}">
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6 col-12">
+                                <div class="form-group">
+                                    <label class="form-label">Aadhar Card</label>
+                                    <input type="number" class="form-control radius-8" id="mobile" name="aadharCard"
+                                        placeholder="number" style="width: 100%;" value="{{ staff.aadharCard }}">
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6 col-12">
+                                <div class="form-group">
+                                    <label class="form-label">MarkSheets</label>
+                                    <input type="text" class="form-control radius-8" id="pancard" name="marksheet"
+                                        placeholder="MarkSheets" style="width: 100%;" maxlength="20"
+                                        value="{{ staff.pancard }}">
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6 col-12">
+                                <div class="form-group">
+                                    <label class="form-label">Degree</label>
+                                    <input type="text" class="form-control radius-8" id="degree" name="degree"
+                                        placeholder="Degree" style="width: 100%;" maxlength="20"
+                                        value="{{ staff.degree }}">
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6 col-12">
+                                <div class="form-group">
+                                    <label for="city" class="form-label">City</label>
+                                    <input type="text" class="form-control radius-8" id="city" name="city"
+                                        placeholder="city" style="width: 100%;" maxlength="30" required
+                                        value="{{ staff.city }}">
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6 col-12">
+                                <div class="form-group">
+                                    <label for="stateSelect" class="form-label">State</label>
+                                    <select class="form-select" name="state" aria-label="Default select example">
+                                        <option value="{{ staff.state }}">{{ staff.state }}</option>
+                                        <option value="Andhra Pradesh">Andhra Pradesh</option>
+                                        <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+                                        <option value="Assam">Assam</option>
+                                        <option value="Bihar">Bihar</option>
+                                        <option value="Chhattisgarh">Chhattisgarh</option>
+                                        <option value="Goa">Goa</option>
+                                        <option value="Gujarat">Gujarat</option>
+                                        <option value="Haryana">Haryana</option>
+                                        <option value="Himachal Pradesh">Himachal Pradesh</option>
+                                        <option value="Jharkhand">Jharkhand</option>
+                                        <option value="Karnataka">Karnataka</option>
+                                        <option value="Kerala">Kerala</option>
+                                        <option value="Madhya Pradesh">Madhya Pradesh</option>
+                                        <option value="Maharashtra">Maharashtra</option>
+                                        <option value="Manipur">Manipur</option>
+                                        <option value="Meghalaya">Meghalaya</option>
+                                        <option value="Mizoram">Mizoram</option>
+                                        <option value="Nagaland">Nagaland</option>
+                                        <option value="Odisha">Odisha</option>
+                                        <option value="Punjab">Punjab</option>
+                                        <option value="Rajasthan">Rajasthan</option>
+                                        <option value="Sikkim">Sikkim</option>
+                                        <option value="Tamil Nadu">Tamil Nadu</option>
+                                        <option value="Telangana">Telangana</option>
+                                        <option value="Tripura">Tripura</option>
+                                        <option value="Uttar Pradesh">Uttar Pradesh</option>
+                                        <option value="Uttarakhand">Uttarakhand</option>
+                                        <option value="West Bengal">West Bengal</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-12 col-12">
+                                <div class="form-group">
+                                    <label class="form-label">Profile Image</label>
+                                    <input type='file' style="width: 100%;" class="form-control radius-8" id="imageUpload" name="profile_image" accept=".png, .jpg, .jpeg" >
+                                </div>
+                            </div>
+
+                    </div>
+                    </div>
+                    <div class="col-md-6 col-sm-12">
+                        <div class="subtitle"> Account Details </div>
+                        <div class="row">
+
+                            <div class="col-sm-6 col-12">
+                                <div class="form-group">
+                                    <label class="form-label">Account Number</label>
+                                    <input type="number" class="form-control radius-8" id="account_number"
+                                        name="account_number" placeholder="Account Number"
+                                        style="width: 100%;"
+                                        oninput="if(this.value.length > 16) this.value = this.value.slice(0, 16);"
+                                        value="{{ staff.account_number }}">
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6 col-12">
+                                <div class="form-group">
+                                    <label class="form-label">Add UPI</label>
+                                    <input type="text" class="form-control radius-8" id="upi_id"
+                                        name="upi_id" placeholder="Enter UPI ID" style="width: 100%;"
+                                        maxlength="50" value="{{ staff.upi_id }}">
+                                </div>
+                            </div>
+
+
+                            <div class="col-sm-6 col-12">
+                                <div class="form-group">
+                                    <label class="form-label">Bank Name</label>
+                                    <input type="text" class="form-control radius-8" id="bank_name"
+                                        name="bank_name" placeholder="Bank Name" style="width: 100%;"
+                                        maxlength="50" value="{{ staff.bank_name }}">
+                                </div>
+                            </div>
+
+
+                            <div class="col-sm-6 col-12">
+                                <div class="form-group">
+                                    <label class="form-label">IFSC Code</label>
+                                    <input type="text" class="form-control radius-8" id="ifsc_code"
+                                        name="ifsc_code" placeholder="IFSC Code" style="width: 100%;"
+                                        maxlength="20" value="{{ staff.ifsc_code }}">
+                                </div>
+                            </div>
+
+
+                            <div class="col-sm-6 col-12">
+                                <div class="form-group">
+                                    <label for="pincode" class="form-label">Pincode</label>
+                            <input type="number" class="form-control radius-8" id="pincode"
+                                name="pincode" placeholder="pincode" style="width: 100%;"
+                                oninput="if(this.value.length > 6) this.value = this.value.slice(0, 6);"
+                                min="99999" max="999999" value="{{ staff.pincode }}">
+                                </div>
+                            </div>
+
+
+                            <div class="col-sm-6 col-12">
+                                <div class="form-group">
+                                    <label class="form-label">Salary</label>
+                                    <input type="number" class="form-control radius-8" id="salary" value="{{ staff.salary }}" name="salary" placeholder="Salary" style="width: 100%;" >
+                                </div>
+                            </div>
+
+                            <div class="col-sm-12 col-12">
+                                <div class="form-group">
+                                    <label class="form-label">Address</label>
+                                    <textarea class="form-control"
+                                        name="address" id="address" rows="3" required>{{ staff.address }}</textarea>
+                                </div>
+                            </div>
+
+                   
+
+
+                              </div>
+
+                    </div>
+
+
+            
+                
+                    <div class="d-flex align-items-center justify-content-end gap-3">
+                        <input type="submit"
+                            class="btn border text-md px-56 py-12 radius-8">
+                    </div>
+                </div>
+            </form>
+
+
+
+          
+        </div>
+    </div>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('#admin-select').change(function() {
+        var adminId = $(this).val();
+        var url = $(this).data('url'); // URL to fetch team leaders
+        
+        if (adminId) {
+            $.ajax({
+                url: url,
+                data: {
+                    'admin_id': adminId
+                },
+                success: function(data) {
+                    var $teamLeaderSelect = $('#team-leader-select');
+                    $teamLeaderSelect.empty(); // Clear previous options
+                    $teamLeaderSelect.append('<option selected> ------------------------ SELECT TEAM-LEADER ------------------------- </option>');
+
+                    $.each(data.team_leaders, function(index, teamLeader) {
+                        $teamLeaderSelect.append('<option value="' + teamLeader.id + '">' + teamLeader.name + '</option>');
+                    });
+                }
+            });
+        } else {
+            $('#team-leader-select').empty().append('<option selected> ------------------------ SELECT TEAM-LEADER ------------------------- </option>');
+        }
+    });
+});
+</script>
+
+{% endblock %}

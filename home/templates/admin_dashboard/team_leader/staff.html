@@ -1,0 +1,64 @@
+
+{% extends 'admin_dashboard/team_leader/base.html' %}  
+{% block content %}
+{% load static %}
+<div class="dashboard-main-body">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-24">
+  <h6 class="fw-semibold mb-0">Staff Member</h6>
+  <ul class="d-flex align-items-center gap-2">
+  <li class="fw-medium">
+  </li>
+  </div>
+  
+    <div class="card h-100 p-0 radius-12">
+        <div class="card-header border-bottom bg-base py-16 px-24 d-flex align-items-center flex-wrap gap-3 justify-content-between">
+            <div class="d-flex align-items-center flex-wrap gap-3">
+                
+                <form class="navbar-search">
+                    <input type="text" class="bg-base h-40-px w-100" name="search" placeholder="Search">
+                    <iconify-icon icon="ion:search-outline" class="icon"></iconify-icon>
+                </form>
+                {% comment %} <select class="form-select form-select-sm w-auto ps-12 py-6 radius-12 h-40-px">
+                    <option>Status</option>
+                    <option>Active</option>
+                    <option>Inactive</option>
+                </select> {% endcomment %}
+            </div>
+            <a href="{% url 'new_staff_add' %}" class="btn btn-primary text-sm btn-sm radius-8 d-flex align-items-center gap-2"> 
+                <iconify-icon icon="ic:baseline-plus" class="icon text-xl line-height-1"></iconify-icon>
+                Add Staff Member
+            </a>
+        </div>
+        <div class="card-body p-24">
+            <div class="table-responsive scroll-sm">
+                <table class="table bordered-table sm-table mb-0">
+                    <thead>
+                        <th scope="col">Full Name</th>
+                        <th scope="col">Phone</th>
+                        <th scope="col">Email</th>
+                        <th scope="col">Last Login</th>
+                        {% comment %} <th scope="col">Time Since Last Login</th> {% endcomment %}
+                        <th scope="col" class="text-center">Action</th>
+                      </tr>
+                    </thead>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.name }}</td>
+                        <td>{{ user.phone }}</td>
+                        <td>{{ user.email}}</td>
+                        <td>{{ user.last_login }}</td>
+                        {% comment %} <td>
+                            {{ user.time_since_last_login }}
+                        </td> {% endcomment %}
+                        <td>{{ user.Action }}</td>
+                    </tr>
+                {% endfor %}
+                </table>
+            </div>
+        </div>
+    </div>
+  </div>
+</div>
+
+
+    {% endblock %}

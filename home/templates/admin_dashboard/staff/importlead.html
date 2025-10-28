@@ -1,0 +1,193 @@
+{% extends request.user.is_superuser|yesno:'base.html,admin_dashboard/staff/base.html' %}
+{% block content %}
+{% load static %}
+
+<div class="dashboard-main-body">
+    <div class="dash-title">Import Leads</div>
+    <div class="card h-100 p-0 radius-12">
+
+    <div class="card-body p-24">
+        <form id="exportForm" method="POST" action="{% url 'export_users' %}">
+            {% csrf_token %}
+            <button type="button"
+                class="btn bg-success text-md px-20 py-6"
+                onclick="submitExportForm()">
+                Download Sample <i class="bi bi-arrow-down-short"></i>
+            </button>
+        </form>
+        <hr class="my-20" />
+        <div class="text-sm">
+            <p class="pb-0 mb-0">1. Your CSV data should be in the format below. The first line of your CSV file should
+                be the column headers as in the table example. Also make sure that your file is UTF-8 to avoid
+                unnecessary encoding problems.</p>
+            <p class="pb-0 mb-0">2. If the column you are trying to import is date make sure that is formatted in format
+                Y-m-d (2024-09-06)</p>
+            <p class="text-red pb-0 mb-0">3. Duplicate email rows wont be imported
+            </p>
+        </div>
+
+        <div class="my-24">
+            <div class="table-responsive scroll-sm">
+                <table class="table bordered-table sm-table mb-0">
+                    <thead>
+                        <tr class="text-xs">
+                            <th>Name</th>
+                            <th>Position</th>
+                            <th>Company</th>
+                            <th>Description</th>
+                            <th>Country</th>
+                            <th>Zip</th>
+                            <th>City</th>
+                            <th>State</th>
+                            <th>Address</th>
+                            <th>Email</th>
+                            <th>Website</th>
+                            <th>Phone Number</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="text-xs">
+                            <td>Sample Data</td>
+                            <td>Sample Data</td>
+                            <td>Sample Data</td>
+                            <td>Sample Data</td>
+                            <td>Sample Data</td>
+                            <td>Sample Data</td>
+                            <td>Sample Data</td>
+                            <td>Sample Data</td>
+                            <td>Sample Data</td>
+                            <td>Sample Data</td>
+                            <td>Sample Data</td>
+                            <td>Sample Data</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+        <div class="text-sm import_lead_table">
+        
+
+                <form id="importForm" method="POST" action="{% url 'excel_upload' %}" enctype="multipart/form-data"
+                    class="flex-wrap ">
+                    {% csrf_token %}
+
+
+                    <div class="row">
+                        <div class="col-md-6 col-sm-12">
+                            <div class="form-group">
+                                <label class="form-label">Choose CSV File<span class="text-red">*</span></label>
+                                <input type="file" class="form-control w-100" id="excel_file" name="excel_file"
+                                    accept=".xlsx, .xls" required>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 col-sm-12">
+                            <div class="form-group">
+                                <label for="stateSelect" class="form-label">Source<span class="text-red">*</span></label>
+                                <select class="form-select" aria-label="Default select example">
+                                    <option value="{{ staff.state }}">IT-Team</option>
+                                    <option value="Google">Google</option>
+                                    <option value="Facebook">Facebook</option>
+                                    <option value="Instagram">Instagram</option>
+                                    <option value="Self">Self</option>
+                                    <option value="WhatsApp">WhatsApp</option>
+                                    <option value="IT-Team">IT-Team</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-sm-12">
+                            <div class="form-group">
+                                <label for="stateSelect" class="form-label">Status<span class="text-red">*</span></label>
+                                <select class="form-select" aria-label="Default select example">
+                                    <option value="{{ staff.state }}">Hot leads</option>
+                                    <option value="Fresh Lead">Fresh Lead</option>
+                                    <option value="Hot leads">Hot leads</option>
+                                    <option value="Follow UP">Follow UP</option>
+                                    <option value="Lost Lead">Lost Lead</option>
+                                    <option value="Facebook">Facebook</option>
+                                    <option value="Customer">Customer</option>
+                                    <option value="persnol">persnol</option>
+                                </select>
+                            </div>
+        
+                        </div>
+                        <div class="col-md-6 col-sm-12">
+                            <div class="form-group">
+                                <label for="stateSelect" class="form-label">Responsible (Assignee)</label>
+                                <select class="form-select" aria-label="Default select example">
+                                    <option value="{{ staff.state }}">Nothing selected</option>
+                                    <option value="yogesh chaudhary">yogesh chaudhary</option>
+                                    <option value="uday singh">uday singh</option>
+                                    <option value="Follow UP">Follow UP</option>
+                                    <option value="Lost Lead">Lost Lead</option>
+                                    <option value="Facebook">Facebook</option>
+                                    <option value="Customer">Customer</option>
+                                    <option value="persnol">persnol</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-12 col-sm-12">
+                            <div class="form-group text-right">
+                                <button type="submit"
+                                    class="btn bg-success px-20 py-8">
+                                    Import
+                                </button>
+                                <button type="submit"
+                                    class="btn px-20 py-8">
+                                    Simulate Import
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+
+                   
+
+                   
+              
+
+                  
+
+
+                    <!-- <button type="submit" class="btn btn-primary border border-primary-600 text-md px-56 py-12 radius-8">
+                    Import Excel
+                </button> -->
+                </form>
+         
+
+
+        </div>
+    </div>
+
+    </div>
+</div>
+
+<script>
+    function submitExportForm() {
+        var form = document.getElementById("exportForm");
+        var checkboxes = document.getElementsByClassName("select-checkbox");
+        var selectedIds = [];
+
+        for (var i = 0; i < checkboxes.length; i++) {
+            if (checkboxes[i].checked && checkboxes[i].closest('tr').style.display !== 'none') {
+                selectedIds.push(checkboxes[i].value);
+            }
+        }
+
+        if (selectedIds.length > 0) {
+            for (var i = 0; i < selectedIds.length; i++) {
+                var hiddenField = document.createElement("input");
+                hiddenField.type = "hidden";
+                hiddenField.name = "selected_ids";
+                hiddenField.value = selectedIds[i];
+                form.appendChild(hiddenField);
+            }
+        }
+
+        form.submit();
+    }
+</script>
+{% endblock %}

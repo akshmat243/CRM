@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% block content %}
+{% load static %}
+
+<div class="dashboard-main-body add_user_profile">
+
+    <div class="dash-title"> Project Edit </div>
+
+
+  <div class="card border">
+    <div class="card-body">
+
+      <!-- Upload Image End -->
+      {% if messages %}
+      {% for message in messages %}
+      <div class="alert alert-success">
+        {{ message }}
+      </div>
+      {% endfor %}
+      {% endif %}
+
+      <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="row">
+          <div class="col-md-4 col-sm-12">
+            <div class="form-group">
+              <label class="form-label">Project Name</label>
+              <input type="text" class="form-control radius-8" id="project_name" name="project_name"
+                placeholder="Project Name" style="width: 100%;" maxlength="20" required value="{{ project.name }}">
+            </div>
+          </div>
+
+
+          <div class="col-md-4 col-sm-12">
+            <div class="form-group">
+              <label class="form-label ">Youtube Url</label>
+              <input type="text" class="form-control radius-8" id="youtube_url" name="youtube_url"
+                placeholder="Youtube Url" style="width: 100%;" maxlength="500" required
+                value="{{ project.youtube_link }}">
+            </div>
+          </div>
+
+          <!-- <div class="col-12"><label class="form-label">Media File</label>
+                      {% if project.media_file %}
+                      <input type="file" class="form-control radius-8" id="media_file" name="media_file" placeholder="Media File"
+                        style="width: 100%;" maxlength="50" value="{{project.media_file.url }}">
+                      {% else %}
+                      <input type="file" class="form-control radius-8" id="media_file" name="media_file" placeholder="Media File"
+                        style="width: 100%;" maxlength="50" value="">
+                      {% endif %}
+                    </div> -->
+
+
+          <div class="col-md-4 col-sm-12 formfileproject">
+            <div class="form-group">
+
+              <label class="form-label">Media File</label>
+              <input type="file" class="form-control radius-8" id="media_file" name="media_file" style="width: 100%;"
+                maxlength="50">
+
+            </div>
+            {% if project.media_file %}
+            <div class="media_adit">
+              <a href="{{ project.media_file.url }}" target="_blank"><img src="{{ project.media_file.url }}"
+                  alt="Uploaded media file" class="img-fluid rounded-circle"
+                  style="width: 40px; height: 40px; object-fit: cover;"></a>
+                 
+            </div>
+            {% endif %}
+          </div>
+        </div>     
+
+
+        <div class="col-md-12 col-sm-12">
+          <div class="form-group">
+
+            <label class="form-label">Message</label>
+            <textarea name="message" id="id_conten" class="form-control radius-8 django_ckeditor_5"
+              placeholder="Message" style="width: 100%;"></textarea>
+          </div>
+        </div>
+  
+
+
+        <div class="d-flex align-items-center justify-content-end gap-3">
+          <input type="submit" class="btn text-md px-56 py-12 radius-8">
+        </div>
+    </div>
+    </form>
+  </div>
+</div>
+</div>
+</div>
+
+
+<script src="https://cdn.ckeditor.com/ckeditor5/29.0.0/classic/ckeditor.js"></script>
+<script>
+  ClassicEditor
+    .create(document.querySelector('#id_content'), {
+      toolbar: [
+        'heading', '|', 'outdent', 'indent', '|', 'bold', 'italic', 'link', 'underline', 'strikethrough',
+        'code', 'subscript', 'superscript', 'highlight', '|', 'codeBlock', 'sourceEditing', 'insertImage',
+        'bulletedList', 'numberedList', 'todoList', '|', 'blockQuote', 'imageUpload', '|',
+        'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor', 'mediaEmbed', 'removeFormat',
+        'insertTable'
+      ],
+      image: {
+        toolbar: [
+          'imageTextAlternative', '|', 'imageStyle:alignLeft',
+          'imageStyle:alignRight', 'imageStyle:alignCenter', 'imageStyle:side'
+        ],
+        styles: ['full', 'side', 'alignLeft', 'alignRight', 'alignCenter']
+      },
+      table: {
+        contentToolbar: [
+          'tableColumn', 'tableRow', 'mergeTableCells',
+          'tableProperties', 'tableCellProperties'
+        ]
+      }
+    })
+    .catch(error => {
+      console.error(error);
+    });
+</script>
+
+{% endblock %}

@@ -1,0 +1,215 @@
+{% extends 'admin_dashboard/base.html' %}  
+{% block content %}
+{% load static %}
+
+<div class="dashboard-main-body add_user_profile">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-24">
+<h6 class="fw-semibold mb-0">View Profile</h6>
+<ul class="d-flex align-items-center gap-2">
+<li class="fw-medium">
+<a href="{% url 'admin_view_profile' %}" class="d-flex align-items-center gap-1 hover-text-primary">
+
+</a>
+</li>
+</ul>
+</div>
+
+  <div class="row gy-4">
+      <div class="col-lg-4">
+          <div class="user-grid-card position-relative border radius-16 overflow-hidden bg-base h-100">
+              <img src="{% static 'assets/images/user-grid/user-grid-bg1.png' %}" alt="" class="w-100 object-fit-cover">
+              <div class="pb-24 ms-16 mb-24 me-16 mt--100">
+
+                <div class="userprofiletop">
+                  <div class="userprofileimages">
+                    {% if request.user.profile_image %}
+                    <img src="{{ request.user.profile_image.url }}" alt="site logo" class="light-logo rounded-circle m-auto">
+                    {% else %}
+                    <img src="{% static 'assets/images/main_profile.jpg' %}" alt="site logo" class="light-logo rounded-circle m-auto">
+                    {% endif %}
+                    <div class="userprofiletoptext">
+                        <h6>{{ admin.name }}</h6>
+                        <p>{{ admin.email }}</p>
+                      </div>
+                  </div>
+                </div>
+                  <div class="userprofiletopPersonal">
+                      <h6>Personal Info</h6>
+                      <ul>
+                          <li>
+                              <span>Full Name </span> {{ admin.name }}
+                          </li>
+                          <li>
+                              <span> Email </span>{{ admin.email }}
+                          </li>
+                          <li>
+                              <span> mobile </span> {{ admin.mobile  }}
+                          </li> 
+                          <li>
+                            <span> address </span>{{ admin.address  }}
+                        </li> 
+                        <li>
+                            <span> city </span>{{ admin.city  }}
+                        </li> 
+                        <li>
+                            <span> state </span>{{ admin.state  }}
+                        </li> 
+                        <li>
+                              <span> pincode </span>{{ admin.pincode  }}
+                          </li> 
+                          <li>
+                            <span> Referral Code </span>{{ admin.referral_code  }}
+                        </li> 
+                      </ul>
+                  </div>
+              </div>
+          </div>
+      </div>
+      <div class="col-lg-8">
+          <div class="card h-100">
+            <div class="border-bottom title-part-padding">
+              {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-success">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+              {% endif %}
+         
+            </div>
+              <div class="card-body p-24">
+                  <ul class="nav border-gradient-tab nav-pills mb-20" id="pills-tab" role="tablist">
+                      <li class="nav-item" role="presentation">
+                        <button class="nav-link d-flex align-items-center px-24 active" id="pills-edit-profile-tab" data-bs-toggle="pill" data-bs-target="#pills-edit-profile" type="button" role="tab" aria-controls="pills-edit-profile" aria-selected="true">
+                          Edit Profile 
+                        </button>
+                      </li>
+                      <li class="nav-item" role="presentation">
+                        <button class="nav-link d-flex align-items-center px-24" id="pills-notification-tab" data-bs-toggle="pill" data-bs-target="#pills-notification" type="button" role="tab" aria-controls="pills-notification" aria-selected="false" tabindex="-1">
+                          Notification Settings
+                        </button>
+                      </li>
+                  </ul>
+
+                  <div class="tab-content" id="pills-tabContent">   
+                      <div class="tab-pane fade show active" id="pills-edit-profile" role="tabpanel" aria-labelledby="pills-edit-profile-tab" tabindex="0">
+
+                          
+                          <form action="{% url 'admin_view_profile' %}" method="POST" enctype="multipart/form-data">
+                            <!-- Upload Image Start -->
+                           
+                          <!-- Upload Image End -->
+                            {% csrf_token %}
+                          
+
+                                  <div class="row">
+                                    <div class="col-md-6 mb-12">
+                                      <!-- <div class="avatar-upload">
+                                        <div class="avatar-edit position-absolute bottom-0 end-0 me-24 mt-16 z-1 cursor-pointer">
+                                            <input type='file' id="imageUpload" name="profile_image" accept=".png, .jpg, .jpeg" hidden>
+                                            <label for="imageUpload" class="w-32-px h-32-px d-flex justify-content-center align-items-center bg-primary-50 text-primary-600 border border-primary-600 bg-hover-primary-100 text-lg rounded-circle">
+                                                <iconify-icon icon="solar:camera-outline" class="icon"></iconify-icon>
+                                            </label>
+                                        </div>
+                                        <div class="avatar-preview">
+                                            <div id="imagePreview">
+                                        </div>
+                                    </div>
+                                </div> -->
+
+
+                                <label class="fw-semibold text-primary-light text-sm mb-8" for="">Profile Image</label>
+                                <input type='file' id="imageUpload" class="form-control" name="profile_image" accept=".png, .jpg, .jpeg">
+                                    </div>
+
+
+                                    <div class="col-md-6 mb-12">
+                                      <label for="validationDefault01">Admin ID</label>
+                                        <input type="number" class="form-control" placeholder="{{admin.admin_id}}" name="admin_id" value="{{admin.admin_id}}" disabled>
+                                      </div>
+
+                                    <div class="col-md-6 col-sm-12"><label class="form-label">Name</label>
+                                      <input type="text" class="form-control radius-8"  id="name" name="name" placeholder="Name" style="width: 100%;" maxlength="20" required value="{{ admin.name }}">
+                                    </div>
+                                    <div class="col-md-6 col-sm-12"><label for="email" class="form-label">E-Mail Address</label>
+                                      <input type="email" class="form-control radius-8"  id="email" name="email" placeholder="email" style="width: 100%;" maxlength="30" required value="{{admin.email}}" readonly>
+                                    </div>
+                                  </div>
+                                  {% comment %} <div class="row" style="margin-top: 10px;">
+                                    <div class="col-md-6 col-sm-12"><label class="form-label ">Password</label>
+                                      <input type="password" class="form-control radius-8" id="password" name="password" placeholder="XXXXXXXXXXXXXXX" style="width: 100%;" maxlength="15" required value="{{admin.password}}">
+                                    </div> {% endcomment %}
+                                    <div class="row" style="margin-top: 10px;">
+                                    <div class="col-md-6 col-sm-12"><label class="form-label">Mobile</label>
+                                      <input type="number" class="form-control radius-8" id="mobile" name="mobile" placeholder="number" style="width: 100%;" oninput="if(this.value.length > 10) this.value = this.value.slice(0, 10);" min="999999999" max="9999999999" required value="{{admin.mobile}}" >
+                                    </div>
+                                    <div class="col-md-6 col-sm-12"><label class="form-label">Address</label>
+                                      <input type="text" class="form-control radius-8" id="address" name="address" placeholder="address"  style="width: 100%;" maxlength="50" required value="{{admin.address}}">
+                                    </div>
+                                  </div>
+                                  <div class="row" style="margin-top: 10px;">
+                                    <div class="col-md-6 col-sm-12"><label for="city" class="form-label">City</label>
+                                      <input type="text" class="form-control radius-8" id="city" name="city" placeholder="city" style="width: 100%;" maxlength="30" required value="{{admin.city}}" >
+                                    </div>
+                                    <div class="col-md-6 col-sm-12"><label for="pincode" class="form-label">Pincode</label>
+                                      <input type="number" class="form-control radius-8" id="pincode" name="pincode" placeholder="pincode" style="width: 100%;" oninput="if(this.value.length > 6) this.value = this.value.slice(0, 6);" min="99999" max="999999" required value="{{admin.pincode}}">
+                                    </div>
+                                  </div>
+                                  <div class="row" style="margin-top: 10px;">
+                                    <div class="col-md-6 col-sm-12"><label class="form-label">State</label>
+                                      <input type="text" class="form-control radius-8" id="state" name="state" placeholder="state" style="width: 100%;" maxlength="30" required value="{{admin.state}}">
+                                    </div>
+                                  </div>
+                                    <br>
+
+                              <div class="d-flex align-items-center gap-3">
+                                  <input type="submit" class="btn btn-primary border border-primary-600 text-md px-56 py-12 radius-8">
+                              </div>
+                          </form>
+                      </div>
+
+                      <div class="tab-pane fade" id="pills-notification" role="tabpanel" aria-labelledby="pills-notification-tab" tabindex="0">
+                          <div class="form-switch switch-primary py-12 px-16 border radius-8 position-relative mb-16">
+                              <label for="companzNew" class="position-absolute w-100 h-100 start-0 top-0"></label>
+                              <div class="d-flex align-items-center gap-3 justify-content-between">
+                                  <span class="form-check-label line-height-1 fw-medium text-secondary-light">Company News</span>
+                                  <input class="form-check-input" type="checkbox" role="switch" id="companzNew">
+                              </div>
+                          </div>
+                          <div class="form-switch switch-primary py-12 px-16 border radius-8 position-relative mb-16">
+                              <label for="pushNotifcation" class="position-absolute w-100 h-100 start-0 top-0"></label>
+                              <div class="d-flex align-items-center gap-3 justify-content-between">
+                                  <span class="form-check-label line-height-1 fw-medium text-secondary-light">Push Notification</span>
+                                  <input class="form-check-input" type="checkbox" role="switch" id="pushNotifcation" checked>
+                              </div>
+                          </div>
+                          <div class="form-switch switch-primary py-12 px-16 border radius-8 position-relative mb-16">
+                              <label for="weeklyLetters" class="position-absolute w-100 h-100 start-0 top-0"></label>
+                              <div class="d-flex align-items-center gap-3 justify-content-between">
+                                  <span class="form-check-label line-height-1 fw-medium text-secondary-light">Weekly News Letters</span>
+                                  <input class="form-check-input" type="checkbox" role="switch" id="weeklyLetters" checked>
+                              </div>
+                          </div>
+                          <div class="form-switch switch-primary py-12 px-16 border radius-8 position-relative mb-16">
+                              <label for="meetUp" class="position-absolute w-100 h-100 start-0 top-0"></label>
+                              <div class="d-flex align-items-center gap-3 justify-content-between">
+                                  <span class="form-check-label line-height-1 fw-medium text-secondary-light">Meetups Near you</span>
+                                  <input class="form-check-input" type="checkbox" role="switch" id="meetUp">
+                              </div>
+                          </div>
+                          <div class="form-switch switch-primary py-12 px-16 border radius-8 position-relative mb-16">
+                              <label for="orderNotification" class="position-absolute w-100 h-100 start-0 top-0"></label>
+                              <div class="d-flex align-items-center gap-3 justify-content-between">
+                                  <span class="form-check-label line-height-1 fw-medium text-secondary-light">Orders Notifications</span>
+                                  <input class="form-check-input" type="checkbox" role="switch" id="orderNotification" checked>
+                              </div>
+                          </div>
+                      </div>
+
+                  </div>
+              </div>
+          </div>
+      </div>
+  </div>
+</div>
+{% endblock %}

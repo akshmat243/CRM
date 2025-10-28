@@ -1,0 +1,76 @@
+{% extends template %}
+
+{% block content %}
+{% load static %} 
+
+<div class="dashboard-main-body add_user_profile">
+
+      <div class="dash-title"> Add New Lead </div>
+
+    <div class="card p-24 h-100  radius-12">
+
+
+                
+                <form method="POST" action="{% url 'add_lead_by_self' %}" enctype="multipart/form-data">
+                  {% csrf_token %}
+                  
+                  <div class="modal-body">
+
+                  <div class="row">
+                      <div class="col-md-6 col-sm-12">
+                        <div class="form-group">
+                        <label for="city" class="form-label">Name</label>
+                          <input type="text" class="form-control radius-8" id="name" name="name"
+                              placeholder="Name" style="width: 100%;" maxlength="30" required>
+                            </div>
+                      </div>
+                      <div class="col-sm-6 col-12">
+                        <div class="form-group">
+                          <label for="stateSelect" class="form-label">Status</label>
+                          <select class="form-select" name="status" aria-label="Default select example" required>
+                              <option value="">Select a Status</option>
+                              <option value="Leads">Leads</option>
+                              <option value="Intrested">Intrested</option>
+                              <option value="Not Interested">Not Interested</option>
+                              <option value="Other Location">Other Location</option>
+                              <option value="Not Picked">Not Picked</option>
+                              <option value="Lost">Lost</option>
+                              <option value="Visit">Visit</option>
+                          </select>
+                        </div>
+                      </div>
+
+            
+            
+                    <div class="col-md-6 col-sm-12">
+                      <div class="form-group">
+                      <label class="form-label">Mobile</label>
+                      <input type="number" class="form-control radius-8" id="mobile" name="mobile" placeholder="number" style="width: 100%;" oninput="if(this.value.length > 10) this.value = this.value.slice(0, 10);" min="999999999" max="9999999999" required >
+                    </div>
+                  </div>
+                    <div class="col-md-6 col-sm-12">
+                      <div class="form-group">
+                      <label class="form-label">E-mail</label>
+                      <input type="text" class="form-control radius-8" id="email" name="email" placeholder="email" style="width: 100%;">
+                    </div>
+                  </div>
+          
+                    <div class="col-12">
+                      <div class="form-group">
+                      <label class="form-label">Description</label>
+                        <textarea class="form-control radius-8" name="description" id="description"></textarea>
+                      </div>
+                    </div>
+    
+                    <div class="d-flex align-items-center justify-content-end mt-1">
+                    <input type="submit" class="btn text-md px-56 radius-8">
+                  </div>
+                </div>
+                </form>
+     
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}

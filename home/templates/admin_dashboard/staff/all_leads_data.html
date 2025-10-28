@@ -1,0 +1,100 @@
+{% extends 'admin_dashboard/staff/base.html' %}  
+{% block content %}
+{% load static %}
+
+<head>
+    <title>Responsive data table</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
+   <script src="https://code.jquery.com/jquery-3.3.1.js"></script> 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js|https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.1/js/bootstrap.min.js"></script>
+     -->
+    <style type="text/css">
+    
+    /*optional css*/
+    
+    body{ padding: 20px; }
+
+    body {
+        background-color: var(--bg-color);
+        }
+    
+    </style>
+    
+</head>
+
+<div class="dashboard-main-body">
+    <div class="dash-title">Leads Report</div>
+
+    <div class="card h-100 p-0 radius-12">
+        <div class="card-header border-bottom bg-base py-16 px-24 d-flex align-items-center flex-wrap gap-3 justify-content-between">
+            <div class="form-outline" data-mdb-input-init="">
+                                
+                <form class="navbar-search">
+                <input type="text" placeholder="search" name="search" id="searchInput" class="form-control h-40-px w-100" onkeyup="searchTable()">
+                <iconify-icon icon="ion:search-outline" class="icon"></iconify-icon>
+            </form>
+                
+            </div>
+        </div>
+
+        <div class="card-body p-24">
+            <div class="table-responsive scroll-sm">
+                <table class="table bordered-table sm-table mb-0 mytable">
+                    <thead>
+                     
+                        <tr>
+                            <th>Name</th>
+                            <th>Call</th>
+                            <th>Whatsapp</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                <tbody>
+                    {% for data in leads %}
+                    <tr>
+                        <td>{{ data.name }}</td>
+                        <td>
+                            <a href="tel:{{ data.call }}">
+                                <i class="fas fa-phone" style="font-size:1.1em; transform: rotate(95deg);"></i>
+                            </a>
+                        </td>
+                        <td>
+                            <a href="https://wa.me/{{ data.call }}?text=Hello%20{{ user.name }}" target="_blank">
+                                <i class="fab fa-whatsapp menu-icon" style="font-size:1.5em; color: #25D366;"></i>
+                            </a>
+                        </td>
+                        <td>
+                            {{data.status}}
+                        </td>
+                
+                    </tr>
+                   {% endfor %}
+                
+                
+                </tbody>
+                
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+
+
+</div>
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.19/css/dataTables.bootstrap4.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/responsive/2.2.3/css/responsive.bootstrap4.min.css">
+<script src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
+<script  src="https://cdn.datatables.net/1.10.19/js/dataTables.bootstrap4.min.js"></script>
+<script  src="https://cdn.datatables.net/responsive/2.2.3/js/dataTables.responsive.min.js"></script>
+<script  src="https://cdn.datatables.net/responsive/2.2.3/js/responsive.bootstrap4.min.js"></script>
+
+<script type="text/javascript">
+    $('.mytable').dataTable( {
+    
+    "responsive" : true
+    } );
+    </script>
+{% endblock %}
