@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import viewsets, permissions, filters, generics, views
 from django_filters import rest_framework as django_filters
 from datetime import date
+from datetime import datetime, timedelta
 from rest_framework import status, viewsets
 from .serializers import *
 from .models import *
@@ -32,6 +33,9 @@ from django.utils import timezone
 from calendar import month_name
 from calendar import monthrange, monthcalendar, day_name
 import calendar
+from rest_framework.permissions import IsAdminUser
+from django.contrib.auth import get_user_model
+
 
 # @method_decorator(csrf_exempt, name='dispatch')
 # class LoginApiView(APIView):
@@ -144,16 +148,16 @@ class LoginApiView(APIView):
             )
 
         # Ensure the user is a staff member
-        if not user.is_staff_new:
-            return Response(
-                {'status': False, 'message': 'Only staff users are allowed to log in', 'data': []}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        if user.user_active is False:
-            return Response(
-                {'status': False, 'message': "You don't have permission to login please contact admin", 'data': []}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        # if not user.is_staff_new:
+        #     return Response(
+        #         {'status': False, 'message': 'Only staff users are allowed to log in', 'data': []}, 
+        #         status=status.HTTP_400_BAD_REQUEST
+        #     )
+        # if user.user_active is False:
+        #     return Response(
+        #         {'status': False, 'message': "You don't have permission to login please contact admin", 'data': []}, 
+        #         status=status.HTTP_400_BAD_REQUEST
+        #     )
 
         # Mark user as logged in
         user.is_user_login = True
@@ -717,3 +721,255 @@ class StaffProductivityCalendarAPIView(APIView):
         }
 
         return Response(response_data)
+    
+
+User = get_user_model()
+
+class SuperAdminDashboardAPIView(APIView):
+    """
+    API view for the Super Admin Dashboard.
+    Provides aggregated lead counts and stats.
+    Only accessible by superusers.
+    """
+    permission_classes = [IsAdminUser]
+
+    def get(self, request, *args, **kwargs):
+        # request.user is already the logged-in superuser object
+        us = request.user 
+        admin_profiles = Admin.objects.filter(user=us)
+        admin_serializer = AdminSerializer(admin_profiles, many=True)
+
+        today = timezone.now().date()
+        tomorrow = today + timedelta(days=1)
+
+        # All your counting logic, unchanged
+        total_upload_leads = Team_LeadData.objects.filter().count()
+        total_left_leads = Team_LeadData.objects.filter(status='Leads', assigned_to=None).count()
+        total_assign_leads = LeadUser.objects.filter(status='Leads').count()
+        interested_leads_staff = LeadUser.objects.filter(status='Intrested').count()
+        not_interested_leads_staff = LeadUser.objects.filter(status='Not Interested').count()
+        other_location_leads_staff = LeadUser.objects.filter(status='Other Location').count()
+        not_picked_leads_staff = LeadUser.objects.filter(status='Not Picked').count()
+        lost_leads_staff = LeadUser.objects.filter(status='Lost').count()
+        lost_visit_staff = LeadUser.objects.filter(status='Visit').count()
+
+        pending_followup_staff = LeadUser.objects.filter(
+                Q(status='Intrested') & Q(follow_up_date__isnull=False)
+            ).count()
+        today_followup_staff = LeadUser.objects.filter(
+                Q(status='Intrested') & Q(follow_up_date=today)
+            ).count()
+        tomorrow_followup_staff = LeadUser.objects.filter(
+                Q(status='Intrested') & Q(follow_up_date=tomorrow)
+            ).count()
+
+        interested_leads_team_leader = Team_LeadData.objects.filter(status='Intrested').count()
+        not_interested_leads_team_leader  = Team_LeadData.objects.filter(status='Not Interested').count()
+        other_location_leads_team_leader  = Team_LeadData.objects.filter(status='Other Location').count()
+        not_picked_leads_team_leader = Team_LeadData.objects.filter(status='Not Picked').count()
+        lost_leads_team_leader  = Team_LeadData.objects.filter(status='Lost').count()
+        lost_visit_team_leader  = Team_LeadData.objects.filter(status='Visit').count()
+
+        # All your summing logic, unchanged
+        total_interested = interested_leads_staff + interested_leads_team_leader
+        total_not_interested = not_interested_leads_staff + not_interested_leads_team_leader
+        total_other_location = other_location_leads_staff + other_location_leads_team_leader
+        total_not_picked = not_picked_leads_staff + not_picked_leads_team_leader
+        total_lost = lost_leads_staff + lost_leads_team_leader
+        total_visits = lost_visit_staff + lost_visit_team_leader
+
+        total_pending_followup = pending_followup_staff
+        total_today_followup = today_followup_staff
+        total_tomorrow_followup = tomorrow_followup_staff
+
+        # Build the response data dictionary
+        data = {
+            'users': admin_serializer.data, # Use serialized data here
+            'total_upload_leads': total_upload_leads,
+            'total_assign_leads': total_assign_leads,
+            'total_interested': total_interested,
+            'total_not_interested': total_not_interested,
+            'total_other_location': total_other_location,
+            'total_not_picked': total_not_picked,
+            'total_lost': total_lost,
+            'total_visits': total_visits,
+            'total_left_leads': total_left_leads,
+            'total_pending_followup': total_pending_followup,
+            'total_today_followup': total_today_followup,
+            'total_tomorrow_followup': total_tomorrow_followup,
+        }
+        
+        # Return the data as a JSON response
+        return Response(data, status=status.HTTP_200_OK)    
+    
+
+
+
+
+# ===================================================================
+# NAYA DASHBOARD API (Date Filter Waala)
+# ===================================================================
+class SuperUserDashboardAPIView(APIView):
+    """
+    Super User Dashboard ke liye API, date filtering ke saath.
+    Sirf superusers ke liye accessible hai.
+    """
+    permission_classes = [IsAdminUser]
+
+    def get(self, request, *args, **kwargs):
+        # Admin profile get karo
+        us = request.user
+        admin_profiles = Admin.objects.filter(user=us)
+        # Naya wala serializer use karo
+        admin_serializer = DashboardAdminSerializer(admin_profiles, many=True)
+
+        # Date filtering logic
+        start_date_str = request.query_params.get('start_date')
+        end_date_str = request.query_params.get('end_date')
+        
+        lead_filter = {}
+        start_date_for_context = None
+        end_date_for_context = None
+
+        if start_date_str and end_date_str:
+            try:
+                start_date = timezone.make_aware(datetime.strptime(start_date_str, '%Y-%m-%d'))
+                end_date = timezone.make_aware(datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1)) - timedelta(seconds=1)
+                
+                lead_filter = {'updated_date__range': [start_date, end_date]}
+                start_date_for_context = start_date_str
+                end_date_for_context = end_date_str
+            except ValueError:
+                pass 
+
+        # Poora counting logic
+        total_upload_leads = Team_LeadData.objects.filter(status='Leads').count()
+        total_assign_leads = LeadUser.objects.filter(status='Leads').count()
+        interested_leads_staff = LeadUser.objects.filter(status='Intrested', **lead_filter).count()
+        not_interested_leads_staff = LeadUser.objects.filter(status='Not Interested', **lead_filter).count()
+        other_location_leads_staff = LeadUser.objects.filter(status='Other Location', **lead_filter).count()
+        not_picked_leads_staff = LeadUser.objects.filter(status='Not Picked', **lead_filter).count()
+        lost_leads_staff = LeadUser.objects.filter(status='Lost', **lead_filter).count()
+        lost_visit_staff = LeadUser.objects.filter(status='Visit', **lead_filter).count()
+        
+        interested_leads_team_leader = Team_LeadData.objects.filter(status='Intrested', **lead_filter).count()
+        not_interested_leads_team_leader  = Team_LeadData.objects.filter(status='Not Interested', **lead_filter).count()
+        other_location_leads_team_leader  = Team_LeadData.objects.filter(status='Other Location', **lead_filter).count()
+        not_picked_leads_team_leader = Team_LeadData.objects.filter(status='Not Picked', **lead_filter).count()
+        lost_leads_team_leader  = Team_LeadData.objects.filter(status='Lost', **lead_filter).count()
+        lost_visit_team_leader  = Team_LeadData.objects.filter(status='Visit', **lead_filter).count()
+
+        # Summing logic
+        total_interested = interested_leads_staff + interested_leads_team_leader
+        total_not_interested = not_interested_leads_staff + not_interested_leads_team_leader
+        total_other_location = other_location_leads_staff + other_location_leads_team_leader
+        total_not_picked = not_picked_leads_staff + not_picked_leads_team_leader
+        total_lost = lost_leads_staff + lost_leads_team_leader
+        total_visits = lost_visit_staff + lost_visit_team_leader
+
+        total_calls = total_interested + total_not_interested + total_other_location + total_not_picked + total_lost + total_visits
+
+        # User stats
+        total_users = User.objects.count()
+        logged_in_users = User.objects.filter(is_user_login=True).count()
+        logged_out_users = User.objects.filter(is_user_login=False).count()
+
+        # Chart data
+        data_points = [
+            { "label": "Interested", "y": total_interested  },
+            { "label": "Lost",  "y": total_lost  },
+            { "label": "Visits",  "y": total_visits  },
+            { "label": "Not Interested", "y": total_not_interested  },
+            { "label": "Other Location",  "y": total_other_location  },
+            { "label": "Not Picked",  "y": total_not_picked  },
+            { "label": "Total Calls",  "y": total_calls  },
+        ]
+
+        # Settings data
+        setting_obj = Settings.objects.filter().last()
+        # Naya wala serializer use karo
+        setting_serializer = DashboardSettingsSerializer(setting_obj)
+
+        # Final JSON response
+        data = {
+            'users': admin_serializer.data,
+            'data_points': data_points,
+            'total_upload_leads': total_upload_leads,
+            'total_assign_leads': total_assign_leads,
+            'total_interested': total_interested,
+            'total_not_interested': total_not_interested,
+            'total_other_location': total_other_location,
+            'total_not_picked': total_not_picked,
+            'total_lost': total_lost,
+            'total_visits': total_visits,
+            'start_date': start_date_for_context,
+            'end_date': end_date_for_context,
+            'total_users': total_users,
+            'logged_in_users': logged_in_users,
+            'logged_out_users': logged_out_users,
+            'setting': setting_serializer.data if setting_obj else None,
+        }
+        
+        return Response(data, status=status.HTTP_200_OK)
+
+# ===================================================================
+# NAYA ADMIN SIDE LEADS RECORD API (Tag Waala)
+# ===================================================================
+class AdminSideLeadsRecordAPIView(APIView):
+    """
+    Admin dashboard se leads ko status tag ke hisaab se filter karne ke liye API.
+    """
+    permission_classes = [IsAdminUser]
+
+    def get(self, request, tag, *args, **kwargs):
+        # Default (khaali) querysets
+        staff_leads_qs = LeadUser.objects.none()
+        team_leads_qs = Team_LeadData.objects.none()
+
+        if tag == "total_visit_tag":
+            staff_leads_qs = LeadUser.objects.filter(status='Visit')
+            team_leads_qs = Team_LeadData.objects.filter(status='Visit')
+            
+        elif tag == "total_lost_lead_tag":
+            staff_leads_qs = LeadUser.objects.filter(status='Lost')
+            team_leads_qs = Team_LeadData.objects.filter(status='Lost')
+            
+        elif tag == "total_not_picked_lead_tag":
+            staff_leads_qs = LeadUser.objects.filter(status='Not Picked')
+            team_leads_qs = Team_LeadData.objects.filter(status='Not Picked')
+            
+        elif tag == "total_other_location_lead_tag":
+            staff_leads_qs = LeadUser.objects.filter(status='Other Location')
+            team_leads_qs = Team_LeadData.objects.filter(status='Other Location')
+            
+        elif tag == "total_not_interested_lead_tag":
+            staff_leads_qs = LeadUser.objects.filter(status='Not Interested')
+            team_leads_qs = Team_LeadData.objects.filter(status='Not Interested')
+            
+        elif tag == "total_upload_lead_tag":
+            team_leads_qs = Team_LeadData.objects.filter(status='Leads')
+            
+        elif tag == "total_assigned_lead_tag":
+            staff_leads_qs = LeadUser.objects.filter(status='Leads')
+            
+        elif tag == "total_interested_lead_tag":
+            staff_leads_qs = LeadUser.objects.filter(status='Intrested')
+            team_leads_qs = Team_LeadData.objects.filter(status='Intrested')
+            
+        else:
+            # Agar tag match nahi hua
+            return Response({"error": "Invalid tag provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Dono querysets ko serialize karo
+        staff_serializer = ApiLeadUserSerializer(staff_leads_qs, many=True)
+        team_serializer = ApiTeamLeadDataSerializer(team_leads_qs, many=True)
+
+        # Data ko do alag list mein bhej rahe hain taaki frontend ko aasaani ho
+        data = {
+            "staff_leads": staff_serializer.data,
+            "team_leads": team_serializer.data,
+        }
+        
+        return Response(data, status=status.HTTP_200_OK)
+    
+    

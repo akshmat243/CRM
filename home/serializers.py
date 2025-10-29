@@ -1,6 +1,9 @@
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 from .models import *
+from django.contrib.auth import get_user_model
+from .models import Admin
+
 
 class UserSerializer(serializers.ModelSerializer):
     """ user serializer """
@@ -94,3 +97,100 @@ class StructuredCalendarDataSerializer(serializers.Serializer):
     day = serializers.IntegerField()
     day_name = serializers.CharField()
 
+class AdminSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the Admin model, with nested User details.
+    """
+    user = UserSerializer(read_only=True)
+
+    class Meta:
+        model = Admin
+        fields = ['id', 'user'] # Add any other Admin model fields you want
+
+
+
+
+# ==========================================================
+# NAYE SUPER-USER DASHBOARD KE LIYE NAYE SERIALIZERS
+# ==========================================================
+
+class DashboardUserSerializer(serializers.ModelSerializer):
+    """
+    Naye dashboard ke liye User model serializer.
+    """
+    profile_image = serializers.FileField(use_url=True, allow_null=True)
+    
+    class Meta:
+        model = User
+        fields = [
+            'id', 'email', 'name', 'mobile', 'profile_image', 
+            'is_admin', 'is_team_leader', 'is_staff_new'
+        ]
+
+class DashboardAdminSerializer(serializers.ModelSerializer):
+    """
+    Naye dashboard ke liye Admin model serializer.
+    """
+    user = DashboardUserSerializer(read_only=True)
+
+    class Meta:
+        model = Admin
+        # Admin model ki saari fields
+        fields = [
+            'id', 'user', 'admin_id', 'name', 'email', 'mobile', 
+            'address', 'city', 'pincode', 'state', 'dob', 'pancard', 
+            'aadharCard', 'account_number', 'upi_id', 'bank_name', 
+            'ifsc_code', 'salary', 'achived_slab'
+        ]
+
+class DashboardSettingsSerializer(serializers.ModelSerializer):
+    """
+    Naye dashboard ke liye Settings model serializer.
+    """
+    logo = serializers.FileField(use_url=True)
+
+    class Meta:
+        model = Settings
+        fields = ['id', 'logo']
+
+
+
+
+
+# ==========================================================
+# ADMIN SIDE LEADS RECORD KE LIYE NAYE SERIALIZERS
+# ==========================================================
+
+class ApiStaffSerializer(serializers.ModelSerializer):
+    """
+    Staff ki basic details ke liye serializer.
+    """
+    class Meta:
+        model = Staff
+        fields = ['id', 'name', 'staff_id', 'email', 'mobile']
+
+class ApiLeadUserSerializer(serializers.ModelSerializer):
+    """
+    Staff ke Leads (LeadUser model) ke liye serializer.
+    """
+    assigned_to = ApiStaffSerializer(read_only=True)
+    
+    class Meta:
+        model = LeadUser
+        fields = [
+            'id', 'name', 'email', 'call', 'send', 'status', 'message', 
+            'follow_up_date', 'follow_up_time', 'created_date', 'assigned_to'
+        ]
+
+class ApiTeamLeadDataSerializer(serializers.ModelSerializer):
+    """
+    Team Leader ke Leads (Team_LeadData model) ke liye serializer.
+    """
+    assigned_to = ApiStaffSerializer(read_only=True)
+
+    class Meta:
+        model = Team_LeadData
+        fields = [
+            'id', 'name', 'email', 'call', 'send', 'status', 'message', 
+            'created_date', 'assigned_to'
+        ]

@@ -1,5 +1,6 @@
 from django.urls import path
 from .api import *
+from . import api
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include
@@ -22,6 +23,11 @@ urlpatterns = [
     path('api/activitylogs/', ActivityLogsAPIView.as_view(), name='activity_logs'),
     path('api/incentive-slab-staff/<int:staff_id>/', IncentiveSlabStaffView.as_view(), name='incentive_slab_staff_api'),
     path('staff/<int:staff_id>/productivity/', StaffProductivityCalendarAPIView.as_view(), name='staff_productivity_calendar'),
+    path('dashboard/super-admin/', api.SuperAdminDashboardAPIView.as_view(), name='api-super-admin-dashboard'),
+    # Yeh line urlpatterns list ke andar ADD karo (comma , laga kar)
 
+    path('dashboard/super-user/', api.SuperUserDashboardAPIView.as_view(), name='api-super-user-dashboard'),
+
+    path('admin-leads/<str:tag>/', api.AdminSideLeadsRecordAPIView.as_view(), name='api-admin-leads-record'),
 
 ] 
