@@ -2128,7 +2128,17 @@ def bulk_from_data(request):
 def excel_upload(request):
     if request.method == 'POST':
         excel_file = request.FILES['excel_file']
-        df = pd.read_excel(excel_file)
+        try:
+            if excel_file.name.endswith('.csv'):
+                df = pd.read_csv(excel_file, encoding='utf-8')
+            elif excel_file.name.endswith('.xlsx'):
+                df = pd.read_excel(excel_file, engine='openpyxl')
+            else:
+                messages.error(request, "Unsupported file format. Please upload a .csv or .xlsx file.")
+                return redirect('import_leads') # Ya jo bhi tumhara upload page ka URL naam hai
+        except Exception as e:
+            messages.error(request, f"Error reading file: {e}.")
+            return redirect('import_leads') # Ya jo bhi tumhara upload page ka URL naam hai
         user_count =df.shape[0]
         duplicates = []
         if request.user.is_team_leader:
