@@ -29,5 +29,22 @@ urlpatterns = [
     path('dashboard/super-user/', api.SuperUserDashboardAPIView.as_view(), name='api-super-user-dashboard'),
 
     path('admin-leads/<str:tag>/', api.AdminSideLeadsRecordAPIView.as_view(), name='api-admin-leads-record'),
+    # Yeh line urlpatterns list ke andar ADD karo
 
+    path('leads/upload-excel/', api.ExcelUploadAPIView.as_view(), name='api-excel-upload'),
+    # Yeh line urlpatterns list ke andar ADD karo
+
+    path('associates/dashboard/', api.FreelancerDashboardAPIView.as_view(), name='api-freelancer-dashboard'),
+    # Yeh line urlpatterns list ke andar ADD karo
+
+    path('users/it-staff/', api.ITStaffListAPIView.as_view(), name='api-it-staff-list'),
+    # Yeh line urlpatterns list ke andar ADD karo
+
+    path('attendance/<int:id>/', api.AttendanceCalendarAPIView.as_view(), name='api-attendance-calendar'),
+    # Yeh line urlpatterns list ke andar ADD karo
+
+    path('productivity/staff/', api.StaffProductivityAPIView.as_view(), name='api-staff-productivity'),
+    # Yeh line urlpatterns list ke andar ADD karo
+
+    path('productivity/team-leader/', api.TeamLeaderProductivityAPIView.as_view(), name='api-teamleader-productivity'),
 ] 

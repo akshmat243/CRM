@@ -194,3 +194,61 @@ class ApiTeamLeadDataSerializer(serializers.ModelSerializer):
             'id', 'name', 'email', 'call', 'send', 'status', 'message', 
             'created_date', 'assigned_to'
         ]
+
+
+# Yeh code file ke end mein ADD karo
+
+# ==========================================================
+# ATTENDANCE CALENDAR API SERIALIZER
+# ==========================================================
+
+class AttendanceCalendarDaySerializer(serializers.Serializer):
+    """
+    Serializer for a single day in the attendance calendar.
+    """
+    date = serializers.DateField()
+    has_task = serializers.BooleanField()
+    day_name = serializers.CharField(max_length=3)
+
+
+# Yeh code file ke end mein ADD karo
+
+# ==========================================================
+# STAFF PRODUCTIVITY API SERIALIZERS
+# ==========================================================
+
+class ProductivityTeamLeaderSerializer(serializers.ModelSerializer):
+    """
+    Productivity page par Team Leader ki list dikhane ke liye Serializer.
+    """
+    # Hum pehle banaye hue serializers ko reuse kar rahe hain
+    user = DashboardUserSerializer(read_only=True)
+    admin = DashboardAdminSerializer(read_only=True)
+
+    class Meta:
+        model = Team_Leader
+        fields = [
+            'id', 'user', 'admin', 'team_leader_id', 'name', 'email', 
+            'mobile', 'address', 'city', 'pincode', 'state', 'dob', 
+            'pancard', 'aadharCard', 'account_number', 'upi_id', 
+            'bank_name', 'ifsc_code', 'salary', 'achived_slab'
+        ]
+
+class StaffProductivityDataSerializer(serializers.Serializer):
+    """
+    Har staff ke calculated productivity data ke liye Serializer.
+    """
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    total_leads = serializers.IntegerField()
+    interested = serializers.IntegerField()
+    not_interested = serializers.IntegerField()
+    other_location = serializers.IntegerField()
+    not_picked = serializers.IntegerField()
+    lost = serializers.IntegerField()
+    visit = serializers.IntegerField()
+    visit_percentage = serializers.FloatField()
+    interested_percentage = serializers.FloatField()
+    total_calls = serializers.IntegerField()
+
+
