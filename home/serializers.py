@@ -3,6 +3,8 @@ from rest_framework.authtoken.models import Token
 from .models import *
 from django.contrib.auth import get_user_model
 from .models import Admin
+# Yeh line file ke sabse upar add karo
+from django.db import IntegrityError
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -376,3 +378,95 @@ class AdminUpdateSerializer(serializers.ModelSerializer):
             user_instance.save()
         
         return admin_instance
+    
+# Yeh code file ke end mein ADD karo (ya purane waale ko replace karo)
+
+# ==========================================================
+# STAFF ADD API SERIALIZER [FIXED]
+# ==========================================================
+class StaffCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer naya Staff User aur Staff Profile banane ke liye.
+    [FIXED] Activity Log logic ko theek kiya gaya hai.
+    """
+    password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+    profile_image = serializers.FileField(required=False, allow_null=True)
+    team_leader = serializers.PrimaryKeyRelatedField(queryset=Team_Leader.objects.all(), required=True)
+
+    class Meta:
+        model = Staff
+        fields = [
+            'team_leader', 'name', 'email', 'mobile', 'password', 'profile_image',
+            'address', 'city', 'state', 'pincode', 'dob', 'pancard', 
+            'aadharCard', 'marksheet', 'degree', 'account_number', 
+            'upi_id', 'bank_name', 'ifsc_code', 'salary'
+        ]
+        extra_kwargs = {
+            'email': {'required': True}
+        }
+
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Email Already Exists")
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("Username (Email) Already Exists")
+        return value
+
+    def create(self, validated_data):
+        # 1. User model ke fields ko data se alag karo
+        password = validated_data.pop('password')
+        profile_image = validated_data.pop('profile_image', None)
+        email = validated_data.get('email')
+        name = validated_data.get('name')
+        mobile = validated_data.get('mobile')
+
+        # 2. Naya User object banao
+        try:
+            new_user = User.objects.create_user(
+                username=email, email=email, password=password,
+                profile_image=profile_image, name=name,
+                mobile=mobile, is_staff_new=True
+            )
+        except IntegrityError as e:
+            raise serializers.ValidationError(f"Error creating user: {e}")
+        
+        # 3. Naya Staff profile object banao
+        try:
+            staff = Staff.objects.create(
+                user=new_user,
+                **validated_data
+            )
+            
+            # --- Activity Log Logic (Aapke function se copy kiya) ---
+            request = self.context['request']
+            user_type = ""
+            if request.user.is_superuser: user_type = "Super User"
+            elif request.user.is_admin: user_type = "Admin User"
+            elif request.user.is_team_leader: user_type = "Team leader User"
+            
+            x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+            ip = x_forwarded_for.split(',')[0] if x_forwarded_for else request.META.get('REMOTE_ADDR')
+            
+            tagline = f"staff : {staff.name} created by user[Email : {request.user.email}, {user_type}]"
+            tag2 = f"staff : {staff.name} created"
+
+            if request.user.is_team_leader:
+                # --- YEH LINE FIX KI HAI ---
+                team_leader_instance = Team_Leader.objects.get(user=request.user)
+                my_user1 = team_leader_instance.admin
+                # --- FIX ENDS ---
+                ActivityLog.objects.create(
+                    admin=my_user1, description=tagline, ip_address=ip,
+                    email=request.user.email, user_type=user_type, activity_type=tag2, name=request.user.name
+                )
+            elif request.user.is_superuser:
+                 ActivityLog.objects.create(
+                    user=request.user, description=tagline, ip_address=ip,
+                    email=request.user.email, user_type=user_type, activity_type=tag2, name=request.user.name
+                )
+            
+        except Exception as e:
+            new_user.delete()
+            raise serializers.ValidationError(f"Error creating staff profile: {e}")
+
+        return staff

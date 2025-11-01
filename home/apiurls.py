@@ -43,6 +43,10 @@ urlpatterns = [
     path('leads/customer/<str:tag>/', api.TeamCustomerLeadsAPIView.as_view(), name='api-team-customer-leads'),
     path('users/toggle-active/', api.ToggleUserActiveAPIView.as_view(), name='api-toggle-user-active'),
 
+    # Yeh line urlpatterns list ke andar ADD karo
+
+    path('superuser/staff-leads/<str:tag>/', api.SuperUserStaffLeadsAPIView.as_view(), name='api-superuser-staff-leads'),
+    path('users/staff/add/', api.StaffAddAPIView.as_view(), name='api-staff-add'),
 
 
 

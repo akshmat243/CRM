@@ -123,7 +123,7 @@ class IsManagerOrAdmin(permissions.BasePermission):
 
 
 # ===================================================================
-# 1. LOGIN API VIEW [FIXED]
+# 1. LOGIN API VIEW [FINAL FIX - MANUAL AUTH]
 # ===================================================================
 @method_decorator(csrf_exempt, name='dispatch')
 class LoginApiView(APIView):
@@ -144,43 +144,55 @@ class LoginApiView(APIView):
         }
     )
     def post(self, request):
-        username = request.data.get("username", None)
+        username_or_email = request.data.get("username", None)
         password = request.data.get("password", None)
 
-        if not username or not password:
+        if not username_or_email or not password:
             return Response(
                 {'status': False, 'message': 'Username and Password are required', 'data': []}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # 1. Authenticate the user 
-        user = authenticate(request=request, username=username, password=password)
+        # --- YEH HAI FINAL FIX: Hum authenticate ko bypass karenge ---
+        try:
+            # Hum seedha email se user ko dhoondhenge
+            user = User.objects.get(email=username_or_email)
+        except User.DoesNotExist:
+            # Agar email se nahi mila, toh username se dhoondhenge
+            try:
+                user = User.objects.get(username=username_or_email)
+            except User.DoesNotExist:
+                # Ab pakka user nahi hai
+                return Response(
+                    {'status': False, 'message': 'Invalid username or password', 'data': []}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-        if user is None:
+        # User mil gaya, ab password check karo
+        if not user.check_password(password):
             return Response(
                 {'status': False, 'message': 'Invalid username or password', 'data': []}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # 2. Custom Permissions aur Active Check
+        # Password sahi hai! Ab user active check karo
         if not user.is_superuser:
             if user.user_active is False:
                 return Response(
                     {'status': False, 'message': "Your account is inactive. Please contact admin.", 'data': []}, 
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            
             if not (user.is_admin or user.is_team_leader or user.is_staff_new or user.is_it_staff):
                  return Response(
                     {'status': False, 'message': "User role not defined for API access.", 'data': []}, 
                     status=status.HTTP_400_BAD_REQUEST
                 )
         
-        # 3. Mark user as logged in
+        # Sab theek hai, login karo
         user.is_user_login = True
         user.save()
 
-        # 4. Serialize the user data
+        # Serialize the user data
         serializer = UserSerializer(user, read_only=True, context={'request': request})
         
         return Response(
@@ -761,24 +773,35 @@ class StaffProductivityCalendarAPIView(APIView):
 
 User = get_user_model()
 
+# ===================================================================
+# 14. SUPER ADMIN DASHBOARD API [FIXED]
+# (Ab yeh saare Admins ki list dikhayega)
+# ===================================================================
 class SuperAdminDashboardAPIView(APIView):
     """
     API view for the Super Admin Dashboard.
-    Provides aggregated lead counts and stats.
+    Provides aggregated lead counts and stats about ALL ADMINS.
     Only accessible by superusers.
     """
     permission_classes = [IsAdminUser]
 
     def get(self, request, *args, **kwargs):
-        # request.user is already the logged-in superuser object
-        us = request.user 
-        admin_profiles = Admin.objects.filter(user=us)
-        admin_serializer = AdminSerializer(admin_profiles, many=True)
-
+        
+        # --- YEH HAI FIX ---
+        # 1. Saare Admin users ko dhoondo (jinka is_admin=True hai)
+        admin_users = User.objects.filter(is_admin=True)
+        
+        # 2. Unn users ki Admin profiles nikaalo
+        # Hum 'self_user' field ka istemaal karenge (aapke Admin model ke hisaab se)
+        admin_profiles = Admin.objects.filter(self_user__in=admin_users)
+        
+        # 3. Data ko serialize karo (DashboardAdminSerializer se, taaki poori detail aaye)
+        admin_serializer = DashboardAdminSerializer(admin_profiles, many=True) 
+        
+        # --- Baaki saara counting logic waisa hi rahega ---
         today = timezone.now().date()
         tomorrow = today + timedelta(days=1)
 
-        # All your counting logic, unchanged
         total_upload_leads = Team_LeadData.objects.filter().count()
         total_left_leads = Team_LeadData.objects.filter(status='Leads', assigned_to=None).count()
         total_assign_leads = LeadUser.objects.filter(status='Leads').count()
@@ -806,7 +829,6 @@ class SuperAdminDashboardAPIView(APIView):
         lost_leads_team_leader  = Team_LeadData.objects.filter(status='Lost').count()
         lost_visit_team_leader  = Team_LeadData.objects.filter(status='Visit').count()
 
-        # All your summing logic, unchanged
         total_interested = interested_leads_staff + interested_leads_team_leader
         total_not_interested = not_interested_leads_staff + not_interested_leads_team_leader
         total_other_location = other_location_leads_staff + other_location_leads_team_leader
@@ -820,7 +842,7 @@ class SuperAdminDashboardAPIView(APIView):
 
         # Build the response data dictionary
         data = {
-            'users': admin_serializer.data, # Use serialized data here
+            'users': admin_serializer.data, # <-- Yahaan ab saare Admins ki list aayegi
             'total_upload_leads': total_upload_leads,
             'total_assign_leads': total_assign_leads,
             'total_interested': total_interested,
@@ -836,12 +858,7 @@ class SuperAdminDashboardAPIView(APIView):
         }
         
         # Return the data as a JSON response
-        return Response(data, status=status.HTTP_200_OK)    
-    
-
-
-
-
+        return Response(data, status=status.HTTP_200_OK)
 # ===================================================================
 # NAYA DASHBOARD API (Date Filter Waala)
 # ===================================================================
@@ -1135,12 +1152,12 @@ class ExcelUploadAPIView(APIView):
 
 
 # ===================================================================
-# NAYA FREELANCER (ASSOCIATES) DASHBOARD API
+# NAYA FREELANCER (ASSOCIATES) DASHBOARD API [FIXED]
 # ===================================================================
 class FreelancerDashboardAPIView(APIView):
     """
     API for the Super Admin's Freelancer (Associates) Dashboard.
-    Shows lead counts and list of freelancers.
+    [FIXED] Ab yeh sahi cards (Total Earning) dikhayega.
     """
     permission_classes = [IsAdminUser]
 
@@ -1150,75 +1167,34 @@ class FreelancerDashboardAPIView(APIView):
         my_staff = Staff.objects.filter(user__is_freelancer=True)
         staff_serializer = ApiStaffSerializer(my_staff, many=True)
 
-        # --- 2. Lead Counts (Sirf Freelancers ke) ---
-        total_leads = LeadUser.objects.filter(status="Leads").count() # Note: Original view mein yeh filter freelancer par nahi tha
+        # --- 2. Lead Counts (Sirf Freelancers ke) [EDITED] ---
         total_interested_leads = LeadUser.objects.filter(status="Intrested", assigned_to__user__is_freelancer=True).count()
         total_not_interested_leads = LeadUser.objects.filter(status="Not Interested", assigned_to__user__is_freelancer=True).count()
         total_other_location_leads = LeadUser.objects.filter(status="Other Location", assigned_to__user__is_freelancer=True).count()
         total_not_picked_leads = LeadUser.objects.filter(status="Not Picked", assigned_to__user__is_freelancer=True).count()
-        total_lost_leads = LeadUser.objects.filter(status="Lost", assigned_to__user__is_freelancer=True).count()
         total_visits_leads = LeadUser.objects.filter(status="Visit", assigned_to__user__is_freelancer=True).count()
+        # (total_leads aur total_lost_leads hata diye)
 
-        # --- 3. Salary Calculation Logic (Original code se copy kiya) ---
-        # Note: Original code mein `staff_list` sabhi staff ka tha, `my_staff` sirf freelancers ka.
-        # Hum original logic ko hi follow karenge.
+        # --- 3. Total Earning Calculation [NEW] ---
+        # (Purana salary logic hata diya)
+        total_earn_aggregation = Sell_plot.objects.filter(staff__user__is_freelancer=True).aggregate(total_earn=Sum('earn_amount'))
         
-        year = int(request.query_params.get('year', datetime.now().year))
-        month = int(request.query_params.get('month', datetime.now().month))
-        
-        staff_list = Staff.objects.all() # Original code ke mutabik
-        
-        days_in_month = monthrange(year, month)[1]
-        total_salary_all_staff = 0
-        
-        for staff in staff_list:
-            salary_arg = staff.salary
-            if salary_arg is None or salary_arg == "":
-                salary_arg = 0
-            salary = salary_arg
-            daily_salary = round(float(salary) / int(days_in_month))
+        total_earning = total_earn_aggregation.get('total_earn')
+        if total_earning is None: # Agar koi sale nahi hui toh 0 dikhao
+            total_earning = 0
 
-            leads_data = LeadUser.objects.filter(
-                assigned_to=staff,
-                updated_date__year=year,
-                updated_date__month=month,
-                status='Intrested'
-            ).values('updated_date__day').annotate(count=Count('id'))
-
-            total_salary = 0
-            productivity_data = {day: {'leads': 0, 'salary': 0} for day in range(1, days_in_month + 1)}
-
-            for lead in leads_data:
-                day = lead['updated_date__day']
-                leads_count = lead['count']
-                productivity_data[day]['leads'] = leads_count
-
-                if leads_count >= 10:
-                    daily_earned_salary = daily_salary
-                else:
-                    daily_earned_salary = round((daily_salary / 10) * leads_count, 2)
-
-                productivity_data[day]['salary'] = daily_earned_salary
-                total_salary += daily_earned_salary
-            
-            total_salary_all_staff += total_salary
-        
-        # --- 4. Final Response ---
+        # --- 4. Final Response [EDITED] ---
         data = {
             'total_interested_leads': total_interested_leads,
             'total_not_interested_leads': total_not_interested_leads,
             'total_other_location_leads': total_other_location_leads,
             'total_not_picked_leads': total_not_picked_leads,
-            'total_lost_leads': total_lost_leads,
-            'total_leads': total_leads,
             'total_visits_leads': total_visits_leads,
+            'total_earning': total_earning, # Naya field add kiya
             'my_staff': staff_serializer.data, # Yeh freelancer ki list hai
-            'total_salary_all_staff': round(total_salary_all_staff, 2), # Yeh sabhi staff ki salary hai
         }
         
         return Response(data, status=status.HTTP_200_OK)
-    
-
 
 
 # ===================================================================
@@ -1989,4 +1965,125 @@ class ToggleUserActiveAPIView(APIView):
             return Response(
                 {"error": f"User not found with email {user_instance_email}."},
                 status=status.HTTP_404_NOT_FOUND
+            )
+
+
+
+# Yeh code file ke end mein ADD karo
+
+# ===================================================================
+# NAYA SUPER USER SIDE STAFF LEADS API (Tag Waala)
+# ===================================================================
+class SuperUserStaffLeadsAPIView(APIView):
+    """
+    API for the 'super_user_side_staff_leads' page.
+    Fetches leads for all staff based on status tag, for Superuser or Admin.
+    """
+    permission_classes = [IsAdminUser] # Sirf Superuser ya Admin hi chala sakta hai
+    pagination_class = StandardResultsSetPagination # Reuse pagination
+
+    @property
+    def paginator(self):
+        """Paginator instance for the view."""
+        if not hasattr(self, '_paginator'):
+            self._paginator = self.pagination_class()
+        return self._paginator
+
+    def get(self, request, tag, *args, **kwargs):
+        
+        user = request.user
+        leads_qs = LeadUser.objects.none() # Khaali queryset se start karo
+
+        # --- 1. Superuser Logic ---
+        if user.is_superuser:
+            if tag == 'total_lead':
+                leads_qs = LeadUser.objects.filter(status="Leads")
+            elif tag == 'visits':
+                leads_qs = LeadUser.objects.filter(status="Visit")
+            elif tag == 'interested':
+                leads_qs = LeadUser.objects.filter(status="Intrested")
+            elif tag == 'not_interested':
+                leads_qs = LeadUser.objects.filter(status="Not Interested")
+            elif tag == 'other_location':
+                leads_qs = LeadUser.objects.filter(status="Other Location") # Typo theek kiya (LeadView -> LeadUser)
+            elif tag == 'not_picked':
+                leads_qs = LeadUser.objects.filter(status="Not Picked")
+            else: # Default ya koi aur tag (jaise 'lost')
+                # Tag ko capitalize karo (jaise 'lost' -> 'Lost')
+                status_tag = tag.replace('_', ' ').capitalize() 
+                leads_qs = LeadUser.objects.filter(status=status_tag) 
+
+        # --- 2. Admin Logic ---
+        elif user.is_admin:
+            try:
+                # Admin profile ko 'user' (AbstractUser) se dhoondo
+                admin_instance = Admin.objects.get(self_user=user)
+                teamleader_instance_list = Team_Leader.objects.filter(admin=admin_instance)
+            except Admin.DoesNotExist:
+                 return Response({"error": "Admin profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+            if tag == 'total_lead':
+                leads_qs = LeadUser.objects.filter(status="Leads", team_leader__in=teamleader_instance_list)
+            elif tag == 'visits':
+                leads_qs = LeadUser.objects.filter(status="Visit", team_leader__in=teamleader_instance_list)
+            elif tag == 'interested':
+                leads_qs = LeadUser.objects.filter(status="Intrested", team_leader__in=teamleader_instance_list)
+            elif tag == 'not_interested':
+                leads_qs = LeadUser.objects.filter(status="Not Interested", team_leader__in=teamleader_instance_list)
+            elif tag == 'other_location':
+                leads_qs = LeadUser.objects.filter(status="Other Location", team_leader__in=teamleader_instance_list)
+            elif tag == 'not_picked':
+                leads_qs = LeadUser.objects.filter(status="Not Picked", team_leader__in=teamleader_instance_list)
+            else:
+                 status_tag = tag.replace('_', ' ').capitalize()
+                 leads_qs = LeadUser.objects.filter(status=status_tag, team_leader__in=teamleader_instance_list)
+
+        # --- 3. Paginate aur Serialize ---
+        paginated_qs = self.paginator.paginate_queryset(leads_qs.order_by('-updated_date'), request, view=self)
+        serializer = ApiLeadUserSerializer(paginated_qs, many=True)
+        
+        return self.paginator.get_paginated_response(serializer.data)
+    
+
+
+
+
+# Yeh code file ke end mein ADD karo (ya purane waale ko replace karo)
+
+# ===================================================================
+# NAYA STAFF ADD API [FIXED]
+# ===================================================================
+class StaffAddAPIView(APIView):
+    """
+    API naya Staff user banane ke liye.
+    (Team Leader, Admin, ya Superuser chala sakta hai)
+    [FIXED] UnboundLocalError ko fix kiya gaya hai.
+    """
+    permission_classes = [IsManagerOrAdmin] # Sirf manager/admin hi add kar sakte hain
+    parser_classes = (MultiPartParser, FormParser) # File upload (profile_image) ke liye
+
+    def post(self, request, *args, **kwargs):
+        serializer = StaffCreateSerializer(data=request.data, context={'request': request})
+        
+        # Pehle check karo ki data valid hai ya nahi
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Agar valid hai, tab save karo
+        try:
+            staff_instance = serializer.save()
+        except Exception as e:
+            # Agar .save() fail hota hai (jo serializer ke create method mein fail ho sakta hai)
+            return Response({"error": f"Failed to save serializer: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # Agar save successful hua, tab response serialize karo
+        try:
+            # Hum 'StaffProfileSerializer' ka use karenge jisme saari details hain
+            read_serializer = StaffProfileSerializer(staff_instance, context={'request': request})
+            return Response(read_serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            # Agar response serialize fail ho, toh bhi success batao
+            return Response(
+                {"message": f"Staff created (ID: {staff_instance.id}) but response serialization failed: {e}"}, 
+                status=status.HTTP_201_CREATED
             )
