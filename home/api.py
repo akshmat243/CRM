@@ -106,7 +106,6 @@ from django.http import Http404
 #             return Response(res, status=status.HTTP_400_BAD_REQUEST)
 
 
-# Yeh nayi class file mein upar ADD karo
 
 class IsManagerOrAdmin(permissions.BasePermission):
     """
@@ -122,7 +121,6 @@ class IsManagerOrAdmin(permissions.BasePermission):
         )
 
 
-# Yeh code Active LoginApiView ko REPLACE karega (approx Line 123 se)
 
 # ===================================================================
 # 1. LOGIN API VIEW [FIXED]
@@ -951,10 +949,7 @@ class SuperUserDashboardAPIView(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 # ===================================================================
-# NAYA ADMIN SIDE LEADS RECORD API (Tag Waala)
-# ===================================================================
-# ===================================================================
-# NAYA ADMIN SIDE LEADS RECORD API (Tag Waala) - [FIXED]
+# NAYA ADMIN SIDE LEADS RECORD API  - [FIXED]
 # ===================================================================
 class AdminSideLeadsRecordAPIView(APIView):
     """
@@ -1138,7 +1133,6 @@ class ExcelUploadAPIView(APIView):
 
 
 
-# Yeh code file ke end mein ADD karo
 
 # ===================================================================
 # NAYA FREELANCER (ASSOCIATES) DASHBOARD API
@@ -1226,7 +1220,6 @@ class FreelancerDashboardAPIView(APIView):
     
 
 
-# Yeh code file ke end mein ADD karo
 
 # ===================================================================
 # NAYA IT STAFF LIST API
@@ -1252,7 +1245,6 @@ class ITStaffListAPIView(APIView):
 
 
 
-# Yeh code file ke end mein ADD karo
 
 # ===================================================================
 # NAYA ATTENDANCE CALENDAR API
@@ -1336,7 +1328,6 @@ class AttendanceCalendarAPIView(APIView):
 
 
 
-# Yeh code file ke end mein ADD karo
 
 # ===================================================================
 # NAYA STAFF PRODUCTIVITY API
@@ -1527,7 +1518,6 @@ class StaffProductivityAPIView(APIView):
     
 
 
-# Yeh code file ke end mein ADD karo (ya purane waale ko replace karo)
 
 # ===================================================================
 # NAYA TEAM LEADER PRODUCTIVITY API [FIXED]
@@ -1719,7 +1709,6 @@ class TeamLeaderProductivityAPIView(APIView):
     
 
 
-# Yeh code file ke end mein ADD karo
 
 # ===================================================================
 # NAYA ADMIN ADD API
@@ -1751,7 +1740,6 @@ class AdminAddAPIView(APIView):
 
 
 
-# Yeh code file ke end mein ADD karo
 
 # ===================================================================
 # NAYA ADMIN EDIT API (GET / PATCH)
@@ -1799,7 +1787,7 @@ class AdminEditAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
-# Yeh code file mein ADD karo (IsManagerOrAdmin class ke neeche)
+
 
 # --- Pagination Class (Taaki 10-10 leads karke page mein data aaye) ---
 class StandardResultsSetPagination(PageNumberPagination):
@@ -1807,7 +1795,6 @@ class StandardResultsSetPagination(PageNumberPagination):
     page_size_query_param = 'page_size'
     max_page_size = 100
 
-# Yeh code file ke end mein ADD karo
 
 # ===================================================================
 # NAYA TEAM CUSTOMER (INTERESTED) LEADS API
@@ -1928,3 +1915,78 @@ class TeamCustomerLeadsAPIView(APIView):
     
 
 
+
+# Yeh code file ke end mein ADD karo (ya purane waale ko replace karo)
+
+# ===================================================================
+# NAYA USER ACTIVE TOGGLE API [FIXED]
+# ===================================================================
+class ToggleUserActiveAPIView(APIView):
+    """
+    API to toggle the 'user_active' status for Staff, Admin, or TeamLeader.
+    [FIXED] Ab yeh 'is_active' ko string ("true" ya "false") ki tarah handle karega.
+    """
+    permission_classes = [IsManagerOrAdmin] # Sirf manager/admin hi yeh kar sakte hain
+
+    def post(self, request, *args, **kwargs):
+        # request.data 'form-data' aur 'json' dono handle karta hai
+        user_id = request.data.get('user_id')
+        user_type = request.data.get('user_type')
+        is_active_str = request.data.get('is_active') # Value ko string ki tarah lo
+
+        if not all([user_id, user_type, is_active_str is not None]):
+            return Response(
+                {"error": "user_id (profile_id), user_type, aur is_active zaroori hain."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # --- YEH HAI FIX ---
+        # String "true" (kisi bhi case mein) ko boolean true mein badlo
+        is_active_bool = str(is_active_str).lower() == 'true'
+        
+        user_instance_email = None
+        try:
+            # 1. Profile ID se profile dhoondo
+            if user_type == 'staff':
+                profile = Staff.objects.get(id=user_id)
+                user_instance_email = profile.email
+            elif user_type == 'admin':
+                profile = Admin.objects.get(id=user_id)
+                user_instance_email = profile.email
+            elif user_type == 'teamlead':
+                profile = Team_Leader.objects.get(id=user_id)
+                user_instance_email = profile.email
+            else:
+                return Response(
+                    {"error": "Invalid user_type. Sirf 'staff', 'admin', ya 'teamlead' allowed hai."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        except (Staff.DoesNotExist, Admin.DoesNotExist, Team_Leader.DoesNotExist):
+             return Response(
+                {"error": f"Profile not found for user_type '{user_type}' with id {user_id}."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        if not user_instance_email:
+            return Response({"error": "Profile mil gayi lekin usse koi email linked nahi hai."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 2. Ab email se User ko dhoondo aur update karo
+        try:
+            user_to_update = User.objects.get(email=user_instance_email)
+            user_to_update.user_active = is_active_bool # Sahi boolean value save karo
+            user_to_update.save()
+            
+            return Response(
+                {
+                    'status': 'success', 
+                    'user_email': user_to_update.email,
+                    'user_active_is_now': user_to_update.user_active
+                },
+                status=status.HTTP_200_OK
+            )
+        except User.DoesNotExist:
+            return Response(
+                {"error": f"User not found with email {user_instance_email}."},
+                status=status.HTTP_404_NOT_FOUND
+            )

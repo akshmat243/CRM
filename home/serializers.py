@@ -196,7 +196,6 @@ class ApiTeamLeadDataSerializer(serializers.ModelSerializer):
         ]
 
 
-# Yeh code file ke end mein ADD karo
 
 # ==========================================================
 # ATTENDANCE CALENDAR API SERIALIZER
@@ -211,7 +210,6 @@ class AttendanceCalendarDaySerializer(serializers.Serializer):
     day_name = serializers.CharField(max_length=3)
 
 
-# Yeh code file ke end mein ADD karo
 
 # ==========================================================
 # STAFF PRODUCTIVITY API SERIALIZERS
@@ -252,7 +250,6 @@ class StaffProductivityDataSerializer(serializers.Serializer):
     total_calls = serializers.IntegerField()
 
 
-# Yeh code file ke end mein ADD karo
 
 # ==========================================================
 # ADMIN ADD API SERIALIZER
@@ -330,7 +327,6 @@ class AdminCreateSerializer(serializers.ModelSerializer):
         return admin
     
 
-# Yeh code file ke end mein ADD karo
 
 # ==========================================================
 # ADMIN EDIT API SERIALIZER
