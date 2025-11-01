@@ -252,3 +252,131 @@ class StaffProductivityDataSerializer(serializers.Serializer):
     total_calls = serializers.IntegerField()
 
 
+# Yeh code file ke end mein ADD karo
+
+# ==========================================================
+# ADMIN ADD API SERIALIZER
+# ==========================================================
+class AdminCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer naya Admin User aur Admin Profile banane ke liye.
+    """
+    # Yeh fields User model se aa rahi hain
+    password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+    profile_image = serializers.FileField(required=False, allow_null=True)
+
+    class Meta:
+        model = Admin
+        # Form ke saare fields yahaan daalo
+        fields = [
+            'name', 'email', 'mobile', 'password', 'profile_image',
+            'address', 'city', 'state', 'pincode', 'dob', 'pancard', 
+            'aadharCard', 'marksheet', 'degree', 'account_number', 
+            'upi_id', 'bank_name', 'ifsc_code', 'salary'
+        ]
+        extra_kwargs = {
+            'email': {'required': True}
+        }
+
+    def validate_email(self, value):
+        """
+        Check karo ki email (jo username bhi hai) pehle se hai ya nahi.
+        """
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Email Already Exists")
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("Username (Email) Already Exists")
+        return value
+
+    def create(self, validated_data):
+        # 1. Jo user API chala raha hai (Superuser)
+        creator_user = self.context['request'].user
+        
+        # 2. User model ke fields ko data se alag karo
+        password = validated_data.pop('password')
+        profile_image = validated_data.pop('profile_image', None)
+        email = validated_data.get('email')
+        name = validated_data.get('name')
+        mobile = validated_data.get('mobile')
+
+        # 3. Naya User object banao
+        try:
+            new_user = User.objects.create(
+                username=email,
+                email=email,
+                profile_image=profile_image,
+                name=name,
+                mobile=mobile,
+                is_admin=True  # Naya user Admin banega
+            )
+            new_user.set_password(password)
+            new_user.save()
+        except IntegrityError as e:
+            raise serializers.ValidationError(f"Error creating user: {e}")
+        
+        # 4. Naya Admin profile object banao
+        try:
+            # `validated_data` mein ab sirf Admin model ke fields bache hain
+            admin = Admin.objects.create(
+                user=creator_user,      # Jo Superuser yeh account bana raha hai
+                self_user=new_user,     # Jo naya admin user abhi bana hai
+                **validated_data
+            )
+        except IntegrityError as e:
+            # Agar Admin profile fail ho, toh naya banaya user delete kardo
+            new_user.delete()
+            raise serializers.ValidationError(f"Error creating admin profile: {e}")
+
+        return admin
+    
+
+# Yeh code file ke end mein ADD karo
+
+# ==========================================================
+# ADMIN EDIT API SERIALIZER
+# ==========================================================
+class AdminUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer ek Admin ki profile aur related User object ko update karne ke liye.
+    Yeh profile_image ko bhi handle karta hai.
+    """
+    # Yeh field User model par hai, lekin hum ise yahaan accept karenge
+    profile_image = serializers.FileField(required=False, allow_null=True, write_only=True)
+
+    class Meta:
+        model = Admin
+        # Yeh saare fields hain jo aapke form update kar raha hai
+        fields = [
+            'name', 'email', 'mobile', 'address', 'city', 'state', 'pincode', 
+            'dob', 'pancard', 'aadharCard', 'marksheet', 'degree', 
+            'account_number', 'upi_id', 'bank_name', 'ifsc_code', 'salary',
+            'profile_image' # Yeh naya field humne add kiya
+        ]
+        # Hum email ko required nahi maan rahe hain, taaki partial update (PATCH) kaam kare
+        extra_kwargs = {
+            'email': {'required': False}
+        }
+
+    def update(self, instance, validated_data):
+        # 1. 'profile_image' ko data se nikaal lo, kyunki yeh Admin model par nahi hai
+        profile_image = validated_data.pop('profile_image', None)
+
+        # 2. Admin instance ko update karo (salary, address, etc.)
+        admin_instance = super().update(instance, validated_data)
+        
+        # 3. Related User instance ko get karo (self_user se)
+        user_instance = admin_instance.self_user
+        
+        if user_instance:
+            # 4. User instance ko bhi update karo (jaisa aapka function kar raha tha)
+            user_instance.email = validated_data.get('email', user_instance.email)
+            user_instance.username = validated_data.get('email', user_instance.username) # Email ko username banao
+            user_instance.name = validated_data.get('name', user_instance.name)
+            user_instance.mobile = validated_data.get('mobile', user_instance.mobile)
+            
+            if profile_image:
+                user_instance.profile_image = profile_image
+            
+            user_instance.save()
+        
+        return admin_instance

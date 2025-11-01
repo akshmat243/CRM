@@ -47,4 +47,23 @@ urlpatterns = [
     # Yeh line urlpatterns list ke andar ADD karo
 
     path('productivity/team-leader/', api.TeamLeaderProductivityAPIView.as_view(), name='api-teamleader-productivity'),
-] 
+
+    # Yeh line urlpatterns list ke andar ADD karo
+
+    path('users/admin/add/', api.AdminAddAPIView.as_view(), name='api-admin-add'),
+    # Yeh line urlpatterns list ke andar ADD karo
+
+    path('users/admin/edit/<int:id>/', api.AdminEditAPIView.as_view(), name='api-admin-edit'),
+    # Yeh line urlpatterns list ke andar ADD karo
+
+    path('leads/customer/<str:tag>/', api.TeamCustomerLeadsAPIView.as_view(), name='api-team-customer-leads'),
+
+
+
+
+
+
+
+
+
+]   
