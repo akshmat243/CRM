@@ -9,7 +9,8 @@ from datetime import datetime, timedelta
 from rest_framework import status, viewsets
 from .serializers import *
 from .models import *
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render
+from django.shortcuts import get_object_or_404
 import random
 import string
 from django.core.mail import send_mail
@@ -2087,3 +2088,394 @@ class StaffAddAPIView(APIView):
                 {"message": f"Staff created (ID: {staff_instance.id}) but response serialization failed: {e}"}, 
                 status=status.HTTP_201_CREATED
             )
+        
+
+
+
+# Yeh code file ke end mein ADD karo
+
+# ===================================================================
+# NAYA TEAM LEADER ADD API (ADD_TEAM_LEADER_USER)
+# ===================================================================
+class TeamLeaderAddAPIView(APIView):
+    """
+    API naya Team Leader user banane ke liye.
+    (Superuser ya Admin chala sakta hai)
+    """
+    permission_classes = [IsManagerOrAdmin] # Sirf manager/admin hi add kar sakte hain
+    parser_classes = (MultiPartParser, FormParser) # File upload (profile_image) ke liye
+
+    def post(self, request, *args, **kwargs):
+        # 1. Validation: Superuser ke liye Admin ID zaroori hai agar woh khud Admin nahi hai
+        if request.user.is_superuser and not request.data.get('admin_id'):
+            # Note: Agar Superuser khud Team Leader ka admin banta hai, tab Admin ID dena padega.
+            return Response({"error": "Admin ID is required for Superusers to assign the new Team Leader."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # 2. Serializer ko data aur context do
+        # Context mein request bhejo taaki Admin/Superuser ka role pata chale
+        serializer = TeamLeaderCreateSerializer(data=request.data, context={'request': request})
+        
+        if serializer.is_valid():
+            try:
+                team_leader_instance = serializer.save()
+            except Exception as e:
+                # Agar custom create() function mein error aaye
+                 return Response({"error": f"Failed to save: {e}"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # 3. Naye bane hue team leader ka poora data dikhao
+            read_serializer = ProductivityTeamLeaderSerializer(team_leader_instance, context={'request': request})
+            
+            return Response(read_serializer.data, status=status.HTTP_201_CREATED)
+        
+        # 4. Validation fail hone par errors dikhao
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+
+
+
+# Yeh code file ke end mein ADD karo
+
+# ===================================================================
+# NAYA TEAM LEADER EDIT API (GET / PATCH)
+# ===================================================================
+class TeamLeaderEditAPIView(APIView):
+    """
+    API ek Team Leader ki profile ko Get aur Update karne ke liye (teamedit function).
+    """
+    permission_classes = [IsManagerOrAdmin] # Sirf Superuser/Admin hi edit kar sakte hain
+    parser_classes = (MultiPartParser, FormParser) # profile_image upload ke liye
+
+    def get_object(self, id):
+        """
+        Helper method se Team_Leader object get karo
+        """
+        try:
+            return Team_Leader.objects.get(id=id)
+        except Team_Leader.DoesNotExist:
+            raise Http404
+
+    def get(self, request, id, *args, **kwargs):
+        """
+        Ek Team Leader ki poori details fetch karo.
+        """
+        teamleader = self.get_object(id)
+        # Data dikhane ke liye ProductivityTeamLeaderSerializer use karo
+        serializer = ProductivityTeamLeaderSerializer(teamleader, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, id, *args, **kwargs):
+        """
+        Ek Team Leader ki profile ko update karo (PATCH).
+        """
+        teamleader = self.get_object(id)
+        # Data update karne ke liye TeamLeaderUpdateSerializer use karo
+        serializer = TeamLeaderUpdateSerializer(teamleader, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            updated_teamleader = serializer.save()
+            # Updated data dikhane ke liye read serializer ka use karo
+            read_serializer = ProductivityTeamLeaderSerializer(updated_teamleader, context={'request': request})
+            return Response(read_serializer.data, status=status.HTTP_200_OK)
+        
+        # Agar error aaye
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+
+
+
+
+# api.py (StaffEditAPIView ko isse REPLACE karo - approx Line 2145)
+
+# ===================================================================
+# NAYA STAFF EDIT API (GET / PATCH)
+# ===================================================================
+class StaffEditAPIView(APIView):
+    """
+    API ek Staff/Freelancer ki profile ko Get aur Update karne ke liye.
+    """
+    permission_classes = [IsManagerOrAdmin] # Sirf Admin/TL/Superuser hi edit kar sakta hai
+    parser_classes = (MultiPartParser, FormParser) # profile_image upload ke liye
+
+    def get_object(self, id):
+        """
+        Helper method se Staff object get karo
+        """
+        try:
+            return Staff.objects.get(id=id)
+        except Staff.DoesNotExist:
+            raise Http404
+
+    def get(self, request, id, *args, **kwargs):
+        """
+        Ek Staff/Freelancer ki poori details fetch karo.
+        """
+        staff = self.get_object(id)
+        # Data dikhane ke liye FullStaffSerializer use karo (jo humne pichhle fix mein banaya tha)
+        serializer = FullStaffSerializer(staff, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, id, *args, **kwargs):
+        """
+        Ek Staff/Freelancer ki profile ko update karo (PATCH).
+        """
+        staff = self.get_object(id)
+        # Data update karne ke liye StaffUpdateSerializer use karo
+        serializer = StaffUpdateSerializer(staff, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            updated_staff = serializer.save()
+            # Updated data dikhane ke liye read serializer ka use karo
+            read_serializer = FullStaffSerializer(updated_staff, context={'request': request})
+            return Response(read_serializer.data, status=status.HTTP_200_OK)
+        
+        # Agar error aaye
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+
+# Yeh code file ke end mein ADD karo
+
+# ===================================================================
+# NAYA INCENTIVE SLAB API
+# ===================================================================
+class IncentiveSlabStaffAPIView(APIView):
+    """
+    API fetches sales (Sell_plot) and total earnings for a specific staff 
+    member for a given month/year.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, staff_id, *args, **kwargs):
+
+        # 1. Filters and Params
+        year = int(request.query_params.get('year', timezone.now().year))
+        month = int(request.query_params.get('month', timezone.now().month))
+        
+        # 2. Base Query and User Type Check
+        sell_property_qs = Sell_plot.objects.none()
+        total_earn = 0
+        user_type = None
+        
+        # Agar user khud Staff hai, toh apni email se filter karega
+        if request.user.is_staff_new and staff_id == request.user.id:
+            # Note: User ki ID aur staff ki ID alag ho sakti hai. 
+            # Hum current user ke email se filter karenge jaisa views.py mein tha
+            staff_email = request.user.email
+            sell_property_qs = Sell_plot.objects.filter(
+                staff__email=staff_email, 
+                updated_date__year=year,
+                updated_date__month=month
+            )
+            # Freelancer check
+            user_type = request.user.is_freelancer
+            
+        # Agar Superuser, Team Leader, ya Admin check kar rahe hain
+        elif request.user.is_superuser or request.user.is_team_leader or request.user.is_admin:
+            
+            # Agar staff_id=0 bheja gaya ho toh error de do (kyunki yahaan staff_id zaroori hai)
+            if int(staff_id) == 0:
+                 return Response({"error": "Staff ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+                 
+            sell_property_qs = Sell_plot.objects.filter(
+                staff__id=staff_id, 
+                updated_date__year=year,
+                updated_date__month=month
+            )
+            
+            # Freelancer status check (Jaisa views.py mein tha)
+            try:
+                staff_instance = Staff.objects.get(id=staff_id)
+                user_type = staff_instance.user.is_freelancer
+            except Staff.DoesNotExist:
+                 return Response({"error": "Staff member not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        else:
+             return Response({"error": "You do not have permission for this action."}, status=status.HTTP_403_FORBIDDEN)
+        
+        
+        # 3. Aggregate Total Earnings
+        total_earn_amount = sell_property_qs.aggregate(total_earn=Sum('earn_amount'))
+        total_earn = total_earn_amount['total_earn'] if total_earn_amount['total_earn'] else 0
+        
+        # 4. Serialize Data
+        slab_data = Slab.objects.all()
+        
+        response_data = {
+            'sell_property': SellPlotSerializer(sell_property_qs.order_by('-created_date'), many=True).data,
+            'slab': SlabSerializer(slab_data, many=True).data, # Slab data poora bhejo
+            'total_earn': total_earn,
+            'year': year,
+            'month': month,
+            'months_list': [(i, month_name[i]) for i in range(1, 13)],
+            'user_type': user_type, # True/False
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
+
+
+
+ # api.py (StaffProductivityCalendarAPIView ko isse REPLACE karo)
+
+# ===================================================================
+# NAYA STAFF PRODUCTIVITY CALENDAR API [FINAL CORRECT CODE]
+# ===================================================================
+class StaffProductivityCalendarAPIView(APIView):
+    """
+    API fetches Staff productivity data (leads and calculated salary) 
+    for a specific month and year, structured for a calendar view.
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, staff_id, *args, **kwargs):
+        
+        # 1. Get year and month from query parameters
+        try:
+            year = int(request.query_params.get('year', datetime.now().year))
+            month = int(request.query_params.get('month', datetime.now().month))
+        except ValueError:
+            return Response({"error": "Invalid year or month format."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 2. Get Staff Instance and Authorization Check
+        try:
+            # First try to get staff by Staff ID
+            staff = Staff.objects.get(id=staff_id)
+        except Staff.DoesNotExist:
+            # Agar Staff ID se nahi mila, aur user staff hai, toh user__id se try karo
+            if staff_id == request.user.id and not request.user.is_superuser:
+                 staff = Staff.objects.get(user=request.user)
+            else:
+                return Response({"error": "Staff member not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+        user = request.user
+        # Permission Check: Superuser/Admin/TL या Staff खुद ही देख सकता है
+        if not (user.is_superuser or user.is_admin or user.is_team_leader or user.id == staff.user.id):
+             return Response({"error": "You do not have permission to view this calendar."}, status=status.HTTP_403_FORBIDDEN)
+
+        # 3. Calculation Setup
+        days_in_month = monthrange(year, month)[1]
+        salary_arg = staff.salary if staff.salary else 0
+        
+        try:
+            salary_float = float(salary_arg)
+        except ValueError:
+            salary_float = 0
+
+        daily_salary = round(salary_float / days_in_month) if days_in_month > 0 else 0
+
+        # 4. Data Aggregation
+        leads_data = LeadUser.objects.filter(
+            assigned_to=staff,
+            updated_date__year=year,
+            updated_date__month=month,
+            status='Intrested'
+        ).values('updated_date__day').annotate(count=Count('id'))
+
+        productivity_data_dict = {day: {'leads': 0, 'salary': 0} for day in range(1, days_in_month + 1)}
+        total_salary = 0
+        
+        # 5. Calculate Daily Productivity and Salary
+        for lead in leads_data:
+            day = lead['updated_date__day']
+            leads_count = lead['count']
+            
+            if leads_count >= 10:
+                daily_earned_salary = daily_salary
+            else:
+                daily_earned_salary = round((daily_salary / 10) * leads_count, 2)
+            
+            productivity_data_dict[day] = {'leads': leads_count, 'salary': daily_earned_salary}
+            total_salary += daily_earned_salary
+
+        # 6. Structure Data for Calendar
+        weekdays = list(calendar.day_name)
+        
+        productivity_list = []
+        for day in range(1, days_in_month + 1):
+            date_obj = datetime(year, month, day).date()
+            day_data = productivity_data_dict.get(day, {'leads': 0, 'salary': 0})
+            
+            productivity_list.append({
+                'day': day,
+                'date': date_obj, # Date object rehne do, serializer handle karega
+                'day_name': weekdays[date_obj.weekday()],
+                'leads': day_data['leads'],
+                'salary': day_data['salary']
+            })
+
+        # 7. Final Response
+        months_list = [(i, calendar.month_name[i]) for i in range(1, 13)]
+
+        response_data = {
+            'staff': StaffProfileSerializer(staff, context={'request': request}).data,
+            'year': year,
+            'month': month,
+            'monthly_salary': salary_arg,
+            'total_salary': round(total_salary, 2),
+            'months_list': months_list,
+            'daily_productivity_data': DailyProductivitySerializer(productivity_list, many=True).data, # Serializer use karo
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)  
+
+
+
+
+
+# Yeh code file ke end mein ADD karo
+
+# ===================================================================
+# NAYA TEAM LEADER PERTICULAR LEADS API
+# ===================================================================
+class TeamLeaderParticularLeadsAPIView(APIView):
+    """
+    API fetches leads assigned to a specific staff member (ID) filtered by status tag.
+    """
+    permission_classes = [IsAuthenticated]
+    pagination_class = StandardResultsSetPagination # Reuse Standard pagination
+
+    @property
+    def paginator(self):
+        """Paginator instance for the view."""
+        if not hasattr(self, '_paginator'):
+            self._paginator = self.pagination_class()
+        return self._paginator
+
+    def get(self, request, id, tag, *args, **kwargs):
+        
+        # 1. Base Query based on Tag
+        tag = tag.lower()
+        if tag == "intrested":
+            status_filter = {'status': 'Intrested'}
+        elif tag == "not interested":
+            status_filter = {'status': 'Not Interested'}
+        elif tag == "other location":
+            status_filter = {'status': 'Other Location'}
+        elif tag == "lost":
+            status_filter = {'status': 'Lost'}
+        elif tag == "visit":
+            status_filter = {'status': 'Visit'}
+        elif tag == "all":
+            status_filter = {} # No status filter, shows all leads
+        else:
+            status_filter = {'status': tag.capitalize()} # Catch other statuses
+
+        
+        # 2. Final Query: Filter by Staff ID and Status
+        staff_leads_qs = LeadUser.objects.filter(
+            assigned_to__id=id, # Staff ID se filter karo
+            **status_filter
+        ).order_by('-updated_date')
+        
+        # 3. Paginate aur Serialize
+        paginated_qs = self.paginator.paginate_queryset(staff_leads_qs, request, view=self)
+        serializer = ApiLeadUserSerializer(paginated_qs, many=True)
+        
+        # 4. Response mein meta data aur leads bhejo
+        response = self.paginator.get_paginated_response(serializer.data)
+        response.data['staff_id'] = id
+        response.data['status_tag'] = tag
+        
+        return response
+    
+

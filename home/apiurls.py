@@ -30,7 +30,7 @@ urlpatterns = [
 
     path('leads/upload-excel/', api.ExcelUploadAPIView.as_view(), name='api-excel-upload'),
 
-    path('associates/dashboard/', api.FreelancerDashboardAPIView.as_view(), name='api-freelancer-dashboard'),
+   
 
     path('users/it-staff/', api.ITStaffListAPIView.as_view(), name='api-it-staff-list'),
     path('attendance/<int:id>/', api.AttendanceCalendarAPIView.as_view(), name='api-attendance-calendar'),
@@ -45,8 +45,31 @@ urlpatterns = [
 
     # Yeh line urlpatterns list ke andar ADD karo
 
+    # Yeh line urlpatterns list ke andar ADD karo
+
+    path('users/team-leader/add-new/', api.TeamLeaderAddAPIView.as_view(), name='api-team-leader-add-new'),
+    path('users/team-leader/edit/<int:id>/', api.TeamLeaderEditAPIView.as_view(), name='api-teamleader-edit'),
+
     path('superuser/staff-leads/<str:tag>/', api.SuperUserStaffLeadsAPIView.as_view(), name='api-superuser-staff-leads'),
+
+
+
     path('users/staff/add/', api.StaffAddAPIView.as_view(), name='api-staff-add'),
+    path('users/staff/edit/<int:id>/', api.StaffEditAPIView.as_view(), name='api-staff-edit'),
+
+
+
+    # Yeh line urlpatterns list ke andar ADD karo
+
+    path('report/incentive-slab/<int:staff_id>/', api.IncentiveSlabStaffAPIView.as_view(), name='api-incentive-slab'),
+    path('staff/<int:staff_id>/calendar/', api.StaffProductivityCalendarAPIView.as_view(), name='staff_productivity_calendar'),
+    # Yeh line urlpatterns list ke andar ADD karo
+    path('leads/staff/<int:id>/<str:tag>/', api.TeamLeaderParticularLeadsAPIView.as_view(), name='api-staff-particular-leads'),
+
+
+    path('associates/dashboard/', api.FreelancerDashboardAPIView.as_view(), name='api-freelancer-dashboard'),
+    # Yeh line urlpatterns list ke andar ADD karo
+
 
 
 
