@@ -36,6 +36,8 @@ urlpatterns = [
     path('attendance/<int:id>/', api.AttendanceCalendarAPIView.as_view(), name='api-attendance-calendar'),
     path('productivity/staff/', api.StaffProductivityAPIView.as_view(), name='api-staff-productivity'),
     path('productivity/team-leader/', api.TeamLeaderProductivityAPIView.as_view(), name='api-teamleader-productivity'),
+    path('productivity/admin/', api.AdminProductivityAPIView.as_view(), name='api-admin-productivity'),
+    path('productivity/freelancer/', api.FreelancerProductivityAPIView.as_view(), name='api-freelancer-productivity-stats'),
 
 
     path('users/admin/add/', api.AdminAddAPIView.as_view(), name='api-admin-add'),
@@ -70,12 +72,9 @@ urlpatterns = [
     path('associates/dashboard/', api.FreelancerDashboardAPIView.as_view(), name='api-freelancer-dashboard'),
     # Yeh line urlpatterns list ke andar ADD karo
 
+    # --------------------
+    # ✅ SAHI
+    # --------------------
+    path('api/dashboard/team-leader/', api.get_team_leader_dashboard_api, name='api_team_leader_dashboard'),
 
-
-
-
-
-
-
-
-]   
+    ]   

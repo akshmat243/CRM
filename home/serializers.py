@@ -198,18 +198,23 @@ class ApiTeamLeadDataSerializer(serializers.ModelSerializer):
 
 
 
+# serializers.py (AttendanceCalendarDaySerializer ko isse REPLACE karo)
+
 # ==========================================================
-# ATTENDANCE CALENDAR API SERIALIZER
+# ATTENDANCE CALENDAR API SERIALIZER [FINAL FIX]
 # ==========================================================
 
 class AttendanceCalendarDaySerializer(serializers.Serializer):
     """
     Serializer for a single day in the attendance calendar.
+    Ab ismein status aur color bhi hai.
     """
     date = serializers.DateField()
     has_task = serializers.BooleanField()
-    day_name = serializers.CharField(max_length=3)
-
+    day_name = serializers.CharField(max_length=10)
+    # Naye fields jismein Absent/Present status aur color hoga
+    status = serializers.CharField(max_length=10) 
+    status_color = serializers.CharField(max_length=10)
 
 
 # ==========================================================
@@ -758,5 +763,6 @@ class DailyProductivitySerializer(serializers.Serializer):
     day_name = serializers.CharField(max_length=10)
     leads = serializers.IntegerField()
     salary = serializers.FloatField()
+
 
 
