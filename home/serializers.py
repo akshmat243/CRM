@@ -6,7 +6,6 @@ from .models import Admin
 # Yeh line file ke sabse upar add karo
 from django.db import IntegrityError
 
-
 class UserSerializer(serializers.ModelSerializer):
     """ user serializer """
 
@@ -199,18 +198,23 @@ class ApiTeamLeadDataSerializer(serializers.ModelSerializer):
 
 
 
+# serializers.py (AttendanceCalendarDaySerializer ko isse REPLACE karo)
+
 # ==========================================================
-# ATTENDANCE CALENDAR API SERIALIZER
+# ATTENDANCE CALENDAR API SERIALIZER [FINAL FIX]
 # ==========================================================
 
 class AttendanceCalendarDaySerializer(serializers.Serializer):
     """
     Serializer for a single day in the attendance calendar.
+    Ab ismein status aur color bhi hai.
     """
     date = serializers.DateField()
     has_task = serializers.BooleanField()
-    day_name = serializers.CharField(max_length=3)
-
+    day_name = serializers.CharField(max_length=10)
+    # Naye fields jismein Absent/Present status aur color hoga
+    status = serializers.CharField(max_length=10) 
+    status_color = serializers.CharField(max_length=10)
 
 
 # ==========================================================
@@ -470,3 +474,295 @@ class StaffCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(f"Error creating staff profile: {e}")
 
         return staff
+    
+
+
+# serializers.py (TeamLeaderCreateSerializer ko isse REPLACE karo)
+
+# ==========================================================
+# TEAM LEADER ADD API SERIALIZER [FINAL FIX]
+# ==========================================================
+# serializers.py (TeamLeaderCreateSerializer ko isse REPLACE karo)
+
+# serializers.py (TeamLeaderCreateSerializer ko isse REPLACE karo)
+
+# ==========================================================
+# TEAM LEADER ADD API SERIALIZER [FINAL FIX]
+# ==========================================================
+class TeamLeaderCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer naya Team Leader User aur Profile banane ke liye.
+    """
+    password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+    profile_image = serializers.FileField(required=False, allow_null=True)
+    admin_id = serializers.IntegerField(write_only=True, required=False) 
+
+    # User ke roles
+    on_boarding_manager = serializers.BooleanField(required=False)
+    dsr_manager = serializers.BooleanField(required=False)
+    executive_manager = serializers.BooleanField(required=False)
+    delivery_manager = serializers.BooleanField(required=False)
+
+    class Meta:
+        model = Team_Leader
+        fields = [
+            'name', 'email', 'mobile', 'password', 'profile_image',
+            'address', 'city', 'state', 'pincode', 'dob', 'pancard', 
+            'aadharCard', 'marksheet', 'degree', 'account_number', 
+            'upi_id', 'bank_name', 'ifsc_code', 'salary',
+            'admin_id', 'on_boarding_manager', 'dsr_manager', 'executive_manager', 'delivery_manager'
+        ]
+        extra_kwargs = {'email': {'required': True}}
+
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Email Already Exists")
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("Username (Email) Already Exists")
+        return value
+
+    # serializers.py (def create method ko isse REPLACE karo)
+
+    # serializers.py (def create method ko isse REPLACE karo)
+
+    def create(self, validated_data):
+        # 1. Data separation
+        password = validated_data.pop('password')
+        profile_image = validated_data.pop('profile_image', None)
+        admin_id = validated_data.pop('admin_id', None)
+        
+        on_boarding_manager = validated_data.pop('on_boarding_manager', False)
+        dsr_manager = validated_data.pop('dsr_manager', False)
+        executive_manager = validated_data.pop('executive_manager', False)
+        delivery_manager = validated_data.pop('delivery_manager', False)
+        
+        email = validated_data.get('email')
+        name = validated_data.get('name')
+        mobile = validated_data.get('mobile')
+        request = self.context['request']
+
+        # 2. Admin Object fetch karo (FINAL ROBUST LOGIC)
+        admin_obj = None
+        current_user = request.user
+        
+        if current_user.is_superuser:
+            # Superuser always uses the provided admin_id
+            if admin_id:
+                try:
+                    admin_obj = Admin.objects.get(id=int(admin_id))
+                except (Admin.DoesNotExist, ValueError):
+                    raise serializers.ValidationError({"admin_id": "Admin profile not found with this ID or ID is invalid."})
+
+        elif current_user.is_admin:
+            # Admin must be creating for themselves (i.e., they are the admin_obj)
+            admin_obj = Admin.objects.filter(self_user=current_user).last()
+            
+        if not admin_obj:
+            # Agar koi Admin profile nahi mili, toh error raise karo
+            # Yeh error ab Admin, Superuser dono cases ko handle karega
+            raise serializers.ValidationError({"admin": "Admin profile is required and could not be determined."})
+
+        # 3. Naya User object banao
+        try:
+            new_user = User.objects.create_user(
+                username=email, email=email, password=password,
+                profile_image=profile_image, name=name, mobile=mobile, 
+                is_team_leader=True, on_boarding_manager=on_boarding_manager,
+                dsr_manager=dsr_manager, executive_manager=executive_manager, 
+                delivery_manager=delivery_manager
+            )
+        except IntegrityError as e:
+            raise serializers.ValidationError(f"Error creating user: {e}")
+        
+        # 4. Naya Team Leader profile object banao
+        try:
+            team_leader = Team_Leader.objects.create(
+                admin=admin_obj, 
+                user=new_user,
+                **validated_data
+            )
+            
+            # --- Activity Log Logic ---
+            user_type = ""
+            if current_user.is_superuser: user_type = "Super User"
+            elif current_user.is_admin: user_type = "Admin User"
+            
+            ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR'))
+            tagline = f"Team Lead({name}) created by user[Email : {current_user.email}, {user_type}]"
+            tag2 = f"Team Lead({name}) created"
+            
+            if current_user.is_superuser:
+                 ActivityLog.objects.create(
+                    user=current_user, description=tagline, ip_address=ip, email=current_user.email,
+                    user_type=user_type, activity_type=tag2, name=current_user.name
+                )
+            elif current_user.is_admin:
+                ActivityLog.objects.create(
+                    admin=admin_obj, 
+                    description=tagline, ip_address=ip, email=current_user.email,
+                    user_type=user_type, activity_type=tag2, name=current_user.name
+                )
+            
+        except Exception as e:
+            new_user.delete()
+            raise serializers.ValidationError({"non_field_errors": f"Error creating team leader profile: {e}"})
+
+        return team_leader
+    
+
+
+
+
+
+
+# serializers.py (TeamLeaderEdit/Update के लिए)
+
+# ==========================================================
+# TEAM LEADER EDIT/UPDATE API SERIALIZER
+# ==========================================================
+class TeamLeaderUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer ek Team Leader ki profile aur related User object ko update karne ke liye.
+    """
+    profile_image = serializers.FileField(required=False, allow_null=True, write_only=True)
+
+    class Meta:
+        model = Team_Leader
+        fields = [
+            'name', 'email', 'mobile', 'address', 'city', 'pincode', 'state',
+            'dob', 'pancard', 'aadharCard', 'marksheet', 'degree',
+            'account_number', 'upi_id', 'bank_name', 'ifsc_code', 'salary',
+            'profile_image' 
+        ]
+        extra_kwargs = {
+            'email': {'required': False}, 
+            'name': {'required': False}
+        }
+
+    def update(self, instance, validated_data):
+        # 1. 'profile_image' ko data se nikaal lo
+        profile_image = validated_data.pop('profile_image', None)
+
+        # 2. Team Leader instance ko update karo
+        team_leader_instance = super().update(instance, validated_data)
+        
+        # 3. Related User instance ko get karo
+        user_instance = team_leader_instance.user
+        
+        if user_instance:
+            # 4. User instance ko update karo (email, name, mobile)
+            user_instance.email = validated_data.get('email', user_instance.email)
+            user_instance.username = validated_data.get('email', user_instance.username) 
+            user_instance.name = validated_data.get('name', user_instance.name)
+            user_instance.mobile = validated_data.get('mobile', user_instance.mobile)
+            
+            if profile_image:
+                user_instance.profile_image = profile_image
+            
+            user_instance.save()
+        
+        return team_leader_instance
+    
+
+
+
+# serializers.py (File ke end mein ADD/CHECK karo)
+
+# ==========================================================
+# STAFF EDIT (FREELANCER EDIT) API SERIALIZERS
+# ==========================================================
+
+class FullStaffSerializer(serializers.ModelSerializer):
+    """
+    Staff/Freelancer ki poori profile (GET request ke liye)
+    """
+    user = DashboardUserSerializer(read_only=True) 
+    team_leader = ProductivityTeamLeaderSerializer(read_only=True) 
+
+    class Meta:
+        model = Staff
+        fields = '__all__' # Staff model ki saari fields dikhao
+
+class StaffUpdateSerializer(serializers.ModelSerializer):
+    """
+    Staff/Freelancer ki profile aur related User object ko update karne ke liye.
+    """
+    profile_image = serializers.FileField(required=False, allow_null=True, write_only=True)
+    team_leader_id = serializers.IntegerField(write_only=True, required=False)
+
+    class Meta:
+        model = Staff
+        fields = [
+            'name', 'email', 'mobile', 'address', 'city', 'pincode', 'state',
+            'dob', 'pancard', 'aadharCard', 'marksheet', 'degree', 
+            'account_number', 'upi_id', 'bank_name', 'ifsc_code', 'salary',
+            'profile_image', 'team_leader_id'
+        ]
+        extra_kwargs = {
+            'email': {'required': False}, 
+            'name': {'required': False}
+        }
+
+    def update(self, instance, validated_data):
+        profile_image = validated_data.pop('profile_image', None)
+        team_leader_id = validated_data.pop('team_leader_id', None)
+
+        staff_instance = super().update(instance, validated_data)
+        
+        if team_leader_id:
+            try:
+                new_team_leader = Team_Leader.objects.get(id=team_leader_id)
+                staff_instance.team_leader = new_team_leader
+                staff_instance.save()
+            except Team_Leader.DoesNotExist:
+                pass # Validation error yahaan nahi, APIView me handle ho sakta hai
+        
+        user_instance = staff_instance.user
+        if user_instance:
+            user_instance.email = validated_data.get('email', user_instance.email)
+            user_instance.username = validated_data.get('email', user_instance.username)
+            user_instance.name = validated_data.get('name', user_instance.name)
+            user_instance.mobile = validated_data.get('mobile', user_instance.mobile)
+            
+            if profile_image:
+                user_instance.profile_image = profile_image
+            
+            user_instance.save()
+        
+        return staff_instance
+    
+
+
+# Yeh code file ke end mein ADD karo
+
+# ==========================================================
+# SLAB SERIALIZER
+# ==========================================================
+class SlabSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Slab model data.
+    """
+    class Meta:
+        model = Slab
+        fields = '__all__'    
+
+
+
+# serializers.py (File ke end mein ADD karo)
+
+# ==========================================================
+# STAFF PRODUCTIVITY CALENDAR SERIALIZER
+# ==========================================================
+
+class DailyProductivitySerializer(serializers.Serializer):
+    """
+    Ek din ke leads aur salary data ke liye serializer.
+    """
+    day = serializers.IntegerField()
+    date = serializers.DateField()
+    day_name = serializers.CharField(max_length=10)
+    leads = serializers.IntegerField()
+    salary = serializers.FloatField()
+
+
+
