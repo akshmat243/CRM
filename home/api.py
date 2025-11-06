@@ -3643,3 +3643,212 @@ class TeamLeaderEditAPIView(APIView):
 
 
 
+# home/api.py
+
+# ==========================================================
+# API: ADMIN-ONLY STAFF REPORT DASHBOARD
+# ==========================================================
+class StaffReportAPIView(APIView):
+    """
+    API endpoint 'add_staff_admin_side' function ke GET request ke liye.
+    SIRF ADMIN ke liye Staff list, Lead Counts, aur Productivity Report deta hai.
+    """
+    
+    # --- [YEH RAHA FIX] ---
+    # Sirf Admin user hi access kar sakta hai
+    permission_classes = [IsAuthenticated, IsCustomAdminUser] 
+
+    def get(self, request, format=None):
+        user = request.user
+        
+        # --- 1. Role ke hisaab se Staff aur Leads ki base query set karo ---
+        # Kyunki yeh sirf Admin ke liye hai, humein Superuser check ki zaroorat nahi hai.
+        
+        staff_list_qs = Staff.objects.filter(team_leader__admin__self_user=request.user)
+        base_lead_qs = LeadUser.objects.filter(team_leader__admin__self_user=request.user)
+        
+        # --- 2. Lead Counts (Total) ---
+        lead_counts = {
+            'total_leads': base_lead_qs.filter(status="Leads").count(),
+            'total_interested_leads': base_lead_qs.filter(status="Intrested").count(),
+            # ... (baaki saare counts waise hi rahenge) ...
+            'total_not_interested_leads': base_lead_qs.filter(status="Not Interested").count(),
+            'total_other_location_leads': base_lead_qs.filter(status="Other Location").count(),
+            'total_not_picked_leads': base_lead_qs.filter(status="Not Picked").count(),
+            'total_lost_leads': base_lead_qs.filter(status="Lost").count(),
+            'total_visits_leads': base_lead_qs.filter(status="Visit").count()
+        }
+
+        # --- 3. Productivity Data (Calendar/Salary) ---
+        # (Is poore section me koi change nahi hai)
+        
+        year = int(request.query_params.get('year', datetime.now().year))
+        month = int(request.query_params.get('month', datetime.now().month))
+        
+        days_in_month = monthrange(year, month)[1]
+        
+        total_salary_all_staff = 0
+        productivity_data_all_staff = {} 
+
+        for staff in staff_list_qs:
+            salary = float(staff.salary or 0)
+            daily_salary = round(salary / days_in_month, 2) if days_in_month > 0 else 0
+
+            leads_data = LeadUser.objects.filter(
+                assigned_to=staff,
+                updated_date__year=year,
+                updated_date__month=month,
+                status='Intrested'
+            ).values('updated_date__day').annotate(count=Count('id'))
+
+            productivity_data_dict = {day: {'leads': 0, 'salary': 0} for day in range(1, days_in_month + 1)}
+            total_salary = 0
+
+            for lead in leads_data:
+                day = lead['updated_date__day']
+                if day in productivity_data_dict:
+                    leads_count = lead['count']
+                    productivity_data_dict[day]['leads'] = leads_count
+
+                    if leads_count >= 10:
+                        daily_earned_salary = daily_salary
+                    else:
+                        daily_earned_salary = round((daily_salary / 10) * leads_count, 2)
+
+                    productivity_data_dict[day]['salary'] = daily_earned_salary
+                    total_salary += daily_earned_salary
+
+            productivity_data_all_staff[staff.id] = {
+                'name': staff.name,
+                'productivity_data': productivity_data_dict, 
+                'total_salary': round(total_salary, 2)
+            }
+            total_salary_all_staff += total_salary
+
+        # --- 4. Calendar Structure ---
+        # (Isme koi change nahi hai)
+        calendar_data = calendar.monthcalendar(year, month)
+        weekdays = list(calendar.day_name)
+        structured_calendar_data = []
+        for week in calendar_data:
+            week_data = []
+            for i, day in enumerate(week):
+                week_data.append({
+                    'day': day,
+                    'day_name': weekdays[i]
+                })
+            structured_calendar_data.append(week_data)
+        
+        # --- 5. Month List for Dropdown ---
+        months_list = [{'id': i, 'name': calendar.month_name[i]} for i in range(1, 13)]
+
+        # --- 6. Serialize and Respond ---
+        staff_list_serializer = ApiStaffSerializer(staff_list_qs, many=True)
+        
+        response_data = {
+            'lead_counts': lead_counts,
+            'staff_list': staff_list_serializer.data,
+            'productivity_report': {
+                'total_salary_all_staff': round(total_salary_all_staff, 2),
+                'staff_productivity_details': productivity_data_all_staff 
+            },
+            'calendar_structure': structured_calendar_data,
+            'dropdown_data': {
+                'months': months_list
+            }
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+    
+
+
+
+
+
+
+class AdminStaffAddAPIView(APIView):
+    """
+    API endpoint SIRF ADMIN ke naya Staff banane ke liye.
+    GET: Dropdown ke liye Admin ke Team Leaders ki list deta hai.
+    POST: Naya Staff banata hai.
+    """
+    
+    # Sirf Admin User (is_admin=True) hi access kar sakta hai
+    permission_classes = [IsAuthenticated, IsCustomAdminUser]
+    # File (profile_image) upload ke liye parsers
+    parser_classes = [MultiPartParser, FormParser]
+
+    def get(self, request, format=None):
+        """
+        Form ke 'Select Team Leader' dropdown ke liye data return karta hai.
+        """
+        # Aapke 'add_staff' function ka Admin GET logic:
+        try:
+            # 'self_user' ya 'user' - model ke hisaab se check karo
+            all_teamleader = Team_Leader.objects.filter(admin__self_user=request.user)
+        except FieldError:
+            all_teamleader = Team_Leader.objects.filter(admin__user=request.user)
+            
+        serializer = ProductivityTeamLeaderSerializer(all_teamleader, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request, format=None):
+        """
+        Naya Staff create karta hai.
+        """
+        
+        # Hum existing 'StaffCreateSerializer' ka istemal karenge
+        serializer = StaffCreateSerializer(data=request.data, context={'request': request})
+        
+        if serializer.is_valid():
+            # Check kar lo ki jo team_leader ID aayi hai, woh isi Admin ki hai ya nahi
+            team_leader_id = request.data.get('team_leader')
+            try:
+                team_leader = Team_Leader.objects.get(id=team_leader_id)
+                admin_profile = Admin.objects.get(self_user=request.user) # Ya admin__user
+                
+                if team_leader.admin != admin_profile:
+                    return Response(
+                        {"error": "You can only assign staff to your own Team Leaders."},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            except Exception as e:
+                 return Response({"error": f"Invalid Team Leader: {e}"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Agar sab theek hai, toh save karo
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        
+        # Agar validation fail hua
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+
+
+class SuperUserTeamLeaderListAPIView(APIView):
+    """
+    API endpoint SIRF SUPERUSER ke liye, jo database ke
+    saare Team Leaders ki list return karta hai.
+    """
+    
+    # Sirf Superuser hi access kar sakta hai
+    permission_classes = [IsAuthenticated, CustomIsSuperuser]
+    pagination_class = StandardResultsSetPagination # Paginator (optional, par acha hai)
+
+    def get(self, request, format=None):
+        paginator = self.pagination_class()
+        
+        # 1. Saare Team Leaders ko database se fetch karo
+        team_leaders = Team_Leader.objects.all().order_by('id')
+        
+        # 2. Paginate karo
+        page = paginator.paginate_queryset(team_leaders, request, view=self)
+        
+        # 3. ProductivityTeamLeaderSerializer se data ko JSON me badlo
+        if page is not None:
+            serializer = ProductivityTeamLeaderSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
+        # (Fallback agar pagination na chale)
+        serializer = ProductivityTeamLeaderSerializer(team_leaders, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)    

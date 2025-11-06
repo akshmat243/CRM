@@ -462,6 +462,18 @@ class StaffCreateSerializer(serializers.ModelSerializer):
                     admin=my_user1, description=tagline, ip_address=ip,
                     email=request.user.email, user_type=user_type, activity_type=tag2, name=request.user.name
                 )
+            elif request.user.is_admin:
+                # Admin profile ko dhoondo
+                admin_instance = Admin.objects.filter(self_user=request.user).last() 
+                ActivityLog.objects.create(
+                    admin=admin_instance, 
+                    description=tagline, 
+                    ip_address=ip,
+                    email=request.user.email, 
+                    user_type=user_type, 
+                    activity_type=tag2, 
+                    name=request.user.name
+                )    
             elif request.user.is_superuser:
                  ActivityLog.objects.create(
                     user=request.user, description=tagline, ip_address=ip,
