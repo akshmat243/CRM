@@ -45,12 +45,11 @@ urlpatterns = [
     path('leads/customer/<str:tag>/', api.TeamCustomerLeadsAPIView.as_view(), name='api-team-customer-leads'),
     path('users/toggle-active/', api.ToggleUserActiveAPIView.as_view(), name='api-toggle-user-active'),
 
-    # Yeh line urlpatterns list ke andar ADD karo
-
-    # Yeh line urlpatterns list ke andar ADD karo
+    
 
     path('users/team-leader/add-new/', api.TeamLeaderAddAPIView.as_view(), name='api-team-leader-add-new'),
     path('users/team-leader/edit/<int:id>/', api.TeamLeaderEditAPIView.as_view(), name='api-teamleader-edit'),
+    path('api/reports/team-leader-leads/<int:id>/<str:tag>/', api.TeamLeadLeadsReportAPIView.as_view(), name='api_team_leader_leads_report'),
 
     path('superuser/staff-leads/<str:tag>/', api.SuperUserStaffLeadsAPIView.as_view(), name='api-superuser-staff-leads'),
 
@@ -61,20 +60,67 @@ urlpatterns = [
 
 
 
-    # Yeh line urlpatterns list ke andar ADD karo
 
     path('report/incentive-slab/<int:staff_id>/', api.IncentiveSlabStaffAPIView.as_view(), name='api-incentive-slab'),
     path('staff/<int:staff_id>/calendar/', api.StaffProductivityCalendarAPIView.as_view(), name='staff_productivity_calendar'),
-    # Yeh line urlpatterns list ke andar ADD karo
+   
     path('leads/staff/<int:id>/<str:tag>/', api.TeamLeaderParticularLeadsAPIView.as_view(), name='api-staff-particular-leads'),
+    path('api/lead/update/<int:id>/', api.update_lead_user_api, name='api_lead_update_detail'),
 
 
     path('associates/dashboard/', api.FreelancerDashboardAPIView.as_view(), name='api-freelancer-dashboard'),
-    # Yeh line urlpatterns list ke andar ADD karo
-
-    # --------------------
-    # ✅ SAHI
-    # --------------------
+    path('api/add-sell-freelancer/<int:id>/', api.AddSellPlotAPIView.as_view(), name='api_add_sell_freelancer'),
+ 
     path('api/dashboard/team-leader/', api.get_team_leader_dashboard_api, name='api_team_leader_dashboard'),
 
-    ]   
+
+    path('api/team-customer/<str:tag>/', api.TeamCustomerLeadsAPIView.as_view(), name='api_team_customer_leads'), 
+    path('api/export/staff-leads/', api.ExportLeadsStatusWiseAPIView.as_view(), name='api_export_leads'),
+    path('api/leads/visit/', api.VisitLeadsAPIView.as_view(), name='api_visit_leads'),
+
+
+    path('api/projects/', api.ProjectListCreateAPIView.as_view(), name='api_project_list_create'),
+
+    path('api/activitylogs/', api.ActivityLogsAPIView.as_view(), name='api_activity_logs'),
+
+
+
+
+
+    path('api/admin/team-leader-report/', api.AdminTeamLeaderReportAPIView.as_view(), name='api_admin_team_leader_report'),
+    path('api/admin/add-team-leader/', api.TeamLeaderAddAPIView.as_view(), name='api_admin_add_team_leader'),
+    path('api/users/team-leader/edit/<int:id>/', api.TeamLeaderEditAPIView.as_view(), name='api-teamleader-edit'),
+
+    # 1. Superuser waali line
+    path('api/superuser/staff-leads/<str:tag>/', api.SuperUserStaffLeadsAPIView.as_view(), name='api-superuser-staff-leads'),
+    
+    # 2. Admin waali line
+    path('api/admin/staff-leads/<str:tag>/', api.AdminStaffLeadsAPIView.as_view(), name='api-admin-staff-leads'),
+
+    path('api/admin/staff-report/', api.StaffReportAPIView.as_view(), name='api_admin_staff_report'),
+    path('api/admin/add-staff/', api.AdminStaffAddAPIView.as_view(), name='api_admin_add_staff'),
+    
+    #teamleader list 
+    path('api/superuser/get-team-leaders/', api.SuperUserTeamLeaderListAPIView.as_view(), name='api_superuser_get_team_leaders'),
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ]   
+
