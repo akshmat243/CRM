@@ -383,8 +383,6 @@ class AdminUpdateSerializer(serializers.ModelSerializer):
         
         return admin_instance
     
-# Yeh code file ke end mein ADD karo (ya purane waale ko replace karo)
-
 # ==========================================================
 # STAFF ADD API SERIALIZER [FIXED]
 # ==========================================================
@@ -477,14 +475,6 @@ class StaffCreateSerializer(serializers.ModelSerializer):
     
 
 
-# serializers.py (TeamLeaderCreateSerializer ko isse REPLACE karo)
-
-# ==========================================================
-# TEAM LEADER ADD API SERIALIZER [FINAL FIX]
-# ==========================================================
-# serializers.py (TeamLeaderCreateSerializer ko isse REPLACE karo)
-
-# serializers.py (TeamLeaderCreateSerializer ko isse REPLACE karo)
 
 # ==========================================================
 # TEAM LEADER ADD API SERIALIZER [FINAL FIX]
@@ -614,9 +604,6 @@ class TeamLeaderCreateSerializer(serializers.ModelSerializer):
 
 
 
-
-# serializers.py (TeamLeaderEdit/Update के लिए)
-
 # ==========================================================
 # TEAM LEADER EDIT/UPDATE API SERIALIZER
 # ==========================================================
@@ -663,10 +650,6 @@ class TeamLeaderUpdateSerializer(serializers.ModelSerializer):
         
         return team_leader_instance
     
-
-
-
-# serializers.py (File ke end mein ADD/CHECK karo)
 
 # ==========================================================
 # STAFF EDIT (FREELANCER EDIT) API SERIALIZERS
@@ -733,8 +716,6 @@ class StaffUpdateSerializer(serializers.ModelSerializer):
     
 
 
-# Yeh code file ke end mein ADD karo
-
 # ==========================================================
 # SLAB SERIALIZER
 # ==========================================================
@@ -747,8 +728,6 @@ class SlabSerializer(serializers.ModelSerializer):
         fields = '__all__'    
 
 
-
-# serializers.py (File ke end mein ADD karo)
 
 # ==========================================================
 # STAFF PRODUCTIVITY CALENDAR SERIALIZER
@@ -766,3 +745,198 @@ class DailyProductivitySerializer(serializers.Serializer):
 
 
 
+
+
+
+# ==========================================================
+# SERIALIZER: LEAD EXPORT [FIXED VARIABLE NAME]
+# ==========================================================
+class LeadExportSerializer(serializers.Serializer):
+    """
+    Serializer jo Excel export API ke liye input parameters
+    (dates, staff, status) ko validate karta hai.
+    """
+    start_date = serializers.DateField(required=True)
+    end_date = serializers.DateField(required=True)
+    
+    all_interested = serializers.CharField(required=False, allow_blank=True, max_length=10)
+    staff_id = serializers.IntegerField(required=False, allow_null=True)
+    
+    # --- FIX: 'status' variable ka naam change kiya 'lead_status' ---
+    lead_status = serializers.CharField(required=False, allow_blank=True, max_length=100) 
+
+    def validate(self, data):
+        """
+        Check karta hai ki agar 'all_interested' != "1", toh 'staff_id' 
+        aur 'lead_status' zaroor hone chahiye.
+        """
+        all_interested = data.get('all_interested')
+        
+        if all_interested != "1":
+            if not data.get('staff_id'):
+                raise serializers.ValidationError({"staff_id": "This field is required when not exporting 'all_interested'."})
+            
+            # --- FIX: 'status' ko 'lead_status' se badla ---
+            if not data.get('lead_status'):
+                raise serializers.ValidationError({"lead_status": "This field is required when not exporting 'all_interested'."})
+        
+        return data
+    
+
+
+
+
+# ==========================================================
+# API: ADD SELL PLOT (FREELANCER) SERIALIZER
+# ==========================================================
+
+class SellPlotCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer naya Sell_plot object banane ke liye.
+    Yeh 'create' method ke andar poora slab calculation logic handle karta hai.
+    """
+    
+    # Hum form se 'staff_id' lenge (agar URL me id=0 hai)
+    # 'write_only=True' ka matlab hai ki yeh field sirf input lene ke liye hai, 
+    # output (response) me nahi dikhega.
+    staff_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
+
+    class Meta:
+        model = Sell_plot
+        # Yeh woh fields hain jo hum JSON body se expect kar rahe hain
+        fields = [
+            'project_name', 
+            'project_location', 
+            'description', 
+            'size_in_gaj', 
+            'plot_no', 
+            'date',
+            'staff_id', # Yeh virtual field
+        ]
+        # 'date' ko required banate hain
+        extra_kwargs = {
+            'date': {'required': True}
+        }
+
+    def validate_size_in_gaj(self, value):
+       
+        try:
+            int(value or 0)
+        except ValueError:
+            raise serializers.ValidationError("Size (Gaj) must be a valid number.")
+        
+        if int(value or 0) <= 0:
+            raise serializers.ValidationError("Size (Gaj) must be greater than 0.")
+        
+        return value # Original string value return karo (aapke model ke hisaab se)
+
+
+    def create(self, validated_data):
+        # 1. Staff instance dhoondo (Aapke original view logic se)
+        
+        # URL se 'id' nikaalo (e.g., /add_sell_freelancer/3/)
+        view_id = self.context['request'].parser_context['kwargs']['id']
+        staff_id_from_post = validated_data.pop('staff_id', None)
+        
+        user_instance = None
+        if view_id != 0:
+            user_instance = Staff.objects.filter(id=view_id).last()
+        else:
+            user_instance = Staff.objects.filter(id=staff_id_from_post).last()
+
+        if not user_instance:
+            raise serializers.ValidationError({"staff_id": f"Staff not found."})
+        
+        # 2. Team Leader aur Admin dhoondo
+        team_leader_insatnce = user_instance.team_leader
+        if not team_leader_insatnce:
+            raise serializers.ValidationError({"team_leader": f"Team Leader not found for staff {user_instance.name}."})
+        
+        admin_instance = team_leader_insatnce.admin
+        if not admin_instance:
+            raise serializers.ValidationError({"admin": f"Admin not found for team leader {team_leader_insatnce.name}."})
+
+        # 3. Slab Update Logic (Aapke view logic se)
+        size_in_gaj_str = validated_data.get('size_in_gaj')
+        size_in_gaj_int = int(size_in_gaj_str or 0)
+
+        # Staff Slab
+        staff_slab = user_instance.achived_slab
+        update_staff_slab = int(staff_slab or 0) + size_in_gaj_int
+        user_instance.achived_slab = update_staff_slab
+        user_instance.save()
+
+        # Team Leader Slab
+        team_lead_slab = team_leader_insatnce.achived_slab
+        update_staff_slab1 = int(team_lead_slab or 0) + size_in_gaj_int
+        team_leader_insatnce.achived_slab = update_staff_slab1
+        team_leader_insatnce.save()
+
+        # Admin Slab
+        admin_slab = admin_instance.achived_slab
+        update_staff_slab2 = int(admin_slab or 0) + size_in_gaj_int
+        admin_instance.achived_slab = update_staff_slab2
+        admin_instance.save()
+
+        # 4. Payout Calculation Logic (Aapke view logic se)
+        current_slab = int(user_instance.achived_slab or 0)
+        slabs = Slab.objects.all()
+
+        slab_amount = 0
+        myslab = "N/A"
+        current_slab_amount = 0
+
+        for slab in slabs:
+            start_value = int(slab.start_value or 0)
+            if slab.end_value is not None:
+                end_value = int(slab.end_value or 0)
+                if start_value <= current_slab <= end_value:
+                    slab_amount_base = int(slab.amount or 0)
+                    if user_instance.user.is_freelancer:
+                        slab_amount = slab_amount_base * size_in_gaj_int
+                    if user_instance.user.is_staff_new:
+                        slab_amount = (slab_amount_base - 100) * size_in_gaj_int
+                    myslab = f"{start_value}-{end_value}"
+                    current_slab_amount = slab_amount_base
+                    break
+            else:
+                if current_slab >= start_value:
+                    slab_amount_base = int(slab.amount or 0)
+                    if user_instance.user.is_freelancer:
+                        slab_amount = slab_amount_base * size_in_gaj_int
+                    if user_instance.user.is_staff_new:
+                        slab_amount = (slab_amount_base - 100) * size_in_gaj_int
+                    myslab = f"{start_value}+"
+                    current_slab_amount = slab_amount_base
+                    break
+        
+        # 5. Naya Sell_plot object banao
+        sell = Sell_plot.objects.create(
+            admin=admin_instance,
+            team_leader=team_leader_insatnce,
+            staff=user_instance,
+            earn_amount=slab_amount,
+            slab=myslab,
+            slab_amount=current_slab_amount,
+            **validated_data  
+        )
+        return sell
+
+
+
+
+
+# serializers.py (file ke end me yeh add karo)
+
+# ==========================================================
+# LEAD UPDATE (STATUS/MESSAGE) API SERIALIZER
+# ==========================================================
+class LeadUpdateSerializer(serializers.Serializer):
+    """
+    Serializer jo 'status', 'message', 'followDate', aur 'followTime'
+    ko API request se validate karne ke liye hai.
+    """
+    status = serializers.CharField(max_length=100, required=True)
+    message = serializers.CharField(required=False, allow_blank=True)
+    followDate = serializers.DateField(required=False, allow_null=True)
+    followTime = serializers.TimeField(required=False, allow_null=True)
