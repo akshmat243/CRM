@@ -125,7 +125,8 @@ class DashboardUserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'email', 'name', 'mobile', 'profile_image', 
-            'is_admin', 'is_team_leader', 'is_staff_new'
+            'is_admin', 'is_team_leader', 'is_staff_new' , 'created_date',  # <--- YEH LINE ADD KARNI HAI
+            'user_active'    # <--- YEH LINE ADD KARNI HAI
         ]
 
 class DashboardAdminSerializer(serializers.ModelSerializer):
@@ -141,7 +142,7 @@ class DashboardAdminSerializer(serializers.ModelSerializer):
             'id', 'user', 'admin_id', 'name', 'email', 'mobile', 
             'address', 'city', 'pincode', 'state', 'dob', 'pancard', 
             'aadharCard', 'account_number', 'upi_id', 'bank_name', 
-            'ifsc_code', 'salary', 'achived_slab'
+            'ifsc_code', 'salary', 'achived_slab' , 'created_date'
         ]
 
 class DashboardSettingsSerializer(serializers.ModelSerializer):

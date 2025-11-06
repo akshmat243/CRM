@@ -113,6 +113,13 @@ class IsCustomAdminUser(permissions.BasePermission):
     def has_permission(self, request, view):
         # Check karta hai ki user logged-in hai AUR uska 'is_admin' flag True hai
         return request.user and request.user.is_authenticated and request.user.is_admin
+    
+class CustomIsSuperuser(permissions.BasePermission):
+    """
+    Custom permission to only allow Superusers.
+    """
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and request.user.is_superuser    
 
 
 class StandardResultsSetPagination(PageNumberPagination):
@@ -2007,82 +2014,105 @@ class ToggleUserActiveAPIView(APIView):
 
 
 
-# ===================================================================
-# NAYA SUPER USER SIDE STAFF LEADS API (Tag Waala)
-# ===================================================================
+# home/api.py (Purana wala delete karke yeh dono add karo)
+
+# ==========================================================
+# API: SUPERUSER STAFF LEADS (BY STATUS)
+# ==========================================================
 class SuperUserStaffLeadsAPIView(APIView):
-    """
-    API for the 'super_user_side_staff_leads' page.
-    Fetches leads for all staff based on status tag, for Superuser or Admin.
-    """
-    permission_classes = [IsAdminUser] # Sirf Superuser ya Admin hi chala sakta hai
-    pagination_class = StandardResultsSetPagination # Reuse pagination
 
-    @property
-    def paginator(self):
-        """Paginator instance for the view."""
-        if not hasattr(self, '_paginator'):
-            self._paginator = self.pagination_class()
-        return self._paginator
+    permission_classes = [IsAuthenticated, CustomIsSuperuser]
+    pagination_class = StandardResultsSetPagination 
 
-    def get(self, request, tag, *args, **kwargs):
+    def get(self, request, tag, format=None):
+        paginator = self.pagination_class()
         
+        # Superuser ko saare leads milte hain
+        base_queryset = LeadUser.objects.all()
+
+        status_map = {
+            'total_lead': 'Leads',
+            'visits': 'Visit',
+            'interested': 'Intrested',
+            'not_interested': 'Not Interested',
+            'other_location': 'Other Location',
+            'not_picked': 'Not Picked',
+            'lost': 'Lost'
+        }
+
+        if tag in status_map:
+            queryset = base_queryset.filter(status=status_map[tag])
+        else:
+            return Response(
+                {"error": f"Invalid tag: {tag}. Valid tags are: {list(status_map.keys())}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        queryset = queryset.order_by('-updated_date')
+        
+        page = paginator.paginate_queryset(queryset, request, view=self)
+        if page is not None:
+            serializer = ApiLeadUserSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
+        serializer = ApiLeadUserSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+# ==========================================================
+# API: ADMIN STAFF LEADS (BY STATUS)
+# ==========================================================
+class AdminStaffLeadsAPIView(APIView):
+    """
+    API endpoint SIRF ADMIN ke liye, jo 'tag' ke hisaab se leads filter karta hai.
+    """
+    # Permission check: Sirf logged-in Admin (is_admin=True) hi access kar sakta hai
+    permission_classes = [IsAuthenticated, IsCustomAdminUser] 
+    pagination_class = StandardResultsSetPagination
+
+    def get(self, request, tag, format=None):
+        paginator = self.pagination_class()
         user = request.user
-        leads_qs = LeadUser.objects.none() # Khaali queryset se start karo
-
-        # --- 1. Superuser Logic ---
-        if user.is_superuser:
-            if tag == 'total_lead':
-                leads_qs = LeadUser.objects.filter(status="Leads")
-            elif tag == 'visits':
-                leads_qs = LeadUser.objects.filter(status="Visit")
-            elif tag == 'interested':
-                leads_qs = LeadUser.objects.filter(status="Intrested")
-            elif tag == 'not_interested':
-                leads_qs = LeadUser.objects.filter(status="Not Interested")
-            elif tag == 'other_location':
-                leads_qs = LeadUser.objects.filter(status="Other Location") # Typo theek kiya (LeadView -> LeadUser)
-            elif tag == 'not_picked':
-                leads_qs = LeadUser.objects.filter(status="Not Picked")
-            else: # Default ya koi aur tag (jaise 'lost')
-                # Tag ko capitalize karo (jaise 'lost' -> 'Lost')
-                status_tag = tag.replace('_', ' ').capitalize() 
-                leads_qs = LeadUser.objects.filter(status=status_tag) 
-
-        # --- 2. Admin Logic ---
-        elif user.is_admin:
-            try:
-                # Admin profile ko 'user' (AbstractUser) se dhoondo
-                admin_instance = Admin.objects.get(self_user=user)
-                teamleader_instance_list = Team_Leader.objects.filter(admin=admin_instance)
-            except Admin.DoesNotExist:
-                 return Response({"error": "Admin profile not found."}, status=status.HTTP_404_NOT_FOUND)
-
-            if tag == 'total_lead':
-                leads_qs = LeadUser.objects.filter(status="Leads", team_leader__in=teamleader_instance_list)
-            elif tag == 'visits':
-                leads_qs = LeadUser.objects.filter(status="Visit", team_leader__in=teamleader_instance_list)
-            elif tag == 'interested':
-                leads_qs = LeadUser.objects.filter(status="Intrested", team_leader__in=teamleader_instance_list)
-            elif tag == 'not_interested':
-                leads_qs = LeadUser.objects.filter(status="Not Interested", team_leader__in=teamleader_instance_list)
-            elif tag == 'other_location':
-                leads_qs = LeadUser.objects.filter(status="Other Location", team_leader__in=teamleader_instance_list)
-            elif tag == 'not_picked':
-                leads_qs = LeadUser.objects.filter(status="Not Picked", team_leader__in=teamleader_instance_list)
-            else:
-                 status_tag = tag.replace('_', ' ').capitalize()
-                 leads_qs = LeadUser.objects.filter(status=status_tag, team_leader__in=teamleader_instance_list)
-
-        # --- 3. Paginate aur Serialize ---
-        paginated_qs = self.paginator.paginate_queryset(leads_qs.order_by('-updated_date'), request, view=self)
-        serializer = ApiLeadUserSerializer(paginated_qs, many=True)
         
-        return self.paginator.get_paginated_response(serializer.data)
-    
+        # Admin ko sirf apne team leaders ke leads milte hain
+        # Admin profile ko 'user' (AbstractUser) se dhoondo
+        admin_instance = Admin.objects.filter(user=user).last() 
+        if not admin_instance:
+            # Aapke purane code me self_user tha, lekin naye me 'user' hona chahiye
+            # Hum dono check kar lete hain
+            admin_instance = Admin.objects.filter(self_user=user).last()
+            if not admin_instance:
+                 return Response({"error": "Admin profile not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+        teamleader_instance = Team_Leader.objects.filter(admin=admin_instance)
+        base_queryset = LeadUser.objects.filter(team_leader__in=teamleader_instance)
 
+        status_map = {
+            'total_lead': 'Leads',
+            'visits': 'Visit',
+            'interested': 'Intrested',
+            'not_interested': 'Not Interested',
+            'other_location': 'Other Location',
+            'not_picked': 'Not Picked',
+            'lost': 'Lost'
+        }
 
+        if tag in status_map:
+            queryset = base_queryset.filter(status=status_map[tag])
+        else:
+            return Response(
+                {"error": f"Invalid tag: {tag}. Valid tags are: {list(status_map.keys())}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
+        queryset = queryset.order_by('-updated_date')
+        
+        page = paginator.paginate_queryset(queryset, request, view=self)
+        if page is not None:
+            serializer = ApiLeadUserSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
+        serializer = ApiLeadUserSerializer(queryset, many=True)
+        return Response(serializer.data)
 
 # ===================================================================
 # NAYA STAFF ADD API [FIXED]
@@ -3498,6 +3528,117 @@ class AdminTeamLeaderReportAPIView(APIView):
         }
         
         return Response(response_data, status=status.HTTP_200_OK)
+    
+
+
+# --- [AAPKI REQUIREMENT] ---
+# Yeh permission class check karti hai ki user Admin hai ya nahi
+class IsCustomAdminUser(permissions.BasePermission):
+    """
+    Custom permission to only allow users with is_admin=True.
+    """
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and request.user.is_admin
+
+# --- Nayi API View Class ---
+# ==========================================================
+# API: ADMIN - ADD TEAM LEADER
+# ==========================================================
+class TeamLeaderAddAPIView(APIView):
+    """
+    API endpoint naya Team Leader banane ke liye.
+    Sirf Admin user hi ise access kar sakte hain.
+    GET: Dropdown ke liye Admin ki list deta hai.
+    POST: Naya Team Leader banata hai.
+    """
+    
+    # Sirf Admin User hi access kar sakta hai
+    permission_classes = [IsAuthenticated, IsCustomAdminUser]
+    # File (profile_image) upload ke liye parsers
+    parser_classes = [MultiPartParser, FormParser]
+
+    def get(self, request, format=None):
+        """
+        Form ke 'Select Admin' dropdown ke liye data return karta hai.
+        """
+        # Aapke original function ka GET logic
+        all_admins = User.objects.filter(is_admin=True)
+        serializer = DashboardUserSerializer(all_admins, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request, format=None):
+        """
+        Naya Team Leader create karta hai.
+        """
+        
+        # Hum TeamLeaderCreateSerializer ka istemal karenge jo pehle se bana hai.
+        # Hum 'context={'request': request}' bhej rahe hain taaki serializer
+        # request.user ko access kar sake (apne logic ke liye).
+        serializer = TeamLeaderCreateSerializer(data=request.data, context={'request': request})
+        
+        if serializer.is_valid():
+            # Serializer ka .save() method automatically .create() method 
+            # ko call karega aur naya Team Leader bana dega.
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        
+        # Agar validation fail hua
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+
+# ==========================================================
+# API: ADMIN - EDIT TEAM LEADER (GET/UPDATE)
+# ==========================================================
+class TeamLeaderEditAPIView(APIView):
+    """
+    API endpoint to Get and Update a Team Leader's profile.
+    Sirf Admin user hi ise access kar sakta hai.
+    GET: Current profile data laata hai.
+    PATCH/POST: Profile data ko update karta hai.
+    """
+    permission_classes = [IsAuthenticated, IsCustomAdminUser] # Sirf Admin ke liye
+    parser_classes = [MultiPartParser, FormParser] # File upload (profile_image) ke liye
+
+    def get_object(self, id):
+        # Helper function to get the object
+        return get_object_or_404(Team_Leader, id=id)
+
+    def get(self, request, id, format=None):
+        """
+        GET request: Team Leader ki current details return karta hai.
+        """
+        team_leader = self.get_object(id)
+        # Hum 'ProductivityTeamLeaderSerializer' (read serializer) ka istemal kar rahe hain
+        serializer = ProductivityTeamLeaderSerializer(team_leader) 
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, id, format=None):
+        """
+        PATCH request: Team Leader ki profile ko update karta hai.
+        """
+        team_leader = self.get_object(id)
+        
+        # Hum 'TeamLeaderUpdateSerializer' (write serializer) ka istemal kar rahe hain
+        # 'instance=team_leader' batata hai ki is object ko update karna hai
+        # 'partial=True' batata hai ki saare fields bhejna zaroori nahi hai
+        serializer = TeamLeaderUpdateSerializer(instance=team_leader, data=request.data, partial=True) 
+        
+        if serializer.is_valid():
+            updated_instance = serializer.save()
+            
+            # Updated data ko 'read serializer' se wapas bhejo
+            read_serializer = ProductivityTeamLeaderSerializer(updated_instance)
+            return Response(read_serializer.data, status=status.HTTP_200_OK) 
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def post(self, request, id, format=None):
+        """
+        POST request: Aapke view function se match karne ke liye, 
+        yeh PATCH ko hi call karega.
+        """
+        return self.patch(request, id, format)
     
 
 
