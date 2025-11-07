@@ -2287,7 +2287,7 @@ class StaffEditAPIView(APIView):
         if serializer.is_valid():
             updated_staff = serializer.save()
             # Updated data dikhane ke liye read serializer ka use karo
-            read_serializer = FullStaffSerializer(updated_staff, context={'request': request})
+            read_serializer = StaffProfileSerializer(updated_staff, context={'request': request})
             return Response(read_serializer.data, status=status.HTTP_200_OK)
         
         # Agar error aaye
@@ -4052,7 +4052,7 @@ class AdminStaffEditAPIView(APIView):
             updated_instance = serializer.save()
             
             # Updated data ko 'FullStaffSerializer' se wapas bhejo
-            read_serializer = FullStaffSerializer(updated_instance, context={'request': request})
+            read_serializer = StaffProfileSerializer(updated_instance, context={'request': request})
             return Response(read_serializer.data, status=status.HTTP_200_OK) 
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -4064,6 +4064,85 @@ class AdminStaffEditAPIView(APIView):
 
 
 
+
+
+# ==========================================================
+# API: ADMIN-ONLY - EDIT TEAM LEADER (GET/UPDATE)
+# ==========================================================
+class AdminTeamLeaderEditAPIView(APIView):
+    """
+    API endpoint 'teamedit' function ke liye (Admin Dashboard).
+    GET: Team Leader ki current details laata hai.
+    PATCH: Team Leader ki profile ko update karta hai.
+    SIRF ADMIN hi ise access kar sakta hai.
+    """
+    
+    # Sirf Admin User (is_admin=True) hi access kar sakta hai
+    permission_classes = [IsAuthenticated, IsCustomAdminUser]
+    parser_classes = [MultiPartParser, FormParser] # File upload (profile_image) ke liye
+
+    def get_object(self, id):
+        # Helper function se Team_Leader object get karo
+        return get_object_or_404(Team_Leader, id=id)
+
+    def get(self, request, id, format=None):
+        """
+        GET request: Team Leader ki current details return karta hai.
+        """
+        team_leader = self.get_object(id)
+        
+        # --- Security Check ---
+        # Check karo ki yeh Admin is Team Leader ko edit kar sakta hai ya nahi
+        try:
+            admin_profile = Admin.objects.get(self_user=request.user)
+        except Admin.DoesNotExist:
+            return Response({"error": "Admin profile not found."}, status=status.HTTP_404_NOT_FOUND)
+            
+        if team_leader.admin != admin_profile:
+             return Response(
+                {"error": "You do not have permission to edit this Team Leader."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        # --- Check Ends ---
+
+        serializer = ProductivityTeamLeaderSerializer(team_leader) 
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, id, format=None):
+        """
+        PATCH request: Team Leader ki profile ko update karta hai.
+        """
+        team_leader = self.get_object(id)
+
+        # --- Security Check ---
+        try:
+            admin_profile = Admin.objects.get(self_user=request.user)
+        except Admin.DoesNotExist:
+            return Response({"error": "Admin profile not found."}, status=status.HTTP_404_NOT_FOUND)
+            
+        if team_leader.admin != admin_profile:
+             return Response(
+                {"error": "You do not have permission to edit this Team Leader."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        # --- Check Ends ---
+        
+        # TeamLeaderUpdateSerializer ka istemal karo
+        serializer = TeamLeaderUpdateSerializer(instance=team_leader, data=request.data, partial=True) 
+        
+        if serializer.is_valid():
+            updated_instance = serializer.save()
+            
+            # Updated data ko 'ProductivityTeamLeaderSerializer' se wapas bhejo
+            read_serializer = ProductivityTeamLeaderSerializer(updated_instance)
+            return Response(read_serializer.data, status=status.HTTP_200_OK) 
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def post(self, request, id, format=None):
+        # POST ko bhi PATCH ki tarah handle karo
+        return self.patch(request, id, format)
+    
 
 
 

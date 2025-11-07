@@ -106,13 +106,19 @@ urlpatterns = [
     
     #teamleader superuserside list 
     path('api/superuser/get-team-leaders/', api.SuperUserTeamLeaderListAPIView.as_view(), name='api_superuser_get_team_leaders'),
-    #staff edit admin dashboard
-    path('api/admin/staff/edit/<int:id>/', api.AdminStaffEditAPIView.as_view(), name='api_admin_staff_edit'),
+    
 
 
 
     #ADMINDASHBOARDAPI 2ND PART
-    
+
+
+    #edit team leader admin side 
+    path('api/admin/team-leader/edit/<int:id>/', api.AdminTeamLeaderEditAPIView.as_view(), name='api_admin_team_leader_edit'),
+
+    #staff edit admin dashboard
+    path('api/admin/staff/edit/<int:id>/', api.AdminStaffEditAPIView.as_view(), name='api_admin_staff_edit'),
+
 
 
 
