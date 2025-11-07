@@ -1582,6 +1582,7 @@ def add_team_leader_user(request):
     }
     return render(request, "admin_dashboard/add_team_leader_user.html", context)
 
+# home/views.py
 
 @login_required(login_url='login')
 def add_staff(request):
@@ -1595,10 +1596,27 @@ def add_staff(request):
         template = 'admin_dashboard/staff/base.html'
 
     all_admins = User.objects.filter(is_admin=True)
-    if request.user.is_admin:
-        all_teamleader = Team_Leader.objects.filter(admin__self_user=request.user)
-    else:
-        all_teamleader = Team_Leader.objects.filter(admin__self_user=request.user)
+    
+    # --- [FIX START] ---
+    # Yahan purana logic tha, use is naye logic se badal diya hai
+    
+    all_teamleader = Team_Leader.objects.none() # Pehle khaali set karo
+
+    if request.user.is_superuser:
+        # Superuser ko saare team leaders dikhne chahiye
+        all_teamleader = Team_Leader.objects.all()
+    
+    elif request.user.is_admin:
+        # Admin ko sirf apne team leaders dikhne chahiye (EMAIL SE)
+        all_teamleader = Team_Leader.objects.filter(admin__email=request.user.email)
+    
+    elif request.user.is_team_leader:
+        # Team Leader ko uske Admin ke baaki Team Leaders dikhne chahiye
+        team_leader_profile = Team_Leader.objects.filter(user=request.user).last()
+        if team_leader_profile and team_leader_profile.admin:
+            all_teamleader = Team_Leader.objects.filter(admin=team_leader_profile.admin)
+            
+    # --- [FIX END] ---
 
     if request.method == 'POST':
         username = request.POST['email']
@@ -1732,7 +1750,7 @@ def add_staff(request):
         'messages': messages.get_messages(request),
         'all_admins': all_admins,
         'template': template,
-        'all_teamleader': all_teamleader,
+        'all_teamleader': all_teamleader, # <-- Nayi query ab yahan pass ho rahi hai
     }
 
     return render(request, "admin_dashboard/staff/add_staff.html", context)

@@ -804,32 +804,28 @@ class StaffProductivityCalendarAPIView(APIView):
 
 User = get_user_model()
 
+# home/api.py (Line ~1070)
+
 # ===================================================================
-# 14. SUPER ADMIN DASHBOARD API [FIXED]
-# (Ab yeh saare Admins ki list dikhayega)
+# 14. SUPER ADMIN DASHBOARD API [ORIGINAL / CORRECTED]
+# (Yeh sirf Admins ki list aur global lead counts dikhayega)
 # ===================================================================
 class SuperAdminDashboardAPIView(APIView):
     """
-    API view for the Super Admin Dashboard.
+    API view for the Super Admin Dashboard (Admin Users page).
     Provides aggregated lead counts and stats about ALL ADMINS.
     Only accessible by superusers.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAuthenticated, CustomIsSuperuser] # Sirf Superuser ke liye
 
     def get(self, request, *args, **kwargs):
         
-        # --- YEH HAI FIX ---
-        # 1. Saare Admin users ko dhoondo (jinka is_admin=True hai)
+        # 1. Saare Admin users ko dhoondo
         admin_users = User.objects.filter(is_admin=True)
-        
-        # 2. Unn users ki Admin profiles nikaalo
-        # Hum 'self_user' field ka istemaal karenge (aapke Admin model ke hisaab se)
         admin_profiles = Admin.objects.filter(self_user__in=admin_users)
-        
-        # 3. Data ko serialize karo (DashboardAdminSerializer se, taaki poori detail aaye)
         admin_serializer = DashboardAdminSerializer(admin_profiles, many=True) 
         
-        # --- Baaki saara counting logic waisa hi rahega ---
+        # 2. Saara counting logic
         today = timezone.now().date()
         tomorrow = today + timedelta(days=1)
 
@@ -871,9 +867,9 @@ class SuperAdminDashboardAPIView(APIView):
         total_today_followup = today_followup_staff
         total_tomorrow_followup = tomorrow_followup_staff
 
-        # Build the response data dictionary
+        # 3. Build the response data dictionary
         data = {
-            'users': admin_serializer.data, # <-- Yahaan ab saare Admins ki list aayegi
+            'users': admin_serializer.data, # Admins ki list
             'total_upload_leads': total_upload_leads,
             'total_assign_leads': total_assign_leads,
             'total_interested': total_interested,
@@ -886,9 +882,10 @@ class SuperAdminDashboardAPIView(APIView):
             'total_pending_followup': total_pending_followup,
             'total_today_followup': total_today_followup,
             'total_tomorrow_followup': total_tomorrow_followup,
+            # (Staff counts yahaan se hata diye hain)
         }
         
-        # Return the data as a JSON response
+        # 4. Return the data as a JSON response
         return Response(data, status=status.HTTP_200_OK)
 # ===================================================================
 # NAYA DASHBOARD API (Date Filter Waala)
@@ -3447,8 +3444,10 @@ def update_lead_user_api(request, id):
 
 
 
+# home/api.py (Line ~1450)
+
 # ==========================================================
-# API: ADMIN DASHBOARD - TEAM LEADER REPORT
+# API: ADMIN DASHBOARD - TEAM LEADER REPORT [ORIGINAL / CORRECTED]
 # ==========================================================
 class AdminTeamLeaderReportAPIView(APIView):
     """
@@ -3457,17 +3456,13 @@ class AdminTeamLeaderReportAPIView(APIView):
     Yeh Admin ke under saare Team Leaders ki list aur unke leads ke counts return karta hai.
     """
     
-    # --- [AAPKI REQUIREMENT] ---
-    # Sirf logged-in Admin user hi ise access kar sakta hai.
-    # Superuser, Team Leader, Staff sab block ho jaayenge.
     permission_classes = [IsAuthenticated, IsCustomAdminUser]
 
     def get(self, request, format=None):
         user = request.user
         
-        # 1. Logged-in Admin ka profile dhoondo (Aapke function ke logic ke hisaab se)
+        # 1. Logged-in Admin ka profile dhoondo
         try:
-            # Aapka function user.username ko Admin.email se match kar raha hai
             admin_profile = Admin.objects.get(email=user.username) 
         except Admin.DoesNotExist:
             return Response(
@@ -3478,8 +3473,7 @@ class AdminTeamLeaderReportAPIView(APIView):
         # 2. Is Admin ke under saare Team Leaders ko dhoondo
         team_leaders_list = Team_Leader.objects.filter(admin=admin_profile)
 
-        # 3. Date Filters (Aapke function se)
-        # request.GET ki jagah request.query_params ka istemal karo
+        # 3. Date Filters
         start_date_str = request.query_params.get('start_date')
         end_date_str = request.query_params.get('end_date')
         today = timezone.now().date()
@@ -3491,10 +3485,8 @@ class AdminTeamLeaderReportAPIView(APIView):
             start_date = timezone.make_aware(datetime.combine(today, datetime.min.time()))
             end_date = timezone.make_aware(datetime.combine(today, datetime.max.time()))
         
-        # 4. Saare Counts Calculate Karo
+        # 4. Saare LEADS Counts Calculate Karo
         lead_filter = {'updated_date__range': [start_date, end_date]}
-        
-        # Sirf unhi leads ko gino jo is Admin ke team leaders ke paas hain
         base_queryset = LeadUser.objects.filter(team_leader__in=team_leaders_list, **lead_filter)
         
         total_leads = base_queryset.filter(status="Leads").count()
@@ -3504,6 +3496,8 @@ class AdminTeamLeaderReportAPIView(APIView):
         total_not_picked_leads = base_queryset.filter(status="Not Picked").count()
         total_lost_leads = base_queryset.filter(status="Lost").count()
         total_visits_leads = base_queryset.filter(status="Visit").count()
+
+        # (Staff counts yahaan se hata diye hain)
 
         # 5. Settings object dhoondo
         setting = Settings.objects.filter().last()
@@ -3852,3 +3846,203 @@ class SuperUserTeamLeaderListAPIView(APIView):
         # (Fallback agar pagination na chale)
         serializer = ProductivityTeamLeaderSerializer(team_leaders, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)    
+    
+
+
+
+
+# ==========================================================
+# API: SUPERUSER - TEAM LEADER DASHBOARD (CARDS + LIST)
+# ==========================================================
+class SuperUserTeamLeaderDashboardAPIView(APIView):
+    """
+    API for Superuser's 'Team Leader List' dashboard (add_team_leader_admin_side).
+    Provides all card counts and the paginated list of Team Leaders.
+    """
+    permission_classes = [IsAuthenticated, CustomIsSuperuser]
+    pagination_class = StandardResultsSetPagination
+
+    def get(self, request, format=None):
+        paginator = self.pagination_class()
+        
+        # --- 1. Get Team Leader List (Paginated) ---
+        # (Aapke view function ki 'users = Team_Leader.objects.all()' waali line)
+        team_leaders_qs = Team_Leader.objects.all().order_by('name')
+        
+        # Paginate the team leader list
+        page = paginator.paginate_queryset(team_leaders_qs, request, view=self)
+        team_leaders_serializer = ProductivityTeamLeaderSerializer(page, many=True)
+
+        # --- 2. Calculate All Card Counts (Aapke view function se) ---
+        
+        # Staff Counts (Aapke view function se)
+        active_staff_count = User.objects.filter(is_staff_new=True, is_user_login=True).count()
+        total_staff_count = User.objects.filter(is_staff_new=True).count()
+
+        # Lead Counts (Aapke view function se)
+        total_leads = LeadUser.objects.filter(status="Leads").count()
+        total_interested = LeadUser.objects.filter(status="Intrested").count()
+        total_not_interested = LeadUser.objects.filter(status="Not Interested").count()
+        total_other_location = LeadUser.objects.filter(status="Other Location").count()
+        total_not_picked = LeadUser.objects.filter(status="Not Picked").count()
+        total_lost = LeadUser.objects.filter(status="Lost").count()
+        total_visits = LeadUser.objects.filter(status="Visit").count()
+
+        # --- 3. Calculate Followup Counts (Yeh aapke screenshot me the) ---
+        today = timezone.now().date()
+        tomorrow = today + timedelta(days=1)
+        
+        pending_followups = LeadUser.objects.filter(
+            Q(status='Intrested') & Q(follow_up_date__isnull=False)
+        ).count()
+        today_followups = LeadUser.objects.filter(
+            Q(status='Intrested') & Q(follow_up_date=today)
+        ).count()
+        tomorrow_followups = LeadUser.objects.filter(
+            Q(status='Intrested') & Q(follow_up_date=tomorrow)
+        ).count()
+        
+        # --- 4. Saare Counts ko ek dictionary me daalo ---
+        counts_data = {
+            'pending_followups': pending_followups,
+            'tomorrow_followups': tomorrow_followups,
+            'today_followups': today_followups,
+            'total_leads': total_leads,
+            'total_visit': total_visits,
+            'interested': total_interested,
+            'not_interested': total_not_interested,
+            'other_location': total_other_location,
+            'not_picked': total_not_picked,
+            'total_staff': total_staff_count,
+            'active_staff': active_staff_count,
+            'total_lost': total_lost, # Yeh aapke view function me tha
+        }
+
+        # --- 5. Final Response Banao ---
+        # Paginator se poora response structure (count, next, previous, results) lo
+        paginated_response = paginator.get_paginated_response(team_leaders_serializer.data)
+        
+        # Ab us response me 'counts' ka data bhi add kar do
+        paginated_response.data['counts'] = counts_data
+        
+        return paginated_response
+
+
+
+
+# home/api.py
+
+# ==========================================================
+# API: SUPERUSER-ONLY - STAFF REPORT DASHBOARD [UPDATED]
+# ==========================================================
+class SuperUserStaffReportAPIView(APIView):
+    """
+    API endpoint 'add_staff_admin_side' function ke GET request ke LIYE.
+    SIRF SUPERUSER ke liye Staff list, Lead Counts, aur Productivity Report deta hai.
+    [UPDATE]: 'total_lost_leads' count hata diya gaya hai.
+    """
+    
+    permission_classes = [IsAuthenticated, CustomIsSuperuser] 
+
+    def get(self, request, format=None):
+        user = request.user
+        
+        # --- 1. Superuser Logic: Saare Staff aur Leads ---
+        staff_list_qs = Staff.objects.all()
+        base_lead_qs = LeadUser.objects.all()
+        
+        # --- 2. Lead Counts (Total) ---
+        lead_counts = {
+            'total_leads': base_lead_qs.filter(status="Leads").count(),
+            'total_interested_leads': base_lead_qs.filter(status="Intrested").count(),
+            'total_not_interested_leads': base_lead_qs.filter(status="Not Interested").count(),
+            'total_other_location_leads': base_lead_qs.filter(status="Other Location").count(),
+            'total_not_picked_leads': base_lead_qs.filter(status="Not Picked").count(),
+            # --- [FIX] ---
+            # 'total_lost_leads': base_lead_qs.filter(status="Lost").count(), # <-- YEH LINE HATA DI HAI
+            # --- [FIX ENDS] ---
+            'total_visits_leads': base_lead_qs.filter(status="Visit").count()
+        }
+
+        # --- 3. Productivity Data (Calendar/Salary) ---
+        year = int(request.query_params.get('year', datetime.now().year))
+        month = int(request.query_params.get('month', datetime.now().month))
+        
+        days_in_month = monthrange(year, month)[1]
+        
+        total_salary_all_staff = 0
+        productivity_data_all_staff = {} 
+
+        for staff in staff_list_qs:
+            salary = float(staff.salary or 0)
+            daily_salary = round(salary / days_in_month, 2) if days_in_month > 0 else 0
+
+            leads_data = LeadUser.objects.filter(
+                assigned_to=staff,
+                updated_date__year=year,
+                updated_date__month=month,
+                status='Intrested'
+            ).values('updated_date__day').annotate(count=Count('id'))
+
+            productivity_data_dict = {day: {'leads': 0, 'salary': 0} for day in range(1, days_in_month + 1)}
+            total_salary = 0
+
+            for lead in leads_data:
+                day = lead['updated_date__day']
+                if day in productivity_data_dict:
+                    leads_count = lead['count']
+                    productivity_data_dict[day]['leads'] = leads_count
+
+                    if leads_count >= 10:
+                        daily_earned_salary = daily_salary
+                    else:
+                        daily_earned_salary = round((daily_salary / 10) * leads_count, 2)
+
+                    productivity_data_dict[day]['salary'] = daily_earned_salary
+                    total_salary += daily_earned_salary
+
+            productivity_data_all_staff[staff.id] = {
+                'name': staff.name,
+                'productivity_data': productivity_data_dict, 
+                'total_salary': round(total_salary, 2)
+            }
+            total_salary_all_staff += total_salary
+
+        # --- 4. Calendar Structure ---
+        calendar_data = calendar.monthcalendar(year, month)
+        weekdays = list(calendar.day_name)
+        structured_calendar_data = []
+        for week in calendar_data:
+            week_data = []
+            for i, day in enumerate(week):
+                week_data.append({
+                    'day': day,
+                    'day_name': weekdays[i]
+                })
+            structured_calendar_data.append(week_data)
+        
+        # --- 5. Month List for Dropdown ---
+        months_list = [{'id': i, 'name': calendar.month_name[i]} for i in range(1, 13)]
+
+        # --- 6. Serialize and Respond ---
+        staff_list_serializer = ApiStaffSerializer(staff_list_qs, many=True)
+        
+        # --- [TOTAL EARNING FIX] ---
+        total_earning_aggregation = Sell_plot.objects.filter(staff__in=staff_list_qs).aggregate(total_earn=Sum('earn_amount'))
+        total_earning = total_earning_aggregation.get('total_earn') or 0
+        lead_counts['total_earning'] = total_earning
+        
+        response_data = {
+            'lead_counts': lead_counts,
+            'staff_list': staff_list_serializer.data,
+            'productivity_report': {
+                'total_salary_all_staff': round(total_salary_all_staff, 2),
+                'staff_productivity_details': productivity_data_all_staff 
+            },
+            'calendar_structure': structured_calendar_data,
+            'dropdown_data': {
+                'months': months_list
+            }
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
