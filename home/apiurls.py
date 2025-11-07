@@ -84,7 +84,11 @@ urlpatterns = [
     path('api/activitylogs/', api.ActivityLogsAPIView.as_view(), name='api_activity_logs'),
 
 
+    #team leader dashbord supeuserside
+    path('api/superuser/team-leader-dashboard/', api.SuperUserTeamLeaderDashboardAPIView.as_view(), name='api_superuser_team_leader_dashboard'),
 
+    # for staff dashbord  
+    path('api/superuser/staff-report/', api.SuperUserStaffReportAPIView.as_view(), name='api_superuser_staff_report'),
 
 
     path('api/admin/team-leader-report/', api.AdminTeamLeaderReportAPIView.as_view(), name='api_admin_team_leader_report'),
