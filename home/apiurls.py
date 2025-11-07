@@ -104,15 +104,15 @@ urlpatterns = [
     path('api/admin/staff-report/', api.StaffReportAPIView.as_view(), name='api_admin_staff_report'),
     path('api/admin/add-staff/', api.AdminStaffAddAPIView.as_view(), name='api_admin_add_staff'),
     
-    #teamleader list 
+    #teamleader superuserside list 
     path('api/superuser/get-team-leaders/', api.SuperUserTeamLeaderListAPIView.as_view(), name='api_superuser_get_team_leaders'),
     #staff edit admin dashboard
     path('api/admin/staff/edit/<int:id>/', api.AdminStaffEditAPIView.as_view(), name='api_admin_staff_edit'),
 
 
 
-
-
+    #ADMINDASHBOARDAPI 2ND PART
+    
 
 
 

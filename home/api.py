@@ -2536,7 +2536,7 @@ class AdminProductivityAPIView(APIView):
     API fetches total productivity (aggregated leads/calls) for ALL Admin users.
     (Views.py ka 'admin_productivity_view' function)
     """
-    permission_classes = [IsAdminUser] # Sirf Superuser chala sakta hai
+    permission_classes = [IsAuthenticated , CustomIsSuperuser] # Sirf Superuser chala sakta hai
     
     def get(self, request, *args, **kwargs):
         
@@ -2686,7 +2686,7 @@ class FreelancerProductivityAPIView(APIView):
     API fetches total productivity (aggregated leads/calls) for ALL Freelancers, 
     filtered by Admin/TL and date range.
     """
-    permission_classes = [IsManagerOrAdmin] # Superuser, Admin, TL chala sakte hain
+    permission_classes = [IsAuthenticated , CustomIsSuperuser] # Superuser, Admin, TL chala sakte hain
     
     def get(self, request, *args, **kwargs):
         
@@ -2825,7 +2825,7 @@ class FreelancerProductivityAPIView(APIView):
 
 
 @api_view(['GET']) # Yeh API sirf GET request legi
-@permission_classes([IsAuthenticated]) # Sirf logged-in user
+@permission_classes([IsAuthenticated , CustomIsSuperuser]) # Sirf logged-in user
 def get_team_leader_dashboard_api(request):
 
     user = request.user
@@ -2906,7 +2906,7 @@ def get_team_leader_dashboard_api(request):
 
 class TeamCustomerLeadsAPIView(APIView):
  
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated , CustomIsSuperuser]
     pagination_class = StandardResultsSetPagination
     
     def get(self, request, tag, format=None):
@@ -2991,7 +2991,7 @@ class TeamCustomerLeadsAPIView(APIView):
 # API: EXPORT LEADS (STATUS WISE) [FINAL FIX 2]
 # ==========================================================
 class ExportLeadsStatusWiseAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated , CustomIsSuperuser]
 
     def post(self, request, *args, **kwargs):
         # 1. Input ko naye serializer se Validate karo
@@ -3088,7 +3088,7 @@ class ExportLeadsStatusWiseAPIView(APIView):
 # ==========================================================
 class TeamLeadLeadsReportAPIView(APIView):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated , CustomIsSuperuser]
     pagination_class = StandardResultsSetPagination # Paginator set kiya
 
     def get(self, request, id, tag, format=None):
@@ -3133,7 +3133,7 @@ class AddSellPlotAPIView(APIView):
     GET: Form bharne ke liye Admins aur Staffs ki list deta hai.
     POST: Naya sell plot record banata hai.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated , CustomIsSuperuser]
 
     def get(self, request, id, format=None):
         """
@@ -3179,7 +3179,7 @@ class AddSellPlotAPIView(APIView):
 
 class VisitLeadsAPIView(APIView):
   
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated , CustomIsSuperuser]
     pagination_class = StandardResultsSetPagination
 
     def get(self, request, format=None):
@@ -3230,7 +3230,7 @@ class ProjectListCreateAPIView(APIView):
     GET: Saare projects ki list deta hai.
     POST: Naya project banata hai (file upload ke sath).
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated , CustomIsSuperuser]
     # File upload (media_file) ke liye parser classes
     parser_classes = [MultiPartParser, FormParser]
 
@@ -3270,7 +3270,7 @@ class ActivityLogsAPIView(APIView):
     API endpoint jo 'activitylogs' function ka logic handle karta hai.
     Yeh user role ke hisaab se activity logs nikaalta hai (paginated).
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated , CustomIsSuperuser]
     pagination_class = ActivityLogPagination # Custom pagination
 
     def get(self, request, format=None):
@@ -3341,7 +3341,7 @@ def get_user_type(user):
 # --- Naya API View ---
 
 @api_view(['POST']) # Original function POST method check kar raha tha
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated , CustomIsSuperuser])
 def update_lead_user_api(request, id):
     """
     API endpoint to update lead status, message, and follow-up.
@@ -3533,14 +3533,7 @@ class AdminTeamLeaderReportAPIView(APIView):
     
 
 
-# --- [AAPKI REQUIREMENT] ---
-# Yeh permission class check karti hai ki user Admin hai ya nahi
-class IsCustomAdminUser(permissions.BasePermission):
-    """
-    Custom permission to only allow users with is_admin=True.
-    """
-    def has_permission(self, request, view):
-        return request.user and request.user.is_authenticated and request.user.is_admin
+
 
 # --- Nayi API View Class ---
 # ==========================================================
@@ -4068,6 +4061,8 @@ class AdminStaffEditAPIView(APIView):
         # POST ko bhi PATCH ki tarah handle karo
         return self.patch(request, id, format)
     
+
+
 
 
 

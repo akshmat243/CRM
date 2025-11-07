@@ -133,7 +133,9 @@ class DashboardAdminSerializer(serializers.ModelSerializer):
     """
     Naye dashboard ke liye Admin model serializer.
     """
-    user = DashboardUserSerializer(read_only=True)
+ # home/serializers.py (Line ~153)
+
+    user = DashboardUserSerializer(read_only=True, source='self_user')
 
     class Meta:
         model = Admin
