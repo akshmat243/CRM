@@ -93,7 +93,7 @@ urlpatterns = [
 
     path('api/admin/team-leader-report/', api.AdminTeamLeaderReportAPIView.as_view(), name='api_admin_team_leader_report'),
     path('api/admin/add-team-leader/', api.TeamLeaderAddAPIView.as_view(), name='api_admin_add_team_leader'),
-    path('api/users/team-leader/edit/<int:id>/', api.TeamLeaderEditAPIView.as_view(), name='api-teamleader-edit'),
+  
 
     # 1. Superuser waali line
     path('api/superuser/staff-leads/<str:tag>/', api.SuperUserStaffLeadsAPIView.as_view(), name='api-superuser-staff-leads'),
@@ -106,6 +106,8 @@ urlpatterns = [
     
     #teamleader list 
     path('api/superuser/get-team-leaders/', api.SuperUserTeamLeaderListAPIView.as_view(), name='api_superuser_get_team_leaders'),
+    #staff edit admin dashboard
+    path('api/admin/staff/edit/<int:id>/', api.AdminStaffEditAPIView.as_view(), name='api_admin_staff_edit'),
 
 
 

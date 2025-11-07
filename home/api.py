@@ -234,7 +234,7 @@ class LoginApiView(APIView):
 class staff_assigned_leads(APIView):
 
     # authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated , CustomIsSuperuser]
 
     def get(self, request):
         
@@ -414,7 +414,7 @@ class StatusUpdateAPIView(APIView):
         return Response({"error": "Invalid data provided."}, status=status.HTTP_400_BAD_REQUEST)
     
 class AutoAssignLeadsAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated ,  CustomIsSuperuser]
 
     def post(self, request):
         user_email = request.user.email
@@ -449,7 +449,7 @@ class AutoAssignLeadsAPIView(APIView):
         return Response({"error": "You already have leads."}, status=status.HTTP_400_BAD_REQUEST)
     
 class LeadsReportAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated , CustomIsSuperuser]
 
     def get(self, request):
         res = {}
@@ -471,7 +471,7 @@ class LeadsReportAPIView(APIView):
         return Response(res, status=status.HTTP_200_OK)
     
 class LeadHistoryAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated , CustomIsSuperuser]
 
     def get(self, request):
         res = {}
@@ -492,7 +492,7 @@ class LeadHistoryAPIView(APIView):
         return Response(res, status=status.HTTP_200_OK)
 
 class AddLeadBySelfAPI(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated , CustomIsSuperuser]
     parser_classes = (MultiPartParser, FormParser) # form-data ke liye
 
     def post(self, request):
@@ -563,7 +563,7 @@ class AddLeadBySelfAPI(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 class StaffProfileAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated , CustomIsSuperuser]
 
     def get(self, request):
         staff_instance = get_object_or_404(Staff, email=request.user.email)
@@ -603,7 +603,7 @@ class StaffProfileAPIView(APIView):
         return Response({"success": "Your profile has been successfully updated."}, status=status.HTTP_200_OK)
     
 class EditRecordAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated , CustomIsSuperuser]
 
     def get(self, request, source):
         user = request.user
@@ -629,7 +629,7 @@ class EditRecordAPIView(APIView):
 
 
 class UpdateRecordAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated , CustomIsSuperuser]
 
     def post(self, request):
         data = request.data
@@ -672,7 +672,7 @@ class CustomPagination(PageNumberPagination):
     max_page_size = 1000
 
 class ActivityLogsAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated , CustomIsSuperuser]
 
     def get(self, request):
         user = request.user
@@ -696,7 +696,7 @@ class ActivityLogsAPIView(APIView):
     
 
 class IncentiveSlabStaffView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated , CustomIsSuperuser]
 
     def get(self, request, staff_id):
 
@@ -895,7 +895,7 @@ class SuperUserDashboardAPIView(APIView):
     Super User Dashboard ke liye API, date filtering ke saath.
     Sirf superusers ke liye accessible hai.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAuthenticated , CustomIsSuperuser]
 
     def get(self, request, *args, **kwargs):
         # Admin profile get karo
@@ -1000,7 +1000,7 @@ class AdminSideLeadsRecordAPIView(APIView):
     """
     Admin dashboard se leads ko status tag ke hisaab se filter karne ke liye API.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminUser , CustomIsSuperuser]
 
     def get(self, request, tag, *args, **kwargs):
         # Default (khaali) querysets
@@ -1062,7 +1062,7 @@ class ExcelUploadAPIView(APIView):
     """
     Excel (.xlsx) ya CSV (.csv) file se leads upload karne ke liye API.
     """
-    permission_classes = [IsAuthenticated] # User ka login hona zaroori hai
+    permission_classes = [IsAuthenticated , CustomIsSuperuser] # User ka login hona zaroori hai
     parser_classes = (MultiPartParser, FormParser) # File uploads ke liye zaroori
 
 # home/api.py -> ExcelUploadAPIView ke andar
@@ -1189,7 +1189,7 @@ class FreelancerDashboardAPIView(APIView):
     API for the Super Admin's Freelancer (Associates) Dashboard.
     [FIXED] Ab yeh sahi cards (Total Earning) dikhayega.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAuthenticated , CustomIsSuperuser]
 
     def get(self, request, *args, **kwargs):
         
@@ -1234,7 +1234,7 @@ class ITStaffListAPIView(APIView):
     """
     API for the Super Admin's IT Staff list page.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAuthenticated , CustomIsSuperuser]
 
     def get(self, request, *args, **kwargs):
         
@@ -1261,7 +1261,7 @@ class AttendanceCalendarAPIView(APIView):
     """
     API provides calendar data, present/absent counts, and color status for each day.
     """
-    permission_classes = [IsAuthenticated] 
+    permission_classes = [IsAuthenticated ] 
     
     def get(self, request, id, *args, **kwargs):
         
@@ -1362,7 +1362,7 @@ class StaffProductivityAPIView(APIView):
     API for the Staff Productivity page.
     Calculates leads, calls, and percentages for staff based on user role and filters.
     """
-    permission_classes = [IsManagerOrAdmin] # Use the custom permission
+    permission_classes = [IsAuthenticated , CustomIsSuperuser] # Use the custom permission
 
     def get(self, request, *args, **kwargs):
         # 1. Get Filters from query params
@@ -1552,7 +1552,7 @@ class TeamLeaderProductivityAPIView(APIView):
     API for the Team Leader Productivity page.
     [FIXED] Ab yeh date, endDate, aur no-date, teeno filters ko sahi se handle karega.
     """
-    permission_classes = [IsManagerOrAdmin] # Sirf admin/superuser hi dekh sakte hain
+    permission_classes = [IsAuthenticated, CustomIsSuperuser] # Sirf admin/superuser hi dekh sakte hain
 
     def get(self, request, *args, **kwargs):
         # 1. Get Filters from query params
@@ -1742,7 +1742,7 @@ class AdminAddAPIView(APIView):
     """
     API Superuser ke liye naya Admin user banane ke liye.
     """
-    permission_classes = [IsAdminUser] # Sirf Superuser hi Admin add kar sakta hai
+    permission_classes = [IsAuthenticated, CustomIsSuperuser] # Sirf Superuser hi Admin add kar sakta hai
     parser_classes = (MultiPartParser, FormParser) # File upload (profile_image) ke liye
 
     def post(self, request, *args, **kwargs):
@@ -1773,7 +1773,7 @@ class AdminEditAPIView(APIView):
     """
     API ek Admin ki profile ko Get aur Update karne ke liye.
     """
-    permission_classes = [IsAdminUser] # Sirf Superuser hi edit kar sakta hai
+    permission_classes = [IsAuthenticated, CustomIsSuperuser] # Sirf Superuser hi edit kar sakta hai
     parser_classes = (MultiPartParser, FormParser) # profile_image upload ke liye
 
     def get_object(self, id):
@@ -1826,7 +1826,7 @@ class StandardResultsSetPagination(PageNumberPagination):
 # ===================================================================
 class TeamCustomerLeadsAPIView(APIView):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated , CustomIsSuperuser]
     pagination_class = StandardResultsSetPagination # Reuse pagination
 
     @property
@@ -1944,7 +1944,7 @@ class ToggleUserActiveAPIView(APIView):
     API to toggle the 'user_active' status for Staff, Admin, or TeamLeader.
     [FIXED] Ab yeh 'is_active' ko string ("true" ya "false") ki tarah handle karega.
     """
-    permission_classes = [IsManagerOrAdmin] # Sirf manager/admin hi yeh kar sakte hain
+    permission_classes = [IsAuthenticated, CustomIsSuperuser] # Sirf manager/admin hi yeh kar sakte hain
 
     def post(self, request, *args, **kwargs):
         # request.data 'form-data' aur 'json' dono handle karta hai
@@ -2120,7 +2120,7 @@ class StaffAddAPIView(APIView):
     (Team Leader, Admin, ya Superuser chala sakta hai)
     [FIXED] UnboundLocalError ko fix kiya gaya hai.
     """
-    permission_classes = [IsManagerOrAdmin] # Sirf manager/admin hi add kar sakte hain
+    permission_classes = [CustomIsSuperuser] # Sirf manager/admin hi add kar sakte hain
     parser_classes = (MultiPartParser, FormParser) # File upload (profile_image) ke liye
 
     def post(self, request, *args, **kwargs):
@@ -2159,7 +2159,7 @@ class TeamLeaderAddAPIView(APIView):
     API naya Team Leader user banane ke liye.
     (Superuser ya Admin chala sakta hai)
     """
-    permission_classes = [IsManagerOrAdmin] # Sirf manager/admin hi add kar sakte hain
+    permission_classes = [CustomIsSuperuser] # Sirf manager/admin hi add kar sakte hain
     parser_classes = (MultiPartParser, FormParser) # File upload (profile_image) ke liye
 
     def post(self, request, *args, **kwargs):
@@ -2189,15 +2189,21 @@ class TeamLeaderAddAPIView(APIView):
     
 
 
+# home/api.py
 
 # ===================================================================
-# NAYA TEAM LEADER EDIT API (GET / PATCH)
+# NAYA TEAM LEADER EDIT API (GET / PATCH) [PERMISSION FIX]
 # ===================================================================
 class TeamLeaderEditAPIView(APIView):
     """
     API ek Team Leader ki profile ko Get aur Update karne ke liye (teamedit function).
+    [FIX]: Ab yeh SIRF SUPERUSER ko allow karega.
     """
-    permission_classes = [IsManagerOrAdmin] # Sirf Superuser/Admin hi edit kar sakte hain
+    
+    # --- [YEH RAHA PERMISSION FIX] ---
+    # IsCustomAdminUser ko CustomIsSuperuser se badal diya
+    permission_classes = [IsAuthenticated, CustomIsSuperuser] 
+    
     parser_classes = (MultiPartParser, FormParser) # profile_image upload ke liye
 
     def get_object(self, id):
@@ -2235,7 +2241,9 @@ class TeamLeaderEditAPIView(APIView):
         # Agar error aaye
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-
+    def post(self, request, id, *args, **kwargs):
+        # POST ko bhi PATCH ki tarah handle karo
+        return self.patch(request, id, format)
 
 
 
@@ -2247,7 +2255,7 @@ class StaffEditAPIView(APIView):
     """
     API ek Staff/Freelancer ki profile ko Get aur Update karne ke liye.
     """
-    permission_classes = [IsManagerOrAdmin] # Sirf Admin/TL/Superuser hi edit kar sakta hai
+    permission_classes = [CustomIsSuperuser] # Sirf Admin/TL/Superuser hi edit kar sakta hai
     parser_classes = (MultiPartParser, FormParser) # profile_image upload ke liye
 
     def get_object(self, id):
@@ -2291,7 +2299,7 @@ class StaffEditAPIView(APIView):
 # ===================================================================
 class IncentiveSlabStaffAPIView(APIView):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated , CustomIsSuperuser]
 
     def get(self, request, staff_id, *args, **kwargs):
 
@@ -2368,7 +2376,7 @@ class StaffProductivityCalendarAPIView(APIView):
     API fetches Staff productivity data (leads and calculated salary) 
     for a specific month and year, structured for a calendar view.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated , CustomIsSuperuser]
     
     def get(self, request, staff_id, *args, **kwargs):
         
@@ -2471,7 +2479,7 @@ class TeamLeaderParticularLeadsAPIView(APIView):
     """
     API fetches leads assigned to a specific staff member (ID) filtered by status tag.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated , CustomIsSuperuser]
     pagination_class = StandardResultsSetPagination # Reuse Standard pagination
 
     @property
@@ -3581,59 +3589,6 @@ class TeamLeaderAddAPIView(APIView):
     
 
 
-# ==========================================================
-# API: ADMIN - EDIT TEAM LEADER (GET/UPDATE)
-# ==========================================================
-class TeamLeaderEditAPIView(APIView):
-    """
-    API endpoint to Get and Update a Team Leader's profile.
-    Sirf Admin user hi ise access kar sakta hai.
-    GET: Current profile data laata hai.
-    PATCH/POST: Profile data ko update karta hai.
-    """
-    permission_classes = [IsAuthenticated, IsCustomAdminUser] # Sirf Admin ke liye
-    parser_classes = [MultiPartParser, FormParser] # File upload (profile_image) ke liye
-
-    def get_object(self, id):
-        # Helper function to get the object
-        return get_object_or_404(Team_Leader, id=id)
-
-    def get(self, request, id, format=None):
-        """
-        GET request: Team Leader ki current details return karta hai.
-        """
-        team_leader = self.get_object(id)
-        # Hum 'ProductivityTeamLeaderSerializer' (read serializer) ka istemal kar rahe hain
-        serializer = ProductivityTeamLeaderSerializer(team_leader) 
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def patch(self, request, id, format=None):
-        """
-        PATCH request: Team Leader ki profile ko update karta hai.
-        """
-        team_leader = self.get_object(id)
-        
-        # Hum 'TeamLeaderUpdateSerializer' (write serializer) ka istemal kar rahe hain
-        # 'instance=team_leader' batata hai ki is object ko update karna hai
-        # 'partial=True' batata hai ki saare fields bhejna zaroori nahi hai
-        serializer = TeamLeaderUpdateSerializer(instance=team_leader, data=request.data, partial=True) 
-        
-        if serializer.is_valid():
-            updated_instance = serializer.save()
-            
-            # Updated data ko 'read serializer' se wapas bhejo
-            read_serializer = ProductivityTeamLeaderSerializer(updated_instance)
-            return Response(read_serializer.data, status=status.HTTP_200_OK) 
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    def post(self, request, id, format=None):
-        """
-        POST request: Aapke view function se match karne ke liye, 
-        yeh PATCH ko hi call karega.
-        """
-        return self.patch(request, id, format)
-    
 
 
 
@@ -4046,3 +4001,74 @@ class SuperUserStaffReportAPIView(APIView):
         }
         
         return Response(response_data, status=status.HTTP_200_OK)
+    
+
+
+class AdminStaffEditAPIView(APIView):
+    """
+    API endpoint 'staffedit' function ke liye (Admin Dashboard).
+    GET: Staff ki current details laata hai.
+    PATCH: Staff ki profile ko update karta hai.
+    SIRF ADMIN hi ise access kar sakta hai.
+    """
+    
+    # Sirf Admin User (is_admin=True) hi access kar sakta hai
+    permission_classes = [IsAuthenticated, IsCustomAdminUser]
+    parser_classes = [MultiPartParser, FormParser] # File upload (profile_image) ke liye
+
+    def get_object(self, id):
+        # Helper function to get the object
+        return get_object_or_404(Staff, id=id)
+
+    def get(self, request, id, format=None):
+        """
+        GET request: Staff ki current details return karta hai.
+        """
+        staff = self.get_object(id)
+        
+        # Security check: Kya yeh Admin is staff ko edit kar sakta hai?
+        # (Hum check kar rahe hain ki staff ka admin, logged-in admin hai ya nahi)
+        admin_profile = Admin.objects.get(self_user=request.user)
+        if staff.team_leader.admin != admin_profile:
+             return Response(
+                {"error": "You do not have permission to edit this staff member."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        serializer = FullStaffSerializer(staff, context={'request': request}) 
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, id, format=None):
+        """
+        PATCH request: Staff ki profile ko update karta hai.
+        """
+        staff = self.get_object(id)
+
+        # Security check
+        admin_profile = Admin.objects.get(self_user=request.user)
+        if staff.team_leader.admin != admin_profile:
+             return Response(
+                {"error": "You do not have permission to edit this staff member."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # StaffUpdateSerializer ka istemal karo
+        serializer = StaffUpdateSerializer(instance=staff, data=request.data, partial=True) 
+        
+        if serializer.is_valid():
+            updated_instance = serializer.save()
+            
+            # Updated data ko 'FullStaffSerializer' se wapas bhejo
+            read_serializer = FullStaffSerializer(updated_instance, context={'request': request})
+            return Response(read_serializer.data, status=status.HTTP_200_OK) 
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def post(self, request, id, format=None):
+        # POST ko bhi PATCH ki tarah handle karo
+        return self.patch(request, id, format)
+    
+
+
+
+
