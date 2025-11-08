@@ -868,6 +868,9 @@ class SellPlotCreateSerializer(serializers.ModelSerializer):
         return value # Original string value return karo (aapke model ke hisaab se)
 
 
+    # home/serializers.py
+# (SellPlotCreateSerializer class ke andar)
+
     def create(self, validated_data):
         # 1. Staff instance dhoondo (Aapke original view logic se)
         
@@ -931,8 +934,11 @@ class SellPlotCreateSerializer(serializers.ModelSerializer):
                     slab_amount_base = int(slab.amount or 0)
                     if user_instance.user.is_freelancer:
                         slab_amount = slab_amount_base * size_in_gaj_int
-                    if user_instance.user.is_staff_new:
+                    
+                    # --- [YEH LINE FIX KI HAI] ---
+                    elif user_instance.user.is_staff_new: 
                         slab_amount = (slab_amount_base - 100) * size_in_gaj_int
+                    
                     myslab = f"{start_value}-{end_value}"
                     current_slab_amount = slab_amount_base
                     break
@@ -941,8 +947,11 @@ class SellPlotCreateSerializer(serializers.ModelSerializer):
                     slab_amount_base = int(slab.amount or 0)
                     if user_instance.user.is_freelancer:
                         slab_amount = slab_amount_base * size_in_gaj_int
-                    if user_instance.user.is_staff_new:
+                    
+                    # --- [YEH LINE BHI FIX KI HAI] ---
+                    elif user_instance.user.is_staff_new:
                         slab_amount = (slab_amount_base - 100) * size_in_gaj_int
+                    
                     myslab = f"{start_value}+"
                     current_slab_amount = slab_amount_base
                     break
