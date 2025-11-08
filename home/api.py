@@ -4502,3 +4502,157 @@ class ProjectEditAPIView(APIView):
     def post(self, request, id, format=None):
         # POST ko bhi PATCH ki tarah handle karo
         return self.patch(request, id, format)
+    
+
+
+
+
+
+
+class SuperUserFreelancerLeadsAPIView(APIView):
+    """
+    API endpoint SIRF SUPERUSER ke liye, jo 'tag' ke hisaab se 
+    SIRF FREELANCERS (Associates) ke leads filter karta hai.
+    """
+    permission_classes = [IsAuthenticated, CustomIsSuperuser]
+    pagination_class = StandardResultsSetPagination 
+
+    def get(self, request, tag, format=None):
+        paginator = self.pagination_class()
+        
+        # --- [YEH HAI MAIN FILTER] ---
+        # Sirf woh leads laao jo 'is_freelancer=True' waale staff ko assigned hain
+        base_queryset = LeadUser.objects.filter(assigned_to__user__is_freelancer=True)
+        queryset = LeadUser.objects.none() 
+
+        today = timezone.now().date()
+        tomorrow = today + timedelta(days=1)
+        
+        status_map = {
+            'total_lead': 'Leads',
+            'visits': 'Visit',
+            'interested': 'Intrested',
+            'not_interested': 'Not Interested',
+            'other_location': 'Other Location',
+            'not_picked': 'Not Picked',
+            'lost': 'Lost',
+            'pending_followups': 'pending', # Special tags
+            'today_followups': 'today',
+            'tomorrow_followups': 'tomorrow'
+        }
+
+        # Check karo ki tag valid hai ya nahi
+        if tag not in status_map:
+            return Response(
+                {"error": f"Invalid tag: {tag}. Valid tags are: {list(status_map.keys())}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        status = status_map[tag]
+
+        # --- [FILTERING LOGIC] ---
+        if status == 'pending':
+            queryset = base_queryset.filter(Q(status='Intrested') & Q(follow_up_date__isnull=False))
+        elif status == 'today':
+            queryset = base_queryset.filter(Q(status='Intrested') & Q(follow_up_date=today))
+        elif status == 'tomorrow':
+            queryset = base_queryset.filter(Q(status='Intrested') & Q(follow_up_date=tomorrow))
+        else:
+            # Normal status filter (Leads, Visit, etc.)
+            queryset = base_queryset.filter(status=status)
+
+        queryset = queryset.order_by('-updated_date')
+        
+        page = paginator.paginate_queryset(queryset, request, view=self)
+        if page is not None:
+            serializer = ApiLeadUserSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
+        serializer = ApiLeadUserSerializer(queryset, many=True)
+        return Response(serializer.data)
+    
+
+
+
+
+
+
+
+# ==========================================================
+# API: SUPERUSER - TEAM LEADER DASHBOARD (LEADS LIST)
+# ==========================================================
+class SuperUserTeamLeaderLeadsAPIView(APIView):
+    """
+    API for Superuser's 'Team Leader List' dashboard (Cards click).
+    Fetches leads (Staff + TeamLeader) based on status tags.
+    """
+    permission_classes = [IsAuthenticated, CustomIsSuperuser]
+    pagination_class = StandardResultsSetPagination 
+
+    def get(self, request, tag, format=None):
+        paginator = self.pagination_class()
+        
+        # Default (khaali) querysets
+        staff_leads_qs = LeadUser.objects.none()
+        team_leads_qs = Team_LeadData.objects.none()
+
+        today = timezone.now().date()
+        tomorrow = today + timedelta(days=1)
+        
+        # --- [FILTERING LOGIC] ---
+        # Yeh logic 'SuperAdminDashboardAPIView' (cards waali API) se match karega
+        
+        if tag == "total_leads":
+            staff_leads_qs = LeadUser.objects.filter(status='Leads')
+            # Team_LeadData me 'Leads' status nahi hota (woh 'total_upload_leads' hota hai)
+            
+        elif tag == "total_visit":
+            staff_leads_qs = LeadUser.objects.filter(status='Visit')
+            # Team_LeadData me 'Visit' nahi hota (yeh 'lost_visit_staff' hai)
+
+        elif tag == "interested":
+            staff_leads_qs = LeadUser.objects.filter(status='Intrested')
+            # Team_LeadData me 'Interested' nahi hota
+
+        elif tag == "not_interested":
+            staff_leads_qs = LeadUser.objects.filter(status='Not Interested')
+
+        elif tag == "other_location":
+            staff_leads_qs = LeadUser.objects.filter(status='Other Location')
+
+        elif tag == "not_picked":
+            staff_leads_qs = LeadUser.objects.filter(status='Not Picked')
+
+        elif tag == "lost": # Yeh aapke dashboard function me tha
+             staff_leads_qs = LeadUser.objects.filter(status='Lost')
+        
+        # --- [FOLLOWUP TAGS] ---
+        elif tag == 'pending_followups':
+            staff_leads_qs = LeadUser.objects.filter(Q(status='Intrested') & Q(follow_up_date__isnull=False))
+        elif tag == 'today_followups':
+            staff_leads_qs = LeadUser.objects.filter(Q(status='Intrested') & Q(follow_up_date=today))
+        elif tag == 'tomorrow_followups':
+            staff_leads_qs = LeadUser.objects.filter(Q(status='Intrested') & Q(follow_up_date=tomorrow))
+            
+        else:
+            valid_tags = [
+                'total_leads', 'total_visit', 'interested', 'not_interested', 
+                'other_location', 'not_picked', 'lost', 
+                'pending_followups', 'today_followups', 'tomorrow_followups'
+            ]
+            return Response(
+                {"error": f"Invalid tag for this view: {tag}. Valid tags are: {valid_tags}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Dono querysets ko serialize karo
+        # (Is page par sirf LeadUser (Staff leads) hi dikhte hain)
+        staff_serializer = ApiLeadUserSerializer(staff_leads_qs.order_by('-updated_date'), many=True)
+
+        # Data ko paginate karo
+        page = paginator.paginate_queryset(staff_serializer.data, request, view=self)
+        
+        if page is not None:
+            return paginator.get_paginated_response(page)
+
+        return Response(staff_serializer.data, status=status.HTTP_200_OK)

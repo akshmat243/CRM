@@ -63,8 +63,11 @@ urlpatterns = [
         #lead  lead lead
     path('api/superuser/unassigned-leads/', api.SuperUserUnassignedLeadsAPIView.as_view(), name='api_superuser_unassigned_leads'),
 
+    #associates dashboard cards api url
+    path('api/superuser/freelancer-leads/<str:tag>/', api.SuperUserFreelancerLeadsAPIView.as_view(), name='api_superuser_freelancer_leads'),
 
-
+    #teamleader cards api 
+    path('api/superuser/team-leader-leads/<str:tag>/', api.SuperUserTeamLeaderLeadsAPIView.as_view(), name='api_superuser_team_leader_leads'),
 
 
 
