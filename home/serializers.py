@@ -799,6 +799,28 @@ class LeadExportSerializer(serializers.Serializer):
     
 
 
+# home/serializers.py (file ke end me add karo)
+
+# ==========================================================
+# NAYA SERIALIZER: SIMPLE TEAM LEADER (SIRF FLAT DATA KE LIYE)
+# ==========================================================
+class SimpleTeamLeaderSerializer(serializers.ModelSerializer):
+    """
+    Serializer jo Team Leader ki flat details dikhata hai (bina nested user/admin ke).
+    """
+    class Meta:
+        model = Team_Leader
+        # Yahaan 'user' aur 'admin' fields nahi hain
+        fields = [
+            'id', 'team_leader_id', 'name', 'email', 'mobile', 
+            'address', 'city', 'pincode', 'state', 'dob', 'pancard', 
+            'aadharCard', 'account_number', 'upi_id', 'bank_name', 
+            'ifsc_code', 'salary', 'achived_slab', 'created_date' 
+        ]
+        read_only_fields = ['created_date']    
+    
+
+
 
 
 # ==========================================================
