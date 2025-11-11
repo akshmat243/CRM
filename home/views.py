@@ -1582,6 +1582,7 @@ def add_team_leader_user(request):
     }
     return render(request, "admin_dashboard/add_team_leader_user.html", context)
 
+# home/views.py
 
 @login_required(login_url='login')
 def add_staff(request):
@@ -1595,10 +1596,27 @@ def add_staff(request):
         template = 'admin_dashboard/staff/base.html'
 
     all_admins = User.objects.filter(is_admin=True)
-    if request.user.is_admin:
-        all_teamleader = Team_Leader.objects.filter(admin__self_user=request.user)
-    else:
-        all_teamleader = Team_Leader.objects.filter(admin__self_user=request.user)
+    
+    # --- [FIX START] ---
+    # Yahan purana logic tha, use is naye logic se badal diya hai
+    
+    all_teamleader = Team_Leader.objects.none() # Pehle khaali set karo
+
+    if request.user.is_superuser:
+        # Superuser ko saare team leaders dikhne chahiye
+        all_teamleader = Team_Leader.objects.all()
+    
+    elif request.user.is_admin:
+        # Admin ko sirf apne team leaders dikhne chahiye (EMAIL SE)
+        all_teamleader = Team_Leader.objects.filter(admin__email=request.user.email)
+    
+    elif request.user.is_team_leader:
+        # Team Leader ko uske Admin ke baaki Team Leaders dikhne chahiye
+        team_leader_profile = Team_Leader.objects.filter(user=request.user).last()
+        if team_leader_profile and team_leader_profile.admin:
+            all_teamleader = Team_Leader.objects.filter(admin=team_leader_profile.admin)
+            
+    # --- [FIX END] ---
 
     if request.method == 'POST':
         username = request.POST['email']
@@ -1732,7 +1750,7 @@ def add_staff(request):
         'messages': messages.get_messages(request),
         'all_admins': all_admins,
         'template': template,
-        'all_teamleader': all_teamleader,
+        'all_teamleader': all_teamleader, # <-- Nayi query ab yahan pass ho rahi hai
     }
 
     return render(request, "admin_dashboard/staff/add_staff.html", context)
@@ -1947,6 +1965,10 @@ def staffedit(request, id):
         return redirect('add_freelancer_super_side')
     if request.user.is_superuser:
         return redirect('add_staff_admin_side')
+    # --- [YEH RAHA NAYA FIX] ---
+    if request.user.is_admin:
+        return redirect('add_staff_admin_side') # Admin ko Admin ke staff page par bhejo
+    # --- [FIX ENDS] ---
     return redirect('staff_user')
 
 
@@ -2126,79 +2148,117 @@ def bulk_from_data(request):
 
 
 def excel_upload(request):
-    if request.method == 'POST':
-        excel_file = request.FILES['excel_file']
-        df = pd.read_excel(excel_file)
-        user_count =df.shape[0]
-        duplicates = []
+    
+    # --- GET Request Logic (Page load hone par) ---
+    if request.method == 'GET':
+        users = Team_LeadData.objects.none() # Default empty rakho
         if request.user.is_team_leader:
-            team_leader = Team_Leader.objects.get(user=request.user)
+            team_leader = Team_Leader.objects.filter(user=request.user).last()
+            if team_leader:
+                users = Team_LeadData.objects.filter(assigned_to = None, team_leader=team_leader)
+        if request.user.is_superuser:
+            users = Team_LeadData.objects.filter(assigned_to = None)
+        
+        return render(request, "admin_dashboard/staff/importlead.html", {'users': users})
+
+    # --- POST Request Logic (File upload hone par) ---
+    if request.method == 'POST':
+        
+        # --- [FIX 1: File Check] ---
+        # .get() ka istemal kiya taaki code crash na ho agar file na mile
+        excel_file = request.FILES.get('excel_file')
+        if not excel_file:
+            messages.error(request, "No file was uploaded. Please select a file.")
+            # Yahan 'import_leads' aapke us page ka URL name hona chahiye jahan upload form hai
+            return redirect('import_leads') 
+
+        try:
+            if excel_file.name.endswith('.csv'):
+                # 'utf-8-sig' BOM (hidden characters) ko handle karta hai
+                df = pd.read_csv(excel_file, encoding='utf-8-sig') 
+            elif excel_file.name.endswith('.xlsx'):
+                df = pd.read_excel(excel_file, engine='openpyxl')
+            else:
+                messages.error(request, "Unsupported file format. Please upload a .csv or .xlsx file.")
+                return redirect('import_leads')
+        except Exception as e:
+            messages.error(request, f"Error reading file: {e}.")
+            return redirect('import_leads')
+
+        # --- [FIX 2: Column Header Check] ---
+        # Column headers ko clean karo (lowercase aur extra space hatao)
+        df.columns = df.columns.str.lower().str.strip()
+        
+        required_columns = ['name', 'call', 'send', 'status']
+        missing_cols = [col for col in required_columns if col not in df.columns]
+        
+        if missing_cols:
+            # Agar koi column missing hai, toh error dikhao aur crash hone se bacho
+            messages.error(request, f"File is missing required columns: {', '.join(missing_cols)}")
+            return redirect('import_leads')
+        # --- [FIX 2 ENDS] ---
+
+        user_count = df.shape[0]
+        duplicates = []
+        created_count = 0
+        team_leader = None # Ise pehle define karo
+        
+        if request.user.is_team_leader:
+            try:
+                team_leader = Team_Leader.objects.get(user=request.user)
+            except Team_Leader.DoesNotExist:
+                messages.error(request, "Your Team Leader profile could not be found.")
+                return redirect('import_leads')
 
         for i, row in df.iterrows():
-            if not row['name'] or pd.isna(row['name']):
-                continue
-            if not row['status'] == "Leads":
-                continue
             try:
-                if Team_LeadData.objects.filter(call=row['call']).exists():
-                    duplicates.append(row['call'])
+                # Ab yeh code safe hai, kyunki humne columns pehle hi check kar liye hain
+                name = row['name']
+                call = row['call']
+                status_val = row['status']
+                send_val = row['send']
+
+                # --- [FIX 3: Status Check (case insensitive)] ---
+                # 'Leads' aur 'leads' dono ko handle karega
+                if not name or pd.isna(name) or not str(status_val).lower() == "leads":
+                    continue
+                
+                if Team_LeadData.objects.filter(call=call).exists():
+                    duplicates.append(call)
                     continue
 
                 if request.user.is_team_leader:
-                    # lead_user, created = Team_LeadData.objects.get_or_create(
-                    created = Team_LeadData.objects.create(
-                        call=row['call'],
-                        name= row['name'],
-                        send= row['send'],
-                        #status= "Leads",
-                        status= row['status'],
-                        team_leader= team_leader,
-                        user= request.user
-                        # defaults={
-                        #     'name': row['name'],
-                        #     'send': row['send'],
-                        #     'status': row['status'],
-                        #     'team_leader': team_leader,
-                        #     'user': request.user
-                        # }
+                    Team_LeadData.objects.create(
+                        call=call,
+                        name=name,
+                        send=send_val,
+                        status=status_val,
+                        team_leader=team_leader,
+                        user=request.user
                     )
-                if request.user.is_superuser:
-                    # lead_user, created = Team_LeadData.objects.get_or_create(
-                    created = Team_LeadData.objects.create(
-                        call=row['call'],
-                        # defaults={
-                        name= row['name'],
-                        send= row['send'],
-                        #status= "Leads",
-                        status= row['status'],
-                        # 'team_leader': team_leader,
-                        user= request.user
-                        # }
+                    created_count += 1
+                
+                elif request.user.is_superuser:
+                    Team_LeadData.objects.create(
+                        call=call,
+                        name=name,
+                        send=send_val,
+                        status=status_val,
+                        user=request.user
                     )
-                # if not created:
-                #     lead_user.name = row['name']
-                #     lead_user.send = row['send']
-                #     lead_user.status = row['status']
-                #     if request.user.is_team_leader:
-                #         lead_user.team_leader = team_leader
-                #     lead_user.user = request.user
-                #     lead_user.save()
-            except IntegrityError:
-                duplicates.append(row['call'])
-                continue
+                    created_count += 1
 
-        message = "Excel file uploaded successfully!"
-        users = Team_LeadData.objects.all()
+            except IntegrityError:
+                duplicates.append(call)
+                continue
+            except Exception as e:
+                messages.error(request, f"An error occurred while processing row {i}: {e}")
+                return redirect('import_leads')
+
+        message = f"Excel file uploaded! Total: {user_count}, Created: {created_count}, Duplicates: {len(duplicates)}"
+        messages.success(request, message) 
 
         return redirect("lead")
-        # return render(request, "admin_dashboard/staff/lead.html", {'message': message, 'users': users, 'duplicates': duplicates, 'user_count':user_count})
-    if request.user.is_team_leader:
-        users = Team_LeadData.objects.filter(assigned_to = None, team_leader=team_leader)
-    if request.user.is_superuser:
-        users = Team_LeadData.objects.filter(assigned_to = None,)
-    return render(request, "admin_dashboard/staff/importlead.html", {'users': users})
-
-
 
 @login_required(login_url='login')
 def leads(request):
@@ -3177,7 +3237,7 @@ def export_leads_status_wise_staff(request):
                 'Name': lead.name,
                 'Call': lead.call,
                 'Status': lead.status,
-                'staff Name': lead.assigned_to.name,
+                'staff Name': lead.assigned_to.name if lead.assigned_to else 'N/A',
                 'Message': lead.message,
                 'Date': localtime(lead.updated_date).strftime('%Y-%m-%d %H:%M:%S'),
             })
@@ -5467,6 +5527,8 @@ def incentive_slap_staff(request, staff_id):
     }
     return render(request, 'admin_dashboard/staff/incentive_slap_staff.html', context)
 
+# home/views.py
+
 def add_sell_freelancer(request, id):
     if request.method == "GET":
         admins = Admin.objects.all()
@@ -5485,93 +5547,128 @@ def add_sell_freelancer(request, id):
         return render(request, 'admin_dashboard/staff/add_sell.html', context)
     
     if request.method == "POST":
-        project_name = request.POST['project_name']
+        
+        # --- [FIX 1 & 2] ---
+        # .get() ka istemal kiya aur 'plot_no' key ko theek kiya
+        project_name = request.POST.get('project_name')
         project_location = request.POST.get('project_location', None)
         description = request.POST.get('description', None)
-        size_in_gaj = request.POST['size_in_gaj']
-        plot_no = request.POST.get('amount_per_gaj', None)
-        date = request.POST['date']
+        size_in_gaj = request.POST.get('size_in_gaj')      # FIX: ['size_in_gaj'] se .get('size_in_gaj') kiya
+        plot_no = request.POST.get('plot_no', None)           # FIX: 'amount_per_gaj' se 'plot_no' kiya
+        date = request.POST.get('date')                   # FIX: ['date'] se .get('date') kiya
         admin_id = request.POST.get('admin', None)
         team_leader_id = request.POST.get('team_leader', None)
         staff_id = request.POST.get('staff', None)
 
+        # --- [FIX 3] ---
+        # Validation check taaki code crash na ho agar required data missing hai
+        if not project_name or not size_in_gaj or not date:
+            context = {'id': id, 'error': 'Project Name, Size (Gaj), and Date are required.'}
+            # Template ko render karne ke liye context dobara banana padega
+            admins = Admin.objects.all()
+            if request.user.is_team_leader:
+                context['staffs'] = Staff.objects.filter(team_leader__email=request.user.email)
+            context['admins'] = admins
+            return render(request, 'admin_dashboard/staff/add_sell.html', context)
+
+
+        # --- [FIX 4] ---
+        # Instance checks taaki code crash na ho agar koi object na mile
         user = request.user.email
         if id != 0:
             user_instance = Staff.objects.filter(id=id).last()
         else:
             user_instance = Staff.objects.filter(id=staff_id).last()
+
+        if not user_instance:
+            context = {'id': id, 'error': f'Staff not found with id {staff_id or id}.'}
+            # Re-populate context...
+            return render(request, 'admin_dashboard/staff/add_sell.html', context)
+        
         team_leader_insatnce = user_instance.team_leader
+
+        if not team_leader_insatnce:
+            context = {'id': id, 'error': f'Team Leader not found for staff {user_instance.name}.'}
+            # Re-populate context...
+            return render(request, 'admin_dashboard/staff/add_sell.html', context)
+
         admin_instance = team_leader_insatnce.admin
-        # freelance_referral_code = user_instance.referral_code
+        
+        if not admin_instance:
+            context = {'id': id, 'error': f'Admin not found for team leader {team_leader_insatnce.name}.'}
+            # Re-populate context...
+            return render(request, 'admin_dashboard/staff/add_sell.html', context)
+
+
+        # --- [FIX 5] ---
+        # int() crashes ko rokne ke liye int(variable or 0) ka istemal
+        
+        # Pehle size_in_gaj ko safe integer me convert karo
+        size_in_gaj_int = int(size_in_gaj or 0)
+
         staff_slab = user_instance.achived_slab
         if staff_slab is None:
-            user_instance.achived_slab = size_in_gaj
-            user_instance.save()
+            user_instance.achived_slab = size_in_gaj_int
         else:
-            update_staff_slab = int(staff_slab) + int(size_in_gaj)
+            update_staff_slab = int(staff_slab or 0) + size_in_gaj_int
             user_instance.achived_slab = update_staff_slab
-            user_instance.save()
+        user_instance.save()
 
         team_lead_slab = team_leader_insatnce.achived_slab
-        admin_slab = admin_instance.achived_slab
-
         if team_lead_slab is None:
-            team_leader_insatnce.achived_slab = size_in_gaj
-            team_leader_insatnce.save()
+            team_leader_insatnce.achived_slab = size_in_gaj_int
         else:
-            update_staff_slab1 = int(team_lead_slab) + int(size_in_gaj)
+            update_staff_slab1 = int(team_lead_slab or 0) + size_in_gaj_int
             team_leader_insatnce.achived_slab = update_staff_slab1
-            team_leader_insatnce.save()
+        team_leader_insatnce.save()
 
+        admin_slab = admin_instance.achived_slab
         if admin_slab is None:
-            admin_instance.achived_slab = size_in_gaj
-            admin_instance.save()
+            admin_instance.achived_slab = size_in_gaj_int
         else:
-            update_staff_slab2 = int(admin_slab) + int(size_in_gaj)
+            update_staff_slab2 = int(admin_slab or 0) + size_in_gaj_int
             admin_instance.achived_slab = update_staff_slab2
-            admin_instance.save()
-
-        # if freelance_referral_code is not None:
-        #     freelance_instance = Staff.objects.filter(referral_code=freelance_referral_code).last()
-        #     freelance_slab = freelance_instance.achived_slab
-        #     if freelance_slab is None:
-        #         freelance_instance.achived_slab = size_in_gaj
-        #         freelance_instance.save()
-        #     else:
-        #         update_freelance_slab = int(freelance_slab) + int(size_in_gaj)
-        #         freelance_instance.achived_slab = update_freelance_slab
-        #         freelance_instance.save()
+        admin_instance.save()
         
-        current_slab = int(user_instance.achived_slab)
-        current_team_leader_slab = int(team_leader_insatnce.achived_slab)
-        current_admin_slab = int(admin_instance.achived_slab)
+        current_slab = int(user_instance.achived_slab or 0)
+        current_team_leader_slab = int(team_leader_insatnce.achived_slab or 0)
+        current_admin_slab = int(admin_instance.achived_slab or 0)
+        
         slabs = Slab.objects.all()
 
+        # --- [FIX 6] ---
+        # Variables ko loop se pehle initialize karo
+        slab_amount = 0
+        myslab = "N/A"
+        current_slab_amount = 0
+
         for slab in slabs:
-            start_value = int(slab.start_value)
+            start_value = int(slab.start_value or 0) # [FIX 5]
 
             if slab.end_value is not None:
-                end_value = int(slab.end_value)
+                end_value = int(slab.end_value or 0) # [FIX 5]
 
                 if start_value <= current_slab <= end_value:
+                    slab_amount_base = int(slab.amount or 0) # [FIX 5]
                     if user_instance.user.is_freelancer:
-                        slab_amount = int(slab.amount) * int(size_in_gaj)
+                        slab_amount = slab_amount_base * size_in_gaj_int
                     if user_instance.user.is_staff_new:
-                        slab_amount = int(int(slab.amount) - int(100)) * int(size_in_gaj)
-                    myslab = str(start_value) + '-' + str(end_value)
-                    current_slab_amount = slab.amount
+                        slab_amount = (slab_amount_base - 100) * size_in_gaj_int
+                    
+                    myslab = f"{start_value}-{end_value}"
+                    current_slab_amount = slab_amount_base
                     break
-
             else:
                 if current_slab >= start_value:
+                    slab_amount_base = int(slab.amount or 0) # [FIX 5]
                     if user_instance.user.is_freelancer:
-                        slab_amount = int(slab.amount) * int(size_in_gaj)
+                        slab_amount = slab_amount_base * size_in_gaj_int
                     if user_instance.user.is_staff_new:
-                        slab_amount = int(int(slab.amount) - int(100)) * int(size_in_gaj)
-                    myslab = str(start_value) + '+'
-                    current_slab_amount = slab.amount
+                        slab_amount = (slab_amount_base - 100) * size_in_gaj_int
+                    
+                    myslab = f"{start_value}+"
+                    current_slab_amount = slab_amount_base
                     break
-
 
         sell = Sell_plot.objects.create(
             admin = admin_instance,
@@ -5580,7 +5677,7 @@ def add_sell_freelancer(request, id):
             project_name = project_name,
             project_location = project_location,
             description = description,
-            size_in_gaj = size_in_gaj,
+            size_in_gaj = size_in_gaj, # Model me string save kar rahe hain (original logic)
             plot_no = plot_no,
             date = date,
             earn_amount = slab_amount,
@@ -5588,6 +5685,7 @@ def add_sell_freelancer(request, id):
             slab_amount = current_slab_amount,
         )
         return redirect('add_sell_freelancer', 0)
+        
     return render(request, 'admin_dashboard/staff/add_sell.html', {'id':id})
 
 def add_freelancer_super_side(request):
