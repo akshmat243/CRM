@@ -178,11 +178,14 @@ class ApiLeadUserSerializer(serializers.ModelSerializer):
     Staff ke Leads (LeadUser model) ke liye serializer.
     """
     assigned_to = ApiStaffSerializer(read_only=True)
+    team_leader = serializers.CharField(source='team_leader.name', read_only=True)
+    follow_up_date = serializers.DateField(format="%Y-%m-%d")
+    follow_up_time = serializers.TimeField(format="%H:%M:%S", allow_null=True)
     
     class Meta:
         model = LeadUser
         fields = [
-            'id', 'name', 'email', 'call', 'send', 'status', 'message', 
+            'id', 'name', 'email', 'call', 'send', 'status', 'message', 'team_leader',
             'follow_up_date', 'follow_up_time', 'created_date', 'assigned_to'
         ]
 

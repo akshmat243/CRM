@@ -472,23 +472,24 @@ class LeadsReportAPIView(APIView):
         return Response(res, status=status.HTTP_200_OK)
     
 class LeadHistoryAPIView(APIView):
-    permission_classes = [IsAuthenticated , CustomIsSuperuser]
+    permission_classes = [IsAuthenticated, CustomIsSuperuser]
 
     def get(self, request):
         res = {}
-        lead_id = request.data.get('lead_id')
+        # Get lead_id from query parameters, not request.data
+        lead_id = request.query_params.get('lead_id')
 
         if lead_id is None:
-            res['status'] = True
-            res['message'] = "lead id is required."
+            res['status'] = False
+            res['message'] = "lead_id is required."
             res['data'] = []
-            return Response(res, status=status.HTTP_200_OK)
-        
-        users_lead_lost = Leads_history.objects.filter(lead_id=lead_id,).order_by('-updated_date')
+            return Response(res, status=status.HTTP_400_BAD_REQUEST)
+
+        users_lead_lost = Leads_history.objects.filter(lead_id=lead_id).order_by('-updated_date')
         serializer = LeadsHistorySerializer(users_lead_lost, many=True)
 
         res['status'] = True
-        res['message'] = "leads history fetch successfully."
+        res['message'] = "Leads history fetched successfully."
         res['data'] = serializer.data
         return Response(res, status=status.HTTP_200_OK)
 
@@ -1892,17 +1893,17 @@ class TeamCustomerLeadsAPIView(APIView):
             if tag == 'pending_follow':
                 interested_leads_qs = LeadUser.objects.filter(
                     Q(status='Intrested') & Q(follow_up_date__isnull=False)
-                ).order_by('-updated_date')
+                ).order_by('-updated_date').select_related('team_leader')
             elif tag == 'today_follow':
                 interested_leads_qs = LeadUser.objects.filter(
                     Q(status='Intrested') & Q(follow_up_date=today)
-                ).order_by('-updated_date')
+                ).order_by('-updated_date').select_related('team_leader')
             elif tag == 'tommorrow_follow':
                 interested_leads_qs = LeadUser.objects.filter(
                     Q(status='Intrested') & Q(follow_up_date=tomorrow)
-                ).order_by('-updated_date')
+                ).order_by('-updated_date').select_related('team_leader')
             else: # 'else' matlab koi bhi tag ya default 'interested' tag
-                interested_leads_qs = LeadUser.objects.filter(status='Intrested').order_by('-updated_date')
+                interested_leads_qs = LeadUser.objects.filter(status='Intrested').order_by('-updated_date').select_related('team_leader')
             
             serializer_class = ApiLeadUserSerializer
 
@@ -3205,49 +3206,68 @@ class AddSellPlotAPIView(APIView):
 
 
 
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 50
+    page_size_query_param = 'page_size'
+    max_page_size = 1000
+
 class VisitLeadsAPIView(APIView):
-  
-    permission_classes = [IsAuthenticated , CustomIsSuperuser]
+    permission_classes = [IsAuthenticated, CustomIsSuperuser]  # Add your custom permission class if needed
     pagination_class = StandardResultsSetPagination
 
-    def get(self, request, format=None):
-        paginator = self.pagination_class()
-        user = request.user
-        
-        # Team leader instance (jo 'is_team_leader' aur 'else' dono me use hota hai)
-        team_leader_instance = Team_Leader.objects.filter(email=user.email).last()
+    def get(self, request, tag, format=None):
+        today = timezone.now().date()
+        tomorrow = today + timedelta(days=1)
+        user_email = request.user.email
+        team_leader = Team_Leader.objects.filter(email=user_email).last()
 
-        queryset = None
-        serializer_class = None # Hum ise role ke hisaab se set karenge
+        search_query = request.query_params.get('search', '')
 
-        if user.is_superuser:
-            queryset = LeadUser.objects.filter(status='Visit').order_by('-updated_date')
-            serializer_class = ApiLeadUserSerializer # Superuser LeadUser model dekhta hai
-        
-        elif user.is_team_leader:
-            if not team_leader_instance:
-                 return Response({"error": "Team Leader profile not found."}, status=status.HTTP_404_NOT_FOUND)
-            
-            queryset = LeadUser.objects.filter(team_leader=team_leader_instance, status='Visit').order_by('-updated_date')
-            serializer_class = ApiLeadUserSerializer # Team Leader bhi LeadUser model dekhta hai
-        
+        # Base queryset depending on role and tag
+        if search_query:
+            interested_leads = LeadUser.objects.filter(
+                Q(name__icontains=search_query) |
+                Q(call__icontains=search_query) |
+                Q(team_leader__name__icontains=search_query),
+                status='Intrested'
+            )
+        elif request.user.is_superuser:
+            if tag == 'pending_follow':
+                interested_leads = LeadUser.objects.filter(status='Intrested', follow_up_date__isnull=False).order_by('-updated_date')
+            elif tag == 'today_follow':
+                interested_leads = LeadUser.objects.filter(status='Intrested', follow_up_date=today).order_by('-updated_date')
+            elif tag == 'tommorrow_follow':
+                interested_leads = LeadUser.objects.filter(status='Intrested', follow_up_date=tomorrow).order_by('-updated_date')
+            else:
+                interested_leads = LeadUser.objects.filter(status='Intrested').order_by('-updated_date')
+        elif request.user.is_team_leader:
+            if not team_leader:
+                return Response({"error": "Team Leader profile not found."}, status=404)
+            if tag == 'pending_follow':
+                interested_leads = LeadUser.objects.filter(status='Intrested', follow_up_date__isnull=False, team_leader=team_leader).order_by('-updated_date')
+            elif tag == 'today_follow':
+                interested_leads = LeadUser.objects.filter(status='Intrested', follow_up_date=today, team_leader=team_leader).order_by('-updated_date')
+            elif tag == 'tommorrow_follow':
+                interested_leads = LeadUser.objects.filter(status='Intrested', follow_up_date=tomorrow, team_leader=team_leader).order_by('-updated_date')
+            else:
+                interested_leads = LeadUser.objects.filter(follow_up_time__isnull=True, team_leader=team_leader, status='Intrested').order_by('-updated_date')
         else:
-            # Yeh 'else' block aapke original function ke 'else' se hai (e.g., Staff ke liye)
-            queryset = Team_LeadData.objects.filter(team_leader=team_leader_instance, status='Visit')
-            serializer_class = ApiTeamLeadDataSerializer # Baaki users Team_LeadData dekhte hain
+            if not team_leader:
+                interested_leads = Team_LeadData.objects.none()
+            else:
+                interested_leads = Team_LeadData.objects.filter(team_leader=team_leader, status='Intrested')
 
-        # Ab queryset ko paginate karo
-        page = paginator.paginate_queryset(queryset, request, view=self)
-        
-        if page is not None:
-            # Role ke hisaab se jo serializer chuna tha, use istemal karo
-            serializer = serializer_class(page, many=True)
-            return paginator.get_paginated_response(serializer.data)
+        # Pagination setup
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(interested_leads, request, view=self)
 
-        # (Fallback agar pagination na chale)
-        serializer = serializer_class(queryset, many=True)
-        return Response(serializer.data)    
-    
+        # Select suitable serializer per queryset
+        if request.user.is_superuser or request.user.is_team_leader:
+            serializer = ApiLeadUserSerializer(page, many=True)
+        else:
+            serializer = ApiTeamLeadDataSerializer(page, many=True)
+
+        return paginator.get_paginated_response(serializer.data)    
 
 # ==========================================================
 # API: PROJECT (LIST & CREATE)
@@ -4645,14 +4665,31 @@ class SuperUserTeamLeaderLeadsAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Dono querysets ko serialize karo
-        # (Is page par sirf LeadUser (Staff leads) hi dikhte hain)
-        staff_serializer = ApiLeadUserSerializer(staff_leads_qs.order_by('-updated_date'), many=True)
+        # Summary info
+        total_staff = LeadUser.objects.count()
+        active_staff = LeadUser.objects.filter(status='Active').count()
+        total_earning = LeadUser.objects.aggregate(total=Sum('earning'))['total'] or 0  # replace 'earning' with actual field
 
-        # Data ko paginate karo
+        # Serialization and pagination
+        ordered_qs = staff_leads_qs.order_by('-updated_date')
+        staff_serializer = ApiLeadUserSerializer(ordered_qs, many=True)
         page = paginator.paginate_queryset(staff_serializer.data, request, view=self)
-        
-        if page is not None:
-            return paginator.get_paginated_response(page)
 
-        return Response(staff_serializer.data, status=status.HTTP_200_OK)
+        data_response = {
+            "total_staff": total_staff,
+            "active_staff": active_staff,
+            "total_earning": total_earning,
+        }
+
+        if page is not None:
+            paginated_response = paginator.get_paginated_response(page)
+            # Combine pagination data and summary
+            paginated_response.data.update(data_response)
+            return paginated_response
+
+        # No pagination fallback
+        response_data = {
+            "results": staff_serializer.data,
+        }
+        response_data.update(data_response)
+        return Response(response_data, status=status.HTTP_200_OK)
