@@ -133,7 +133,9 @@ class DashboardAdminSerializer(serializers.ModelSerializer):
     """
     Naye dashboard ke liye Admin model serializer.
     """
-    user = DashboardUserSerializer(read_only=True)
+ # home/serializers.py (Line ~153)
+
+    user = DashboardUserSerializer(read_only=True, source='self_user')
 
     class Meta:
         model = Admin
@@ -176,11 +178,14 @@ class ApiLeadUserSerializer(serializers.ModelSerializer):
     Staff ke Leads (LeadUser model) ke liye serializer.
     """
     assigned_to = ApiStaffSerializer(read_only=True)
+    team_leader = serializers.CharField(source='team_leader.name', read_only=True)
+    follow_up_date = serializers.DateField(format="%Y-%m-%d")
+    follow_up_time = serializers.TimeField(format="%H:%M:%S", allow_null=True)
     
     class Meta:
         model = LeadUser
         fields = [
-            'id', 'name', 'email', 'call', 'send', 'status', 'message', 
+            'id', 'name', 'email', 'call', 'send', 'status', 'message', 'team_leader',
             'follow_up_date', 'follow_up_time', 'created_date', 'assigned_to'
         ]
 
@@ -797,6 +802,28 @@ class LeadExportSerializer(serializers.Serializer):
     
 
 
+# home/serializers.py (file ke end me add karo)
+
+# ==========================================================
+# NAYA SERIALIZER: SIMPLE TEAM LEADER (SIRF FLAT DATA KE LIYE)
+# ==========================================================
+class SimpleTeamLeaderSerializer(serializers.ModelSerializer):
+    """
+    Serializer jo Team Leader ki flat details dikhata hai (bina nested user/admin ke).
+    """
+    class Meta:
+        model = Team_Leader
+        # Yahaan 'user' aur 'admin' fields nahi hain
+        fields = [
+            'id', 'team_leader_id', 'name', 'email', 'mobile', 
+            'address', 'city', 'pincode', 'state', 'dob', 'pancard', 
+            'aadharCard', 'account_number', 'upi_id', 'bank_name', 
+            'ifsc_code', 'salary', 'achived_slab', 'created_date' 
+        ]
+        read_only_fields = ['created_date']    
+    
+
+
 
 
 # ==========================================================
@@ -843,6 +870,9 @@ class SellPlotCreateSerializer(serializers.ModelSerializer):
         
         return value # Original string value return karo (aapke model ke hisaab se)
 
+
+    # home/serializers.py
+# (SellPlotCreateSerializer class ke andar)
 
     def create(self, validated_data):
         # 1. Staff instance dhoondo (Aapke original view logic se)
@@ -907,8 +937,11 @@ class SellPlotCreateSerializer(serializers.ModelSerializer):
                     slab_amount_base = int(slab.amount or 0)
                     if user_instance.user.is_freelancer:
                         slab_amount = slab_amount_base * size_in_gaj_int
-                    if user_instance.user.is_staff_new:
+                    
+                    # --- [YEH LINE FIX KI HAI] ---
+                    elif user_instance.user.is_staff_new: 
                         slab_amount = (slab_amount_base - 100) * size_in_gaj_int
+                    
                     myslab = f"{start_value}-{end_value}"
                     current_slab_amount = slab_amount_base
                     break
@@ -917,8 +950,11 @@ class SellPlotCreateSerializer(serializers.ModelSerializer):
                     slab_amount_base = int(slab.amount or 0)
                     if user_instance.user.is_freelancer:
                         slab_amount = slab_amount_base * size_in_gaj_int
-                    if user_instance.user.is_staff_new:
+                    
+                    # --- [YEH LINE BHI FIX KI HAI] ---
+                    elif user_instance.user.is_staff_new:
                         slab_amount = (slab_amount_base - 100) * size_in_gaj_int
+                    
                     myslab = f"{start_value}+"
                     current_slab_amount = slab_amount_base
                     break
@@ -953,3 +989,23 @@ class LeadUpdateSerializer(serializers.Serializer):
     message = serializers.CharField(required=False, allow_blank=True)
     followDate = serializers.DateField(required=False, allow_null=True)
     followTime = serializers.TimeField(required=False, allow_null=True)
+
+
+
+class ApiUserSerializer(serializers.ModelSerializer):
+    duration = serializers.SerializerMethodField()
+    is_active = serializers.BooleanField(read_only=True)
+    # updated_at = serializers.DateTimeField(source='updated_date', format="%d-%b-%Y %I:%M %p", read_only=True)
+  # ← FIXED: NO source!
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'name', 'email', 'mobile',
+            'is_team_leader', 'is_staff_new', 'is_admin',
+            'is_active', 'duration', 'login_time', 'logout_time',
+            'profile_image', 'user_active', 'is_user_login'
+        ]
+
+    def get_duration(self, obj):
+        return obj.duration  # ← This works because @property

@@ -1965,6 +1965,10 @@ def staffedit(request, id):
         return redirect('add_freelancer_super_side')
     if request.user.is_superuser:
         return redirect('add_staff_admin_side')
+    # --- [YEH RAHA NAYA FIX] ---
+    if request.user.is_admin:
+        return redirect('add_staff_admin_side') # Admin ko Admin ke staff page par bhejo
+    # --- [FIX ENDS] ---
     return redirect('staff_user')
 
 
