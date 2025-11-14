@@ -1019,48 +1019,48 @@ class AdminSideLeadsRecordAPIView(APIView):
         today = timezone.now().date()
         tomorrow = today + timedelta(days=1)
         
-        if tag == "total_visit_tag":
+        if tag == "total_visit":
             staff_leads_qs = LeadUser.objects.filter(status='Visit')
             team_leads_qs = Team_LeadData.objects.filter(status='Visit')
             
-        elif tag == "total_lost_lead_tag":
+        elif tag == "lost":
             staff_leads_qs = LeadUser.objects.filter(status='Lost')
             team_leads_qs = Team_LeadData.objects.filter(status='Lost')
             
-        elif tag == "total_not_picked_lead_tag":
+        elif tag == "not_picked":
             staff_leads_qs = LeadUser.objects.filter(status='Not Picked')
             team_leads_qs = Team_LeadData.objects.filter(status='Not Picked')
             
-        elif tag == "total_other_location_lead_tag":
+        elif tag == "other_location":
             staff_leads_qs = LeadUser.objects.filter(status='Other Location')
             team_leads_qs = Team_LeadData.objects.filter(status='Other Location')
             
-        elif tag == "total_not_interested_lead_tag":
+        elif tag == "not_interested":
             staff_leads_qs = LeadUser.objects.filter(status='Not Interested')
             team_leads_qs = Team_LeadData.objects.filter(status='Not Interested')
             
-        elif tag == "total_upload_lead_tag":
+        elif tag == "total_leads":
             team_leads_qs = Team_LeadData.objects.filter(status='Leads')
             
         elif tag == "total_assigned_lead_tag":
             staff_leads_qs = LeadUser.objects.filter(status='Leads')
             
-        elif tag == "total_interested_lead_tag":
+        elif tag == "interested":
             staff_leads_qs = LeadUser.objects.filter(status='Intrested')
             team_leads_qs = Team_LeadData.objects.filter(status='Intrested')
         
         # --- [YEH RAHA FIX START] ---
         # Followup tags sirf LeadUser (staff_leads_qs) se filter honge.
         
-        elif tag == "pending_followup_tag":
+        elif tag == "pending_followups":
             staff_leads_qs = LeadUser.objects.filter(Q(status='Intrested') & Q(follow_up_date__isnull=False))
             # team_leads_qs khaali rahega (jaisa upar define kiya hai)
 
-        elif tag == "today_followup_tag":
+        elif tag == "today_followups":
             staff_leads_qs = LeadUser.objects.filter(Q(status='Intrested') & Q(follow_up_date=today))
             # team_leads_qs khaali rahega
 
-        elif tag == "tomorrow_followup_tag":
+        elif tag == "tomorrow_followups":
             staff_leads_qs = LeadUser.objects.filter(Q(status='Intrested') & Q(follow_up_date=tomorrow))
             # team_leads_qs khaali rahega
         
@@ -1081,8 +1081,7 @@ class AdminSideLeadsRecordAPIView(APIView):
         if page is not None:
             return paginator.get_paginated_response(page)
 
-        return Response(combined_data, status=status.HTTP_200_OK)
-    
+        return Response(combined_data, status=status.HTTP_200_OK)    
     
 
 # ===================================================================
@@ -1160,7 +1159,7 @@ class ExcelUploadAPIView(APIView):
 
             if not name or pd.isna(name):
                 continue
-            if not status_val.lower() == "leads": # .lower() add kiya
+            if not status_val.lower() not in ["lead", "leads"]:
                 continue
             try:
                 if Team_LeadData.objects.filter(call=call).exists():
