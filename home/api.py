@@ -42,6 +42,7 @@ from django.utils.timezone import localtime
 from django.core.exceptions import FieldError
 # Is line ko upar import section mein ADD karo
 from django.http import Http404
+from rest_framework.authentication import BasicAuthentication
 
 
 # @method_decorator(csrf_exempt, name='dispatch')
@@ -4206,166 +4207,197 @@ class AdminTeamLeaderEditAPIView(APIView):
 
 class AdminStaffIncentiveAPIView(APIView):
     """
-    API endpoint 'incentive_slap_staff' function ke liye (Admin Dashboard).
-    GET: Ek particular staff ka incentive details laata hai (Month/Year filter ke saath).
-    SIRF ADMIN hi ise access kar sakta hai.
+    GET: Returns incentive details for a specific staff (month/year filter)
+    Accessible only by Admin users.
     """
-    
     permission_classes = [IsAuthenticated, IsCustomAdminUser]
+    authentication_classes = [BasicAuthentication]  # Important for Basic Auth
 
     def get(self, request, staff_id, format=None):
-        
-        # 1. Get Staff aur Admin profiles
+        admin_profile = None
+
         try:
             staff_instance = get_object_or_404(Staff, id=staff_id)
-            # Admin profile ko 'self_user' se dhoondho (jaisa humne pehle fix kiya tha)
-            admin_profile = Admin.objects.get(self_user=request.user) 
-        except (Staff.DoesNotExist, Admin.DoesNotExist):
-            return Response({"error": "Profile not found."}, status=status.HTTP_404_NOT_FOUND)
-        except Exception:
-             # Fallback agar self_user fail ho (model structure ke hisaab se)
-             try:
-                 admin_profile = Admin.objects.get(email=request.user.username)
-             except Admin.DoesNotExist:
-                 return Response({"error": "Admin profile not found."}, status=status.HTTP_404_NOT_FOUND)
 
+            # Try to get admin profile
+            try:
+                admin_profile = Admin.objects.get(self_user=request.user)
+            except Admin.DoesNotExist:
+                try:
+                    admin_profile = Admin.objects.get(email=request.user.email or request.user.username)
+                except Admin.DoesNotExist:
+                    return Response(
+                        {"error": "Admin profile not found."},
+                        status=status.HTTP_404_NOT_FOUND,
+                    )
 
-        # 2. Security Check: Kya yeh staff is Admin ke under hai?
-        if staff_instance.team_leader.admin != admin_profile:
-             return Response(
-                {"error": "You do not have permission to view this staff member's incentives."},
-                status=status.HTTP_403_FORBIDDEN
+        except Exception as e:
+            return Response(
+                {"error": f"Staff with ID {staff_id} not found or invalid access."},
+                status=status.HTTP_404_NOT_FOUND,
             )
 
-        # 3. Get Filters (Aapke view function se)
+        # Security Check
+        if not staff_instance.team_leader or staff_instance.team_leader.admin != admin_profile:
+            return Response(
+                {"error": "You do not have permission to view this staff member's incentives."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Filters
+        year = int(request.query_params.get("year", datetime.now().year))
+        month = int(request.query_params.get("month", datetime.now().month))
         months_list = [(i, calendar.month_name[i]) for i in range(1, 13)]
-        year = int(request.query_params.get('year', datetime.now().year))
-        month = int(request.query_params.get('month', datetime.now().month))
 
-        # 4. Get User Type (is_freelancer)
-        user_type = staff_instance.user.is_freelancer
+        # Staff type safely
+        user_type = False
+        if hasattr(staff_instance, 'user') and staff_instance.user:
+            user_type = staff_instance.user.is_freelancer
 
-        # 5. Get Slab Data
+        # Slab and sales
         slab = Slab.objects.all()
-        
-        # 6. Get Sell Data & Total Earning (Aapke view function se)
         sell_property = Sell_plot.objects.filter(
-            staff=staff_instance, 
+            staff=staff_instance,
             updated_date__year=year,
             updated_date__month=month,
-        ).order_by('-created_date')
+        ).order_by("-created_date")
 
-        total_earn_amount = sell_property.aggregate(total_earn=Sum('earn_amount'))
-        total_earn = total_earn_amount['total_earn'] if total_earn_amount['total_earn'] else 0
+        total_earn = sell_property.aggregate(total_earn=Sum("earn_amount"))["total_earn"] or 0
 
-        # 7. Serialize and Respond
         context = {
-            'slab': SlabSerializer(slab, many=True).data,
-            'sell_property': SellPlotSerializer(sell_property, many=True).data,
-            'total_earn': total_earn,
-            'year': year,
-            'month': month,
-            'months_list': months_list,
-            'user_type': user_type,
+            "slab": SlabSerializer(slab, many=True).data,
+            "sell_property": SellPlotSerializer(sell_property, many=True).data,
+            "total_earn": total_earn,
+            "year": year,
+            "month": month,
+            "months_list": months_list,
+            "user_type": user_type,
         }
         return Response(context, status=status.HTTP_200_OK)
-    
+
 
 
 class AdminStaffProductivityCalendarAPIView(APIView):
     """
-    API endpoint 'staff_productivity_calendar_view' function ke liye (Admin Dashboard).
-    GET: Ek particular staff ka daily earn (salary) calendar laata hai.
-    SIRF ADMIN hi ise access kar sakta hai.
+    API endpoint: 'staff_productivity_calendar_view' (Admin Dashboard)
+    GET: Returns a specific staff's daily earnings calendar.
+    Access: Only Admins
     """
-    
+
     permission_classes = [IsAuthenticated, IsCustomAdminUser]
 
     def get_staff_object(self, staff_id):
         return get_object_or_404(Staff, id=staff_id)
 
     def get(self, request, staff_id, format=None):
-        
-        # 1. Get Staff aur Admin profiles
+        admin_profile = None  # ✅ Prevent UnboundLocalError
+        staff_instance = None
+
+        # --- STEP 1: Get Staff & Admin Profiles Safely ---
         try:
             staff_instance = self.get_staff_object(staff_id)
-            admin_profile = Admin.objects.get(self_user=request.user) 
-        except (Staff.DoesNotExist, Admin.DoesNotExist):
-            return Response({"error": "Profile not found."}, status=status.HTTP_404_NOT_FOUND)
         except Exception:
-             try:
-                 admin_profile = Admin.objects.get(email=request.user.username)
-             except Admin.DoesNotExist:
-                 return Response({"error": "Admin profile not found."}, status=status.HTTP_404_NOT_FOUND)
-
-
-        # 2. Security Check: Kya yeh staff is Admin ke under hai?
-        if staff_instance.team_leader.admin != admin_profile:
-             return Response(
-                {"error": "You do not have permission to view this staff member's calendar."},
-                status=status.HTTP_403_FORBIDDEN
+            return Response(
+                {"error": f"Staff with ID {staff_id} not found."},
+                status=status.HTTP_404_NOT_FOUND,
             )
 
-        # 3. Get Filters (Aapke view function se)
-        months_list = [(i, calendar.month_name[i]) for i in range(1, 13)]
-        year = int(request.query_params.get('year', datetime.now().year))
-        month = int(request.query_params.get('month', datetime.now().month))
+        # Try resolving admin via both fields
+        try:
+            admin_profile = Admin.objects.get(self_user=request.user)
+        except Admin.DoesNotExist:
+            try:
+                admin_profile = Admin.objects.get(email=request.user.username)
+            except Admin.DoesNotExist:
+                return Response(
+                    {"error": "Admin profile not found."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
 
-        # 4. Daily Salary Calculation Logic (Aapke view function se)
+        if not admin_profile:
+            return Response(
+                {"error": "Could not resolve admin profile."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # --- STEP 2: Security Check ---
+        if not hasattr(staff_instance, "team_leader") or not staff_instance.team_leader:
+            return Response(
+                {"error": "This staff member is not assigned to any Team Leader."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if staff_instance.team_leader.admin != admin_profile:
+            return Response(
+                {"error": "You do not have permission to view this staff's calendar."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # --- STEP 3: Filters ---
+        months_list = [(i, calendar.month_name[i]) for i in range(1, 13)]
+        year = int(request.query_params.get("year", datetime.now().year))
+        month = int(request.query_params.get("month", datetime.now().month))
+
+        # --- STEP 4: Daily Salary & Productivity Logic ---
         days_in_month = monthrange(year, month)[1]
         salary_arg = staff_instance.salary or 0
         daily_salary = round(float(salary_arg) / int(days_in_month)) if days_in_month > 0 else 0
 
-        leads_data = LeadUser.objects.filter(
-            assigned_to=staff_instance,
-            updated_date__year=year,
-            updated_date__month=month,
-            status='Intrested'
-        ).values('updated_date__day').annotate(count=Count('id'))
+        leads_data = (
+            LeadUser.objects.filter(
+                assigned_to=staff_instance,
+                updated_date__year=year,
+                updated_date__month=month,
+                status="Intrested",
+            )
+            .values("updated_date__day")
+            .annotate(count=Count("id"))
+        )
 
-        productivity_data = {day: {'leads': 0, 'salary': 0} for day in range(1, days_in_month + 1)}
+        productivity_data = {day: {"leads": 0, "salary": 0} for day in range(1, days_in_month + 1)}
         total_salary = 0
 
         for lead in leads_data:
-            day = lead['updated_date__day']
-            leads_count = lead['count']
-            productivity_data[day]['leads'] = leads_count
+            day = lead["updated_date__day"]
+            leads_count = lead["count"]
+            productivity_data[day]["leads"] = leads_count
 
             if leads_count >= 10:
                 daily_earned_salary = daily_salary
             else:
                 daily_earned_salary = round((daily_salary / 10) * leads_count, 2)
 
-            productivity_data[day]['salary'] = daily_earned_salary
+            productivity_data[day]["salary"] = daily_earned_salary
             total_salary += daily_earned_salary
 
-        # 5. Structure Data for Calendar
+        # --- STEP 5: Format Calendar Response ---
         weekdays = list(calendar.day_name)
         productivity_list = []
+
         for day in range(1, days_in_month + 1):
             date_obj = datetime(year, month, day).date()
-            day_data = productivity_data.get(day, {'leads': 0, 'salary': 0})
-            
+            data = productivity_data.get(day, {"leads": 0, "salary": 0})
             productivity_list.append({
-                'day': day,
-                'date': date_obj,
-                'day_name': weekdays[date_obj.weekday()],
-                'leads': day_data['leads'],
-                'salary': day_data['salary']
+                "day": day,
+                "date": date_obj,
+                "day_name": weekdays[date_obj.weekday()],
+                "leads": data["leads"],
+                "salary": data["salary"],
             })
 
-        # 6. Serialize and Respond
+        # --- STEP 6: Response ---
         response_data = {
-            'staff': StaffProfileSerializer(staff_instance).data,
-            'year': year,
-            'month': month,
-            'monthly_salary': salary_arg,
-            'total_salary': round(total_salary, 2),
-            'months_list': months_list,
-            'daily_productivity_data': DailyProductivitySerializer(productivity_list, many=True).data,
+            "staff": StaffProfileSerializer(staff_instance).data,
+            "year": year,
+            "month": month,
+            "monthly_salary": salary_arg,
+            "total_salary": round(total_salary, 2),
+            "months_list": months_list,
+            "daily_productivity_data": DailyProductivitySerializer(productivity_list, many=True).data,
         }
-        
-        return Response(response_data, status=status.HTTP_200_OK)    
+
+        return Response(response_data, status=status.HTTP_200_OK)
+ 
     
 
 
@@ -4377,9 +4409,9 @@ class AdminStaffProductivityCalendarAPIView(APIView):
 # ==========================================================
 class AdminStaffParticularLeadsAPIView(APIView):
     """
-    API endpoint 'teamleader_perticular_leads' function ke liye (Admin Dashboard).
-    GET: Ek particular staff (id) ke saare leads ko status (tag) ke hisaab se filter karta hai.
-    SIRF ADMIN hi ise access kar sakta hai.
+    API endpoint: 'teamleader_perticular_leads' function ke liye (Admin Dashboard).
+    GET: Fetches all leads of a specific staff (id) filtered by status (tag).
+    Only Admins can access this.
     """
     
     permission_classes = [IsAuthenticated, IsCustomAdminUser]
@@ -4387,56 +4419,77 @@ class AdminStaffParticularLeadsAPIView(APIView):
 
     def get(self, request, id, tag, format=None):
         paginator = self.pagination_class()
-        
-        # 1. Get Staff aur Admin profiles
+        admin_profile = None  # Prevent UnboundLocalError
+        staff_instance = None
+
+        # --- Step 1: Resolve Staff safely ---
         try:
             staff_instance = get_object_or_404(Staff, id=id)
-            admin_profile = Admin.objects.get(self_user=request.user) 
-        except (Staff.DoesNotExist, Admin.DoesNotExist):
-            return Response({"error": "Profile not found."}, status=status.HTTP_404_NOT_FOUND)
         except Exception:
-             try:
-                 admin_profile = Admin.objects.get(email=request.user.username)
-             except Admin.DoesNotExist:
-                 return Response({"error": "Admin profile not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        # 2. Security Check: Kya yeh staff is Admin ke under hai?
-        if staff_instance.team_leader.admin != admin_profile:
-             return Response(
-                {"error": "You do not have permission to view this staff member's leads."},
-                status=status.HTTP_403_FORBIDDEN
+            return Response(
+                {"error": f"Staff with ID {id} not found."},
+                status=status.HTTP_404_NOT_FOUND,
             )
 
-        # 3. Tag (Status) ke hisaab se filter karo (Aapke view function se)
-        if tag == "Intrested":
-            staff_leads = LeadUser.objects.filter(assigned_to=staff_instance, status='Intrested')
-        elif tag == "Not Interested":
-            staff_leads = LeadUser.objects.filter(assigned_to=staff_instance, status='Not Interested')
-        elif tag == "Other Location":
-            staff_leads = LeadUser.objects.filter(assigned_to=staff_instance, status='Other Location')
-        elif tag == "Lost":
-            staff_leads = LeadUser.objects.filter(assigned_to=staff_instance, status='Lost')
-        elif tag == "Visit":
-            staff_leads = LeadUser.objects.filter(assigned_to=staff_instance, status='Visit')
-        else: # 'all' ya koi aur tag
+        # --- Step 2: Resolve Admin safely ---
+        try:
+            admin_profile = Admin.objects.get(self_user=request.user)
+        except Admin.DoesNotExist:
+            try:
+                admin_profile = Admin.objects.get(email=request.user.username)
+            except Admin.DoesNotExist:
+                return Response(
+                    {"error": "Admin profile not found."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+        if not admin_profile:
+            return Response(
+                {"error": "Could not determine admin profile."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # --- Step 3: Security check ---
+        if not hasattr(staff_instance, "team_leader") or not staff_instance.team_leader:
+            return Response(
+                {"error": "This staff member is not assigned to any Team Leader."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if staff_instance.team_leader.admin != admin_profile:
+            return Response(
+                {"error": "You do not have permission to view this staff's leads."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # --- Step 4: Filter leads by tag ---
+        valid_status = [
+            "Intrested",
+            "Not Interested",
+            "Other Location",
+            "Lost",
+            "Visit",
+        ]
+
+        if tag in valid_status:
+            staff_leads = LeadUser.objects.filter(
+                assigned_to=staff_instance, status=tag
+            )
+        else:
             staff_leads = LeadUser.objects.filter(assigned_to=staff_instance)
-        
-        # 4. Ordering lagao
-        staff_leads = staff_leads.order_by('-updated_date')
 
-        # 5. Page ko Paginate karo
+        # --- Step 5: Order and paginate ---
+        staff_leads = staff_leads.order_by("-updated_date")
         page = paginator.paginate_queryset(staff_leads, request, view=self)
-        
-        # 6. Serialized data bhejo
-        if page is not None:
-            serializer = ApiLeadUserSerializer(page, many=True)
-            response = paginator.get_paginated_response(serializer.data)
-            response.data['staff_id'] = id # Context ke liye staff_id add kar do
-            return response
 
-        serializer = ApiLeadUserSerializer(staff_leads, many=True)
-        return Response(serializer.data)
-    
+        serializer = ApiLeadUserSerializer(page, many=True)
+        response = paginator.get_paginated_response(serializer.data)
+        response.data["staff_id"] = id
+        response.data["tag"] = tag
+        response.data["count"] = staff_leads.count()
+
+        return response
+
 
 
 
@@ -4767,3 +4820,5 @@ class SuperUserTeamLeaderLeadsAPIView(APIView):
         # -----------------------------
         response_data.update({"results": []})
         return Response(response_data, status=status.HTTP_200_OK)
+
+
