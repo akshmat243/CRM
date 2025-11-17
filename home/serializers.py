@@ -178,11 +178,14 @@ class ApiLeadUserSerializer(serializers.ModelSerializer):
     Staff ke Leads (LeadUser model) ke liye serializer.
     """
     assigned_to = ApiStaffSerializer(read_only=True)
+    team_leader = serializers.CharField(source='team_leader.name', read_only=True)
+    follow_up_date = serializers.DateField(format="%Y-%m-%d")
+    follow_up_time = serializers.TimeField(format="%H:%M:%S", allow_null=True)
     
     class Meta:
         model = LeadUser
         fields = [
-            'id', 'name', 'email', 'call', 'send', 'status', 'message', 
+            'id', 'name', 'email', 'call', 'send', 'status', 'message', 'team_leader',
             'follow_up_date', 'follow_up_time', 'created_date', 'assigned_to'
         ]
 
@@ -1045,3 +1048,20 @@ class StaffLeadCreateSerializer(serializers.ModelSerializer):
         # 4. Naya LeadUser create karo
         lead = LeadUser.objects.create(**validated_data)
         return lead    
+class ApiUserSerializer(serializers.ModelSerializer):
+    duration = serializers.SerializerMethodField()
+    is_active = serializers.BooleanField(read_only=True)
+    # updated_at = serializers.DateTimeField(source='updated_date', format="%d-%b-%Y %I:%M %p", read_only=True)
+  # ← FIXED: NO source!
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'name', 'email', 'mobile',
+            'is_team_leader', 'is_staff_new', 'is_admin',
+            'is_active', 'duration', 'login_time', 'logout_time',
+            'profile_image', 'user_active', 'is_user_login'
+        ]
+
+    def get_duration(self, obj):
+        return obj.duration  # ← This works because @property

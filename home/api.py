@@ -38,8 +38,11 @@ from rest_framework.permissions import IsAdminUser
 from django.contrib.auth import get_user_model
 import pandas as pd
 from rest_framework.parsers import MultiPartParser, FormParser
+from django.utils.timezone import localtime
+from django.core.exceptions import FieldError
 # Is line ko upar import section mein ADD karo
 from django.http import Http404
+from rest_framework.authentication import BasicAuthentication
 
 
 # @method_decorator(csrf_exempt, name='dispatch')
@@ -484,23 +487,24 @@ class LeadsReportAPIView(APIView):
         return Response(res, status=status.HTTP_200_OK)
     
 class LeadHistoryAPIView(APIView):
-    permission_classes = [IsAuthenticated , CustomIsSuperuser]
+    permission_classes = [IsAuthenticated, CustomIsSuperuser]
 
     def get(self, request):
         res = {}
-        lead_id = request.data.get('lead_id')
+        # Get lead_id from query parameters, not request.data
+        lead_id = request.query_params.get('lead_id')
 
         if lead_id is None:
-            res['status'] = True
-            res['message'] = "lead id is required."
+            res['status'] = False
+            res['message'] = "lead_id is required."
             res['data'] = []
-            return Response(res, status=status.HTTP_200_OK)
-        
-        users_lead_lost = Leads_history.objects.filter(lead_id=lead_id,).order_by('-updated_date')
+            return Response(res, status=status.HTTP_400_BAD_REQUEST)
+
+        users_lead_lost = Leads_history.objects.filter(lead_id=lead_id).order_by('-updated_date')
         serializer = LeadsHistorySerializer(users_lead_lost, many=True)
 
         res['status'] = True
-        res['message'] = "leads history fetch successfully."
+        res['message'] = "Leads history fetched successfully."
         res['data'] = serializer.data
         return Response(res, status=status.HTTP_200_OK)
 
@@ -1030,48 +1034,48 @@ class AdminSideLeadsRecordAPIView(APIView):
         today = timezone.now().date()
         tomorrow = today + timedelta(days=1)
         
-        if tag == "total_visit_tag":
+        if tag == "total_visit":
             staff_leads_qs = LeadUser.objects.filter(status='Visit')
             team_leads_qs = Team_LeadData.objects.filter(status='Visit')
             
-        elif tag == "total_lost_lead_tag":
+        elif tag == "lost":
             staff_leads_qs = LeadUser.objects.filter(status='Lost')
             team_leads_qs = Team_LeadData.objects.filter(status='Lost')
             
-        elif tag == "total_not_picked_lead_tag":
+        elif tag == "not_picked":
             staff_leads_qs = LeadUser.objects.filter(status='Not Picked')
             team_leads_qs = Team_LeadData.objects.filter(status='Not Picked')
             
-        elif tag == "total_other_location_lead_tag":
+        elif tag == "other_location":
             staff_leads_qs = LeadUser.objects.filter(status='Other Location')
             team_leads_qs = Team_LeadData.objects.filter(status='Other Location')
             
-        elif tag == "total_not_interested_lead_tag":
+        elif tag == "not_interested":
             staff_leads_qs = LeadUser.objects.filter(status='Not Interested')
             team_leads_qs = Team_LeadData.objects.filter(status='Not Interested')
             
-        elif tag == "total_upload_lead_tag":
+        elif tag == "total_leads":
             team_leads_qs = Team_LeadData.objects.filter(status='Leads')
             
         elif tag == "total_assigned_lead_tag":
             staff_leads_qs = LeadUser.objects.filter(status='Leads')
             
-        elif tag == "total_interested_lead_tag":
+        elif tag == "interested":
             staff_leads_qs = LeadUser.objects.filter(status='Intrested')
             team_leads_qs = Team_LeadData.objects.filter(status='Intrested')
         
         # --- [YEH RAHA FIX START] ---
         # Followup tags sirf LeadUser (staff_leads_qs) se filter honge.
         
-        elif tag == "pending_followup_tag":
+        elif tag == "pending_followups":
             staff_leads_qs = LeadUser.objects.filter(Q(status='Intrested') & Q(follow_up_date__isnull=False))
             # team_leads_qs khaali rahega (jaisa upar define kiya hai)
 
-        elif tag == "today_followup_tag":
+        elif tag == "today_followups":
             staff_leads_qs = LeadUser.objects.filter(Q(status='Intrested') & Q(follow_up_date=today))
             # team_leads_qs khaali rahega
 
-        elif tag == "tomorrow_followup_tag":
+        elif tag == "tomorrow_followups":
             staff_leads_qs = LeadUser.objects.filter(Q(status='Intrested') & Q(follow_up_date=tomorrow))
             # team_leads_qs khaali rahega
         
@@ -1092,8 +1096,7 @@ class AdminSideLeadsRecordAPIView(APIView):
         if page is not None:
             return paginator.get_paginated_response(page)
 
-        return Response(combined_data, status=status.HTTP_200_OK)
-    
+        return Response(combined_data, status=status.HTTP_200_OK)    
     
 
 # ===================================================================
@@ -1171,7 +1174,7 @@ class ExcelUploadAPIView(APIView):
 
             if not name or pd.isna(name):
                 continue
-            if not status_val.lower() == "leads": # .lower() add kiya
+            if not status_val.lower() not in ["lead", "leads"]:
                 continue
             try:
                 if Team_LeadData.objects.filter(call=call).exists():
@@ -1904,22 +1907,22 @@ class TeamCustomerLeadsAPIView(APIView):
             if tag == 'pending_follow':
                 interested_leads_qs = LeadUser.objects.filter(
                     Q(status='Intrested') & Q(follow_up_date__isnull=False)
-                ).order_by('-updated_date')
+                ).order_by('-updated_date').select_related('team_leader')
             elif tag == 'today_follow':
                 interested_leads_qs = LeadUser.objects.filter(
                     Q(status='Intrested') & Q(follow_up_date=today)
-                ).order_by('-updated_date')
+                ).order_by('-updated_date').select_related('team_leader')
             elif tag == 'tommorrow_follow':
                 interested_leads_qs = LeadUser.objects.filter(
                     Q(status='Intrested') & Q(follow_up_date=tomorrow)
-                ).order_by('-updated_date')
+                ).order_by('-updated_date').select_related('team_leader')
             else: # 'else' matlab koi bhi tag ya default 'interested' tag
-                interested_leads_qs = LeadUser.objects.filter(status='Intrested').order_by('-updated_date')
+                interested_leads_qs = LeadUser.objects.filter(status='Intrested').order_by('-updated_date').select_related('team_leader')
             
             serializer_class = ApiLeadUserSerializer
 
         # --- 3. Team Leader Logic ---
-        elif user.is_team_leader:
+        elif Team_Leader.objects.filter(email=user.email).exists():
             try:
                 team_leader_instance = Team_Leader.objects.get(user=user)
             except Team_Leader.DoesNotExist:
@@ -3025,7 +3028,6 @@ class TeamCustomerLeadsAPIView(APIView):
         # Non-paginated response
         serializer = serializer_class(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
 
 
 # ==========================================================
@@ -3218,49 +3220,69 @@ class AddSellPlotAPIView(APIView):
 
 
 
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 50
+    page_size_query_param = 'page_size'
+    max_page_size = 1000
+
 class VisitLeadsAPIView(APIView):
-  
-    permission_classes = [IsAuthenticated , CustomIsSuperuser]
+    permission_classes = [IsAuthenticated, CustomIsSuperuser]  # Add your custom permission class if needed
     pagination_class = StandardResultsSetPagination
 
-    def get(self, request, format=None):
-        paginator = self.pagination_class()
-        user = request.user
-        
-        # Team leader instance (jo 'is_team_leader' aur 'else' dono me use hota hai)
-        team_leader_instance = Team_Leader.objects.filter(email=user.email).last()
+    def get(self, request, tag, format=None):
 
-        queryset = None
-        serializer_class = None # Hum ise role ke hisaab se set karenge
+        today = timezone.now().date()
+        tomorrow = today + timedelta(days=1)
+        user_email = request.user.email
+        team_leader = Team_Leader.objects.filter(email=user_email).last()
 
-        if user.is_superuser:
-            queryset = LeadUser.objects.filter(status='Visit').order_by('-updated_date')
-            serializer_class = ApiLeadUserSerializer # Superuser LeadUser model dekhta hai
-        
-        elif user.is_team_leader:
-            if not team_leader_instance:
-                 return Response({"error": "Team Leader profile not found."}, status=status.HTTP_404_NOT_FOUND)
-            
-            queryset = LeadUser.objects.filter(team_leader=team_leader_instance, status='Visit').order_by('-updated_date')
-            serializer_class = ApiLeadUserSerializer # Team Leader bhi LeadUser model dekhta hai
-        
+        search_query = request.query_params.get('search', '')
+
+        # Base queryset depending on role and tag
+        if search_query:
+            interested_leads = LeadUser.objects.filter(
+                Q(name__icontains=search_query) |
+                Q(call__icontains=search_query) |
+                Q(team_leader__name__icontains=search_query),
+                status='Intrested'
+            )
+        elif request.user.is_superuser:
+            if tag == 'pending_follow':
+                interested_leads = LeadUser.objects.filter(status='Intrested', follow_up_date__isnull=False).order_by('-updated_date')
+            elif tag == 'today_follow':
+                interested_leads = LeadUser.objects.filter(status='Intrested', follow_up_date=today).order_by('-updated_date')
+            elif tag == 'tommorrow_follow':
+                interested_leads = LeadUser.objects.filter(status='Intrested', follow_up_date=tomorrow).order_by('-updated_date')
+            else:
+                interested_leads = LeadUser.objects.filter(status='Intrested').order_by('-updated_date')
+        elif request.user.is_team_leader:
+            if not team_leader:
+                return Response({"error": "Team Leader profile not found."}, status=404)
+            if tag == 'pending_follow':
+                interested_leads = LeadUser.objects.filter(status='Intrested', follow_up_date__isnull=False, team_leader=team_leader).order_by('-updated_date')
+            elif tag == 'today_follow':
+                interested_leads = LeadUser.objects.filter(status='Intrested', follow_up_date=today, team_leader=team_leader).order_by('-updated_date')
+            elif tag == 'tommorrow_follow':
+                interested_leads = LeadUser.objects.filter(status='Intrested', follow_up_date=tomorrow, team_leader=team_leader).order_by('-updated_date')
+            else:
+                interested_leads = LeadUser.objects.filter(follow_up_time__isnull=True, team_leader=team_leader, status='Intrested').order_by('-updated_date')
         else:
-            # Yeh 'else' block aapke original function ke 'else' se hai (e.g., Staff ke liye)
-            queryset = Team_LeadData.objects.filter(team_leader=team_leader_instance, status='Visit')
-            serializer_class = ApiTeamLeadDataSerializer # Baaki users Team_LeadData dekhte hain
+            if not team_leader:
+                interested_leads = Team_LeadData.objects.none()
+            else:
+                interested_leads = Team_LeadData.objects.filter(team_leader=team_leader, status='Intrested')
 
-        # Ab queryset ko paginate karo
-        page = paginator.paginate_queryset(queryset, request, view=self)
-        
-        if page is not None:
-            # Role ke hisaab se jo serializer chuna tha, use istemal karo
-            serializer = serializer_class(page, many=True)
-            return paginator.get_paginated_response(serializer.data)
+        # Pagination setup
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(interested_leads, request, view=self)
 
-        # (Fallback agar pagination na chale)
-        serializer = serializer_class(queryset, many=True)
-        return Response(serializer.data)    
-    
+        # Select suitable serializer per queryset
+        if request.user.is_superuser or request.user.is_team_leader:
+            serializer = ApiLeadUserSerializer(page, many=True)
+        else:
+            serializer = ApiTeamLeadDataSerializer(page, many=True)
+
+        return paginator.get_paginated_response(serializer.data)    
 
 # ==========================================================
 # API: PROJECT (LIST & CREATE)
@@ -4197,166 +4219,197 @@ class AdminTeamLeaderEditAPIView(APIView):
 
 class AdminStaffIncentiveAPIView(APIView):
     """
-    API endpoint 'incentive_slap_staff' function ke liye (Admin Dashboard).
-    GET: Ek particular staff ka incentive details laata hai (Month/Year filter ke saath).
-    SIRF ADMIN hi ise access kar sakta hai.
+    GET: Returns incentive details for a specific staff (month/year filter)
+    Accessible only by Admin users.
     """
-    
     permission_classes = [IsAuthenticated, IsCustomAdminUser]
+    authentication_classes = [BasicAuthentication]  # Important for Basic Auth
 
     def get(self, request, staff_id, format=None):
-        
-        # 1. Get Staff aur Admin profiles
+        admin_profile = None
+
         try:
             staff_instance = get_object_or_404(Staff, id=staff_id)
-            # Admin profile ko 'self_user' se dhoondho (jaisa humne pehle fix kiya tha)
-            admin_profile = Admin.objects.get(self_user=request.user) 
-        except (Staff.DoesNotExist, Admin.DoesNotExist):
-            return Response({"error": "Profile not found."}, status=status.HTTP_404_NOT_FOUND)
-        except Exception:
-             # Fallback agar self_user fail ho (model structure ke hisaab se)
-             try:
-                 admin_profile = Admin.objects.get(email=request.user.username)
-             except Admin.DoesNotExist:
-                 return Response({"error": "Admin profile not found."}, status=status.HTTP_404_NOT_FOUND)
 
+            # Try to get admin profile
+            try:
+                admin_profile = Admin.objects.get(self_user=request.user)
+            except Admin.DoesNotExist:
+                try:
+                    admin_profile = Admin.objects.get(email=request.user.email or request.user.username)
+                except Admin.DoesNotExist:
+                    return Response(
+                        {"error": "Admin profile not found."},
+                        status=status.HTTP_404_NOT_FOUND,
+                    )
 
-        # 2. Security Check: Kya yeh staff is Admin ke under hai?
-        if staff_instance.team_leader.admin != admin_profile:
-             return Response(
-                {"error": "You do not have permission to view this staff member's incentives."},
-                status=status.HTTP_403_FORBIDDEN
+        except Exception as e:
+            return Response(
+                {"error": f"Staff with ID {staff_id} not found or invalid access."},
+                status=status.HTTP_404_NOT_FOUND,
             )
 
-        # 3. Get Filters (Aapke view function se)
+        # Security Check
+        if not staff_instance.team_leader or staff_instance.team_leader.admin != admin_profile:
+            return Response(
+                {"error": "You do not have permission to view this staff member's incentives."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Filters
+        year = int(request.query_params.get("year", datetime.now().year))
+        month = int(request.query_params.get("month", datetime.now().month))
         months_list = [(i, calendar.month_name[i]) for i in range(1, 13)]
-        year = int(request.query_params.get('year', datetime.now().year))
-        month = int(request.query_params.get('month', datetime.now().month))
 
-        # 4. Get User Type (is_freelancer)
-        user_type = staff_instance.user.is_freelancer
+        # Staff type safely
+        user_type = False
+        if hasattr(staff_instance, 'user') and staff_instance.user:
+            user_type = staff_instance.user.is_freelancer
 
-        # 5. Get Slab Data
+        # Slab and sales
         slab = Slab.objects.all()
-        
-        # 6. Get Sell Data & Total Earning (Aapke view function se)
         sell_property = Sell_plot.objects.filter(
-            staff=staff_instance, 
+            staff=staff_instance,
             updated_date__year=year,
             updated_date__month=month,
-        ).order_by('-created_date')
+        ).order_by("-created_date")
 
-        total_earn_amount = sell_property.aggregate(total_earn=Sum('earn_amount'))
-        total_earn = total_earn_amount['total_earn'] if total_earn_amount['total_earn'] else 0
+        total_earn = sell_property.aggregate(total_earn=Sum("earn_amount"))["total_earn"] or 0
 
-        # 7. Serialize and Respond
         context = {
-            'slab': SlabSerializer(slab, many=True).data,
-            'sell_property': SellPlotSerializer(sell_property, many=True).data,
-            'total_earn': total_earn,
-            'year': year,
-            'month': month,
-            'months_list': months_list,
-            'user_type': user_type,
+            "slab": SlabSerializer(slab, many=True).data,
+            "sell_property": SellPlotSerializer(sell_property, many=True).data,
+            "total_earn": total_earn,
+            "year": year,
+            "month": month,
+            "months_list": months_list,
+            "user_type": user_type,
         }
         return Response(context, status=status.HTTP_200_OK)
-    
+
 
 
 class AdminStaffProductivityCalendarAPIView(APIView):
     """
-    API endpoint 'staff_productivity_calendar_view' function ke liye (Admin Dashboard).
-    GET: Ek particular staff ka daily earn (salary) calendar laata hai.
-    SIRF ADMIN hi ise access kar sakta hai.
+    API endpoint: 'staff_productivity_calendar_view' (Admin Dashboard)
+    GET: Returns a specific staff's daily earnings calendar.
+    Access: Only Admins
     """
-    
+
     permission_classes = [IsAuthenticated, IsCustomAdminUser]
 
     def get_staff_object(self, staff_id):
         return get_object_or_404(Staff, id=staff_id)
 
     def get(self, request, staff_id, format=None):
-        
-        # 1. Get Staff aur Admin profiles
+        admin_profile = None  # ✅ Prevent UnboundLocalError
+        staff_instance = None
+
+        # --- STEP 1: Get Staff & Admin Profiles Safely ---
         try:
             staff_instance = self.get_staff_object(staff_id)
-            admin_profile = Admin.objects.get(self_user=request.user) 
-        except (Staff.DoesNotExist, Admin.DoesNotExist):
-            return Response({"error": "Profile not found."}, status=status.HTTP_404_NOT_FOUND)
         except Exception:
-             try:
-                 admin_profile = Admin.objects.get(email=request.user.username)
-             except Admin.DoesNotExist:
-                 return Response({"error": "Admin profile not found."}, status=status.HTTP_404_NOT_FOUND)
-
-
-        # 2. Security Check: Kya yeh staff is Admin ke under hai?
-        if staff_instance.team_leader.admin != admin_profile:
-             return Response(
-                {"error": "You do not have permission to view this staff member's calendar."},
-                status=status.HTTP_403_FORBIDDEN
+            return Response(
+                {"error": f"Staff with ID {staff_id} not found."},
+                status=status.HTTP_404_NOT_FOUND,
             )
 
-        # 3. Get Filters (Aapke view function se)
-        months_list = [(i, calendar.month_name[i]) for i in range(1, 13)]
-        year = int(request.query_params.get('year', datetime.now().year))
-        month = int(request.query_params.get('month', datetime.now().month))
+        # Try resolving admin via both fields
+        try:
+            admin_profile = Admin.objects.get(self_user=request.user)
+        except Admin.DoesNotExist:
+            try:
+                admin_profile = Admin.objects.get(email=request.user.username)
+            except Admin.DoesNotExist:
+                return Response(
+                    {"error": "Admin profile not found."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
 
-        # 4. Daily Salary Calculation Logic (Aapke view function se)
+        if not admin_profile:
+            return Response(
+                {"error": "Could not resolve admin profile."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # --- STEP 2: Security Check ---
+        if not hasattr(staff_instance, "team_leader") or not staff_instance.team_leader:
+            return Response(
+                {"error": "This staff member is not assigned to any Team Leader."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if staff_instance.team_leader.admin != admin_profile:
+            return Response(
+                {"error": "You do not have permission to view this staff's calendar."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # --- STEP 3: Filters ---
+        months_list = [(i, calendar.month_name[i]) for i in range(1, 13)]
+        year = int(request.query_params.get("year", datetime.now().year))
+        month = int(request.query_params.get("month", datetime.now().month))
+
+        # --- STEP 4: Daily Salary & Productivity Logic ---
         days_in_month = monthrange(year, month)[1]
         salary_arg = staff_instance.salary or 0
         daily_salary = round(float(salary_arg) / int(days_in_month)) if days_in_month > 0 else 0
 
-        leads_data = LeadUser.objects.filter(
-            assigned_to=staff_instance,
-            updated_date__year=year,
-            updated_date__month=month,
-            status='Intrested'
-        ).values('updated_date__day').annotate(count=Count('id'))
+        leads_data = (
+            LeadUser.objects.filter(
+                assigned_to=staff_instance,
+                updated_date__year=year,
+                updated_date__month=month,
+                status="Intrested",
+            )
+            .values("updated_date__day")
+            .annotate(count=Count("id"))
+        )
 
-        productivity_data = {day: {'leads': 0, 'salary': 0} for day in range(1, days_in_month + 1)}
+        productivity_data = {day: {"leads": 0, "salary": 0} for day in range(1, days_in_month + 1)}
         total_salary = 0
 
         for lead in leads_data:
-            day = lead['updated_date__day']
-            leads_count = lead['count']
-            productivity_data[day]['leads'] = leads_count
+            day = lead["updated_date__day"]
+            leads_count = lead["count"]
+            productivity_data[day]["leads"] = leads_count
 
             if leads_count >= 10:
                 daily_earned_salary = daily_salary
             else:
                 daily_earned_salary = round((daily_salary / 10) * leads_count, 2)
 
-            productivity_data[day]['salary'] = daily_earned_salary
+            productivity_data[day]["salary"] = daily_earned_salary
             total_salary += daily_earned_salary
 
-        # 5. Structure Data for Calendar
+        # --- STEP 5: Format Calendar Response ---
         weekdays = list(calendar.day_name)
         productivity_list = []
+
         for day in range(1, days_in_month + 1):
             date_obj = datetime(year, month, day).date()
-            day_data = productivity_data.get(day, {'leads': 0, 'salary': 0})
-            
+            data = productivity_data.get(day, {"leads": 0, "salary": 0})
             productivity_list.append({
-                'day': day,
-                'date': date_obj,
-                'day_name': weekdays[date_obj.weekday()],
-                'leads': day_data['leads'],
-                'salary': day_data['salary']
+                "day": day,
+                "date": date_obj,
+                "day_name": weekdays[date_obj.weekday()],
+                "leads": data["leads"],
+                "salary": data["salary"],
             })
 
-        # 6. Serialize and Respond
+        # --- STEP 6: Response ---
         response_data = {
-            'staff': StaffProfileSerializer(staff_instance).data,
-            'year': year,
-            'month': month,
-            'monthly_salary': salary_arg,
-            'total_salary': round(total_salary, 2),
-            'months_list': months_list,
-            'daily_productivity_data': DailyProductivitySerializer(productivity_list, many=True).data,
+            "staff": StaffProfileSerializer(staff_instance).data,
+            "year": year,
+            "month": month,
+            "monthly_salary": salary_arg,
+            "total_salary": round(total_salary, 2),
+            "months_list": months_list,
+            "daily_productivity_data": DailyProductivitySerializer(productivity_list, many=True).data,
         }
-        
-        return Response(response_data, status=status.HTTP_200_OK)    
+
+        return Response(response_data, status=status.HTTP_200_OK)
+ 
     
 
 
@@ -4368,9 +4421,9 @@ class AdminStaffProductivityCalendarAPIView(APIView):
 # ==========================================================
 class AdminStaffParticularLeadsAPIView(APIView):
     """
-    API endpoint 'teamleader_perticular_leads' function ke liye (Admin Dashboard).
-    GET: Ek particular staff (id) ke saare leads ko status (tag) ke hisaab se filter karta hai.
-    SIRF ADMIN hi ise access kar sakta hai.
+    API endpoint: 'teamleader_perticular_leads' function ke liye (Admin Dashboard).
+    GET: Fetches all leads of a specific staff (id) filtered by status (tag).
+    Only Admins can access this.
     """
     
     permission_classes = [IsAuthenticated, IsCustomAdminUser]
@@ -4378,56 +4431,77 @@ class AdminStaffParticularLeadsAPIView(APIView):
 
     def get(self, request, id, tag, format=None):
         paginator = self.pagination_class()
-        
-        # 1. Get Staff aur Admin profiles
+        admin_profile = None  # Prevent UnboundLocalError
+        staff_instance = None
+
+        # --- Step 1: Resolve Staff safely ---
         try:
             staff_instance = get_object_or_404(Staff, id=id)
-            admin_profile = Admin.objects.get(self_user=request.user) 
-        except (Staff.DoesNotExist, Admin.DoesNotExist):
-            return Response({"error": "Profile not found."}, status=status.HTTP_404_NOT_FOUND)
         except Exception:
-             try:
-                 admin_profile = Admin.objects.get(email=request.user.username)
-             except Admin.DoesNotExist:
-                 return Response({"error": "Admin profile not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        # 2. Security Check: Kya yeh staff is Admin ke under hai?
-        if staff_instance.team_leader.admin != admin_profile:
-             return Response(
-                {"error": "You do not have permission to view this staff member's leads."},
-                status=status.HTTP_403_FORBIDDEN
+            return Response(
+                {"error": f"Staff with ID {id} not found."},
+                status=status.HTTP_404_NOT_FOUND,
             )
 
-        # 3. Tag (Status) ke hisaab se filter karo (Aapke view function se)
-        if tag == "Intrested":
-            staff_leads = LeadUser.objects.filter(assigned_to=staff_instance, status='Intrested')
-        elif tag == "Not Interested":
-            staff_leads = LeadUser.objects.filter(assigned_to=staff_instance, status='Not Interested')
-        elif tag == "Other Location":
-            staff_leads = LeadUser.objects.filter(assigned_to=staff_instance, status='Other Location')
-        elif tag == "Lost":
-            staff_leads = LeadUser.objects.filter(assigned_to=staff_instance, status='Lost')
-        elif tag == "Visit":
-            staff_leads = LeadUser.objects.filter(assigned_to=staff_instance, status='Visit')
-        else: # 'all' ya koi aur tag
+        # --- Step 2: Resolve Admin safely ---
+        try:
+            admin_profile = Admin.objects.get(self_user=request.user)
+        except Admin.DoesNotExist:
+            try:
+                admin_profile = Admin.objects.get(email=request.user.username)
+            except Admin.DoesNotExist:
+                return Response(
+                    {"error": "Admin profile not found."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+        if not admin_profile:
+            return Response(
+                {"error": "Could not determine admin profile."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # --- Step 3: Security check ---
+        if not hasattr(staff_instance, "team_leader") or not staff_instance.team_leader:
+            return Response(
+                {"error": "This staff member is not assigned to any Team Leader."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if staff_instance.team_leader.admin != admin_profile:
+            return Response(
+                {"error": "You do not have permission to view this staff's leads."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # --- Step 4: Filter leads by tag ---
+        valid_status = [
+            "Intrested",
+            "Not Interested",
+            "Other Location",
+            "Lost",
+            "Visit",
+        ]
+
+        if tag in valid_status:
+            staff_leads = LeadUser.objects.filter(
+                assigned_to=staff_instance, status=tag
+            )
+        else:
             staff_leads = LeadUser.objects.filter(assigned_to=staff_instance)
-        
-        # 4. Ordering lagao
-        staff_leads = staff_leads.order_by('-updated_date')
 
-        # 5. Page ko Paginate karo
+        # --- Step 5: Order and paginate ---
+        staff_leads = staff_leads.order_by("-updated_date")
         page = paginator.paginate_queryset(staff_leads, request, view=self)
-        
-        # 6. Serialized data bhejo
-        if page is not None:
-            serializer = ApiLeadUserSerializer(page, many=True)
-            response = paginator.get_paginated_response(serializer.data)
-            response.data['staff_id'] = id # Context ke liye staff_id add kar do
-            return response
 
-        serializer = ApiLeadUserSerializer(staff_leads, many=True)
-        return Response(serializer.data)
-    
+        serializer = ApiLeadUserSerializer(page, many=True)
+        response = paginator.get_paginated_response(serializer.data)
+        response.data["staff_id"] = id
+        response.data["tag"] = tag
+        response.data["count"] = staff_leads.count()
+
+        return response
+
 
 
 
@@ -4591,82 +4665,77 @@ class SuperUserFreelancerLeadsAPIView(APIView):
 
 
 
-# ==========================================================
-# API: SUPERUSER - TEAM LEADER DASHBOARD (LEADS LIST)
-# ==========================================================
-class SuperUserTeamLeaderLeadsAPIView(APIView):
-    """
-    API for Superuser's 'Team Leader List' dashboard (Cards click).
-    Fetches leads (Staff + TeamLeader) based on status tags.
-    """
-    permission_classes = [IsAuthenticated, CustomIsSuperuser]
-    pagination_class = StandardResultsSetPagination 
 
+class SuperUserTeamLeaderLeadsAPIView(APIView):
+    permission_classes = [IsAuthenticated, CustomIsSuperuser]
+    pagination_class = StandardResultsSetPagination
+
+    permission_classes = [AllowAny]
+    pagination_class = StandardResultsSetPagination
+
+    # -----------------------------
+    #  Summary section for cards
+    # -----------------------------
+    @staticmethod
+    def _summary():
+        total_staff = User.objects.filter(
+            Q(is_admin=True) | Q(is_staff_new=True) | Q(is_team_leader=True)
+        ).count()
+
+        active_staff = User.objects.filter(
+            is_staff_new=True,
+            logout_time__isnull=True
+        ).count()
+
+        total_earning = 0  # Placeholder (if you have earning field, update here)
+        return {
+            "total_staff": total_staff,
+            "active_staff": active_staff,
+            "total_earning": total_earning,
+        }
+
+    # -----------------------------
+    #  Main GET logic
+    # -----------------------------
     def get(self, request, tag, format=None):
         paginator = self.pagination_class()
-        
-        # Default (khaali) querysets
+
         staff_leads_qs = LeadUser.objects.none()
-        team_leads_qs = Team_LeadData.objects.none()
+        staff_qs = Staff.objects.none()
 
         today = timezone.now().date()
         tomorrow = today + timedelta(days=1)
-        
-        # --- [FILTERING LOGIC] ---
-        # Yeh logic 'SuperAdminDashboardAPIView' (cards waali API) se match karega
-        
-        if tag == "total_leads":
-            staff_leads_qs = LeadUser.objects.filter(status='Leads')
-            # Team_LeadData me 'Leads' status nahi hota (woh 'total_upload_leads' hota hai)
-            
-        elif tag == "total_visit":
-            staff_leads_qs = LeadUser.objects.filter(status='Visit')
-            # Team_LeadData me 'Visit' nahi hota (yeh 'lost_visit_staff' hai)
 
-        elif tag == "interested":
-            staff_leads_qs = LeadUser.objects.filter(status='Intrested')
-            # Team_LeadData me 'Interested' nahi hota
+        # ---------------------------------------
+        # LEAD TAGS
+        # ---------------------------------------
+        lead_tags = [
+            "total_leads","total_visit","interested","not_interested",
+            "other_location","not_picked","lost",
+            "pending_followups","today_followups","tomorrow_followups"
+        ]
 
-        elif tag == "not_interested":
-            staff_leads_qs = LeadUser.objects.filter(status='Not Interested')
+        staff_tags = ["staff_total", "staff_active", "staff_salary"]
 
-        elif tag == "other_location":
-            staff_leads_qs = LeadUser.objects.filter(status='Other Location')
+        # ---------------------------------------
+        # IF LEAD TAG
+        # ---------------------------------------
+        if tag in lead_tags:
 
-        elif tag == "not_picked":
-            staff_leads_qs = LeadUser.objects.filter(status='Not Picked')
+            if tag == "total_leads":
+                staff_leads_qs = LeadUser.objects.filter(status="Leads")
 
-        elif tag == "lost": # Yeh aapke dashboard function me tha
-             staff_leads_qs = LeadUser.objects.filter(status='Lost')
-        
-        # --- [FOLLOWUP TAGS] ---
-        elif tag == 'pending_followups':
-            staff_leads_qs = LeadUser.objects.filter(Q(status='Intrested') & Q(follow_up_date__isnull=False))
-        elif tag == 'today_followups':
-            staff_leads_qs = LeadUser.objects.filter(Q(status='Intrested') & Q(follow_up_date=today))
-        elif tag == 'tomorrow_followups':
-            staff_leads_qs = LeadUser.objects.filter(Q(status='Intrested') & Q(follow_up_date=tomorrow))
-            
-        else:
-            valid_tags = [
-                'total_leads', 'total_visit', 'interested', 'not_interested', 
-                'other_location', 'not_picked', 'lost', 
-                'pending_followups', 'today_followups', 'tomorrow_followups'
-            ]
-            return Response(
-                {"error": f"Invalid tag for this view: {tag}. Valid tags are: {valid_tags}"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            elif tag == "total_visit":
+                staff_leads_qs = LeadUser.objects.filter(status="Visit")
 
-        # Dono querysets ko serialize karo
-        # (Is page par sirf LeadUser (Staff leads) hi dikhte hain)
-        staff_serializer = ApiLeadUserSerializer(staff_leads_qs.order_by('-updated_date'), many=True)
+            elif tag == "interested":
+                staff_leads_qs = LeadUser.objects.filter(status="Intrested")
 
-        # Data ko paginate karo
-        page = paginator.paginate_queryset(staff_serializer.data, request, view=self)
-        
-        if page is not None:
-            return paginator.get_paginated_response(page)
+            elif tag == "not_interested":
+                staff_leads_qs = LeadUser.objects.filter(status="Not Interested")
+
+            elif tag == "other_location":
+                staff_leads_qs = LeadUser.objects.filter(status="Other Location")
 
         return Response(staff_serializer.data, status=status.HTTP_200_OK)
     
@@ -4796,3 +4865,94 @@ class StaffAddSelfLeadAPIView(APIView):
 
 
     
+            elif tag == "not_picked":
+                staff_leads_qs = LeadUser.objects.filter(status="Not Picked")
+
+            elif tag == "lost":
+                staff_leads_qs = LeadUser.objects.filter(status="Lost")
+
+            elif tag == "pending_followups":
+                staff_leads_qs = LeadUser.objects.filter(
+                    status="Intrested",
+                    follow_up_date__isnull=False
+                )
+
+            elif tag == "today_followups":
+                staff_leads_qs = LeadUser.objects.filter(
+                    status="Intrested",
+                    follow_up_date=today
+                )
+
+            elif tag == "tomorrow_followups":
+                staff_leads_qs = LeadUser.objects.filter(
+                    status="Intrested",
+                    follow_up_date=tomorrow
+                )
+
+            # Serialize
+            ordered_qs = staff_leads_qs.order_by("-updated_date")
+            serializer = ApiLeadUserSerializer(ordered_qs, many=True)
+            page = paginator.paginate_queryset(serializer.data, request, view=self)
+
+            # Lead tags DO NOT show staff summary
+            if page is not None:
+                return paginator.get_paginated_response(page)
+
+            return Response({"results": serializer.data})
+
+        # ---------------------------------------
+        # STAFF TAGS (NEW)
+        # ---------------------------------------
+        elif tag in staff_tags:
+
+            # STAFF TOTAL
+            if tag == "staff_total":
+                total_staff = Staff.objects.count()
+                staff_qs = Staff.objects.all().order_by("-updated_date")
+                summary = {"total_staff": total_staff}
+
+            # STAFF ACTIVE
+            elif tag == "staff_active":
+                active_staff = Staff.objects.filter(
+                    user__logout_time__isnull=True
+                ).count()
+                staff_qs = Staff.objects.filter(
+                    user__logout_time__isnull=True
+                ).order_by("-updated_date")
+                summary = {"active_staff": active_staff}
+
+            # STAFF SALARY / TOTAL EARNING
+            elif tag == "staff_salary":
+                total_earning = Staff.objects.annotate(
+                    salary_int=Cast("salary", IntegerField())
+                ).aggregate(total=Sum("salary_int"))["total"] or 0
+
+                staff_qs = Staff.objects.exclude(
+                    salary__isnull=True
+                ).exclude(
+                    salary=""
+                ).order_by("-updated_date")
+
+                summary = {"total_earning": total_earning}
+
+            # Serialize staff
+            serializer = StaffSerializer(staff_qs, many=True)
+            page = paginator.paginate_queryset(serializer.data, request, view=self)
+
+            if page is not None:
+                paginated = paginator.get_paginated_response(page)
+                paginated.data.update(summary)
+                return paginated
+
+            return Response({"results": serializer.data, **summary})
+
+        # ---------------------------------------
+        # INVALID TAG
+        # ---------------------------------------
+        else:
+            return Response(
+                {
+                    "error": f"Invalid tag: {tag}. Valid tags: {lead_tags + staff_tags}"
+                },
+                status=400
+            )

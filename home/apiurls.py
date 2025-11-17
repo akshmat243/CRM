@@ -67,7 +67,7 @@ urlpatterns = [
     path('api/superuser/freelancer-leads/<str:tag>/', api.SuperUserFreelancerLeadsAPIView.as_view(), name='api_superuser_freelancer_leads'),
 
     #teamleader cards api 
-    path('api/superuser/team-leader-leads/<str:tag>/', api.SuperUserTeamLeaderLeadsAPIView.as_view(), name='api_superuser_team_leader_leads'),
+    path('api/superuser/team-leader-leads/<str:tag>/',api.SuperUserTeamLeaderLeadsAPIView.as_view(),name='api_superuser_team_leader_leads'),
 
 
 
@@ -140,7 +140,8 @@ urlpatterns = [
     path('api/admin/staff-leads/by-staff/<int:id>/<str:tag>/', api.AdminStaffParticularLeadsAPIView.as_view(), name='api_admin_staff_particular_leads'),
 
 
-
+    #ADMINDASHBOARDAPI 3rd HARSHITSHARMA
+    
 
     #staff dasboard  
     path('api/staff/dashboard/', api.StaffDashboardAPIView.as_view(), name='api_staff_dashboard'),

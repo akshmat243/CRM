@@ -203,13 +203,13 @@ class Staff(models.Model):
 class Team_LeadData(models.Model):
     STATUS_LEAD = (
         ('Leads', 'Leads'),
-        ('Intrested', 'Intrested'),
+        ('Interested', 'Interested'),           # ← FIXED
         ('Not Interested', 'Not Interested'),
         ('Other Location', 'Other Location'),
         ('Not Picked', 'Not Picked'),
         ('Lost', 'Lost'),
         ('Visit', 'Visit'),
-    )
+)
     user        = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     team_leader = models.ForeignKey(Team_Leader, on_delete=models.CASCADE, null=True, blank=True)
     assigned_to = models.ForeignKey(Staff, on_delete=models.CASCADE, null=True, blank=True)
