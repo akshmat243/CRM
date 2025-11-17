@@ -986,3 +986,62 @@ class LeadUpdateSerializer(serializers.Serializer):
     message = serializers.CharField(required=False, allow_blank=True)
     followDate = serializers.DateField(required=False, allow_null=True)
     followTime = serializers.TimeField(required=False, allow_null=True)
+
+
+
+# home/serializers.py (file ke end me add karo)
+
+# ==========================================================
+# API: STAFF-ONLY - ADD NEW LEAD (BY SELF)
+# ==========================================================
+class StaffLeadCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer naya LeadUser banane ke liye (Staff Dashboard).
+    Yeh 'create' method ke andar staff, team_leader, aur user ko automatically set karta hai.
+    """
+    
+    # Hum form se 'mobile' lenge, lekin model me 'call' save karenge
+    mobile = serializers.CharField(source='call', required=True)
+    # Hum form se 'description' lenge, lekin model me 'message' save karenge
+    description = serializers.CharField(source='message', allow_blank=True, required=False)
+
+    class Meta:
+        model = LeadUser
+        # Yeh fields hain jo hum POST request se expect kar rahe hain
+        fields = [
+            'name', 
+            'email', 
+            'mobile',  # (call ban jaayega)
+            'status', 
+            'description' # (message ban jaayega)
+        ]
+
+    def validate_mobile(self, value):
+        """
+        Check karta hai ki mobile number pehle se hai ya nahi.
+        """
+        if LeadUser.objects.filter(call=value).exists():
+            raise serializers.ValidationError("Mobile number already exists.")
+        return value
+
+    def create(self, validated_data):
+        # 1. Logged-in staff user ko context se nikaalo
+        user = self.context['request'].user
+
+        # 2. Staff ka profile dhoondo
+        try:
+            staff_instance = Staff.objects.get(email=user.email)
+        except Staff.DoesNotExist:
+            raise serializers.ValidationError("Staff profile not found for this user.")
+        
+        if not staff_instance.team_leader:
+             raise serializers.ValidationError("Staff is not assigned to any Team Leader.")
+
+        # 3. Bachi hui fields (user, team_leader, assigned_to) add karo
+        validated_data['user'] = user
+        validated_data['assigned_to'] = staff_instance
+        validated_data['team_leader'] = staff_instance.team_leader
+
+        # 4. Naya LeadUser create karo
+        lead = LeadUser.objects.create(**validated_data)
+        return lead    

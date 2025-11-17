@@ -332,30 +332,15 @@
                 </button>
               </td>
               <td class="team_status">
-                <!-- <form action="" method="POST">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="leads_id" value="{{ user.id }}"> -->
-                <div class="dropdown projectsdropdown">
-
-                  <button class="btn" aria-expanded="false" data-bs-toggle="dropdown"
-                    type="button">select&nbsp;</button>
-                  <div class="dropdown-menu">
-                    {% for proj in projects %}
-                   
-
-                    <a href="https://wa.me/+91{{ user.call }}?text=*{{ proj.name|urlencode }}*%0A{{ proj.message|striptags|urlencode }}%0A%0AYoutube URL : {{ proj.youtube_link|urlencode }}%0A{{ request.user.name|urlencode }}"
-                      data-id="{{ request.user.email }}" class="log-activity" data-activity="Whatsapp user"
-                      target="_blank">
-                      <button class="dropdown-item" type="submit" name="new_status" value="Leads">{{
-                        proj.name }}</button>
-                    </a>
-
-                    {% endfor %}
-
-                  </div>
-                </div>
-                <!-- </form> -->
-              </td>
+    <select name="project_id_{{ user.id }}" class="form-select" style="width: 100px;">
+        <option value="">Select</option>
+        
+        {% for project in projects %}
+            <option value="{{ project.id }}">{{ project.name }}</option>
+        {% endfor %}
+        
+    </select>
+</td>
             </tr>
             <tr class="collapse" id="collapseRow{{ forloop.counter }}">
               <td colspan="6">
