@@ -143,6 +143,29 @@ urlpatterns = [
     #ADMINDASHBOARDAPI 3rd HARSHITSHARMA
     
 
+    #staff dasboard  
+    path('api/staff/dashboard/', api.StaffDashboardAPIView.as_view(), name='api_staff_dashboard'),
+
+    #add new  lead
+    path('api/staff/add-self-lead/', api.StaffAddSelfLeadAPIView.as_view(), name='api_staff_add_self_lead'),
+
+    # change status
+    path('api/staff/update-lead/<int:id>/', api.StaffUpdateLeadAPIView.as_view(), name='api_staff_update_lead'),
+
+    # project select 
+    path('api/staff/update-lead-project/', api.UpdateLeadProjectAPIView.as_view(), name='api_staff_update_lead_project'),
+
+    #interseted, today, tomoorow, pending followups
+    path('api/staff/interested-leads/<str:tag>/', api.StaffInterestedLeadsAPIView.as_view(), name='api_staff_interested_leads'),
+
+    #not interested
+    path('api/staff/not-interested-leads/', api.StaffNotInterestedLeadsAPIView.as_view(), name='api_staff_not_interested_leads'),
+
+
+
+    
+
+
 
 
 
