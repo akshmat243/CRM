@@ -143,6 +143,15 @@ urlpatterns = [
     #ADMINDASHBOARDAPI 3rd HARSHITSHARMA
     
 
+    #staff dasboard  
+    path('api/staff/dashboard/', api.StaffDashboardAPIView.as_view(), name='api_staff_dashboard'),
+
+    #add new  lead
+    path('api/staff/add-self-lead/', api.StaffAddSelfLeadAPIView.as_view(), name='api_staff_add_self_lead'),
+
+    
+
+
 
 
 

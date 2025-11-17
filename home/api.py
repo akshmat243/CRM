@@ -109,6 +109,19 @@ from rest_framework.authentication import BasicAuthentication
 #             res['data'] = []
 #             return Response(res, status=status.HTTP_400_BAD_REQUEST)
 
+
+
+# home/api.py (file ke top par add karo)
+
+from rest_framework import permissions
+
+class IsCustomStaffUser(permissions.BasePermission):
+    """
+    Custom permission to only allow users with is_staff_new=True.
+    """
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and request.user.is_staff_new
+
 class IsCustomAdminUser(permissions.BasePermission):
     """
     Custom permission to only allow users with is_admin=True.
@@ -4724,6 +4737,134 @@ class SuperUserTeamLeaderLeadsAPIView(APIView):
             elif tag == "other_location":
                 staff_leads_qs = LeadUser.objects.filter(status="Other Location")
 
+        return Response(staff_serializer.data, status=status.HTTP_200_OK)
+    
+
+
+
+
+
+# home/api.py
+
+# ==========================================================
+# API: STAFF-ONLY - LEADS DASHBOARD (CARDS + LIST) [RE-ORDERED]
+# ==========================================================
+class StaffDashboardAPIView(APIView):
+    """
+    API endpoint 'leads' function ke liye (Staff Dashboard).
+    GET: Staff ke saare cards (Total Leads, Visit, etc.) aur leads ki list laata hai.
+    SIRF STAFF (is_staff_new=True) hi ise access kar sakta hai.
+    [UPDATE]: Response order change kiya gaya hai.
+    """
+    
+    permission_classes = [IsAuthenticated, IsCustomStaffUser] # Sirf Staff ke liye
+    pagination_class = StandardResultsSetPagination
+
+    def get(self, request, format=None):
+        paginator = self.pagination_class()
+        
+        # --- 1. Get Staff Instance ---
+        try:
+            staff = Staff.objects.get(email=request.user.email)
+        except Staff.DoesNotExist:
+            return Response({"error": "Staff profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # --- 2. Date Filters ---
+        today = timezone.now().date()
+        start_date_str = request.query_params.get('start_date')
+        end_date_str = request.query_params.get('end_date')
+
+        if start_date_str and end_date_str:
+            start_date = timezone.make_aware(datetime.strptime(start_date_str, '%Y-%m-%d'))
+            end_date = timezone.make_aware(datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1)) - timedelta(seconds=1)
+        else:
+            start_date = timezone.make_aware(datetime.combine(today, datetime.min.time()))
+            end_date = timezone.make_aware(datetime.combine(today, datetime.max.time()))
+        
+        lead_filter = {'updated_date__range': [start_date, end_date]}
+
+        # --- 3. Leads List (Paginated) ---
+        leads_qs = LeadUser.objects.filter(status="Leads", assigned_to=staff)
+        page = paginator.paginate_queryset(leads_qs, request, view=self)
+        leads_serializer = ApiLeadUserSerializer(page, many=True)
+
+        # --- 4. Card Counts (Date Filter ke saath) ---
+        interested_count = LeadUser.objects.filter(status="Intrested", assigned_to=staff, **lead_filter).count()
+        not_interested_count = LeadUser.objects.filter(status="Not Interested", assigned_to=staff, **lead_filter).count()
+        other_location_count = LeadUser.objects.filter(status="Other Location", assigned_to=staff, **lead_filter).count()
+        not_picked_count = LeadUser.objects.filter(status="Not Picked", assigned_to=staff, **lead_filter).count()
+        visits_count = LeadUser.objects.filter(status="Visit", assigned_to=staff, **lead_filter).count()
+        total_leads_count = leads_qs.count() 
+
+        counts_data = {
+            'total_leads': total_leads_count,
+            'total_interested_leads': interested_count,
+            'total_not_interested_leads': not_interested_count,
+            'total_other_location_leads': other_location_count,
+            'total_not_picked_leads': not_picked_count,
+            'total_visits_leads': visits_count,
+        }
+
+        # --- 5. Extra Data (Marketing, Projects, Settings) ---
+        whatsapp_marketing = Marketing.objects.filter(source="whatsapp", user=request.user).last()
+        projects = Project.objects.all()
+        setting = Settings.objects.filter().last()
+
+        # --- [YEH RAHA FIX] ---
+        # 6. Final Response Banao (Custom Order Ke Saath)
+        
+        # Pehle paginator se response lo
+        paginated_response = paginator.get_paginated_response(leads_serializer.data)
+        
+        # Ab naya data dictionary banao (jismein 'counts' sabse upar hai)
+        final_data = {
+            "counts": counts_data,
+            "whatsapp_marketing": MarketingSerializer(whatsapp_marketing).data if whatsapp_marketing else None,
+            "projects": ProjectSerializer(projects, many=True).data,
+            "setting": DashboardSettingsSerializer(setting).data if setting else None,
+            
+            # Pagination data ko yahaan daalo
+            "count": paginated_response.data['count'],
+            "next": paginated_response.data['next'],
+            "previous": paginated_response.data['previous'],
+            "results": paginated_response.data['results']
+        }
+        
+        # Naya Response object return karo
+        return Response(final_data, status=status.HTTP_200_OK)
+        # --- [FIX ENDS] ---
+
+
+
+class StaffAddSelfLeadAPIView(APIView):
+    """
+    API endpoint 'AddLeadBySelf' function ke Staff waale logic ke liye.
+    POST: Naya LeadUser banata hai.
+    SIRF STAFF (is_staff_new=True) hi ise access kar sakta hai.
+    """
+    
+    permission_classes = [IsAuthenticated, IsCustomStaffUser]
+    # Form data (request.POST) lene ke liye parsers
+    parser_classes = [MultiPartParser, FormParser] 
+
+    def post(self, request, format=None):
+        """
+        Naya Lead create karta hai.
+        """
+        serializer = StaffLeadCreateSerializer(data=request.data, context={'request': request})
+        
+        if serializer.is_valid():
+            lead = serializer.save()
+            
+            # Response me poora lead dikhao (purane serializer se)
+            response_serializer = ApiLeadUserSerializer(lead)
+            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+
+    
             elif tag == "not_picked":
                 staff_leads_qs = LeadUser.objects.filter(status="Not Picked")
 
