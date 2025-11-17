@@ -149,6 +149,12 @@ urlpatterns = [
     #add new  lead
     path('api/staff/add-self-lead/', api.StaffAddSelfLeadAPIView.as_view(), name='api_staff_add_self_lead'),
 
+    # change status
+    path('api/staff/update-lead/<int:id>/', api.StaffUpdateLeadAPIView.as_view(), name='api_staff_update_lead'),
+
+    # project select 
+    path('api/staff/update-lead-project/', api.UpdateLeadProjectAPIView.as_view(), name='api_staff_update_lead_project'),
+
     
 
 

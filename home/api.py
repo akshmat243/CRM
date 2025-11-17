@@ -44,6 +44,10 @@ from django.core.exceptions import FieldError
 from django.http import Http404
 from rest_framework.authentication import BasicAuthentication
 
+#new import
+from django.db.models import Sum, IntegerField
+from django.db.models.functions import Cast
+
 
 # @method_decorator(csrf_exempt, name='dispatch')
 # class LoginApiView(APIView):
@@ -4665,7 +4669,6 @@ class SuperUserFreelancerLeadsAPIView(APIView):
 
 
 
-
 class SuperUserTeamLeaderLeadsAPIView(APIView):
     permission_classes = [IsAuthenticated, CustomIsSuperuser]
     pagination_class = StandardResultsSetPagination
@@ -4737,7 +4740,98 @@ class SuperUserTeamLeaderLeadsAPIView(APIView):
             elif tag == "other_location":
                 staff_leads_qs = LeadUser.objects.filter(status="Other Location")
 
-        return Response(staff_serializer.data, status=status.HTTP_200_OK)
+            elif tag == "not_picked":
+                staff_leads_qs = LeadUser.objects.filter(status="Not Picked")
+
+            elif tag == "lost":
+                staff_leads_qs = LeadUser.objects.filter(status="Lost")
+
+            elif tag == "pending_followups":
+                staff_leads_qs = LeadUser.objects.filter(
+                    status="Intrested",
+                    follow_up_date__isnull=False
+                )
+
+            elif tag == "today_followups":
+                staff_leads_qs = LeadUser.objects.filter(
+                    status="Intrested",
+                    follow_up_date=today
+                )
+
+            elif tag == "tomorrow_followups":
+                staff_leads_qs = LeadUser.objects.filter(
+                    status="Intrested",
+                    follow_up_date=tomorrow
+                )
+
+            # Serialize
+            ordered_qs = staff_leads_qs.order_by("-updated_date")
+            serializer = ApiLeadUserSerializer(ordered_qs, many=True)
+            page = paginator.paginate_queryset(serializer.data, request, view=self)
+
+            # Lead tags DO NOT show staff summary
+            if page is not None:
+                return paginator.get_paginated_response(page)
+
+            return Response({"results": serializer.data})
+
+        # ---------------------------------------
+        # STAFF TAGS (NEW)
+        # ---------------------------------------
+        elif tag in staff_tags:
+
+            # STAFF TOTAL
+            if tag == "staff_total":
+                total_staff = Staff.objects.count()
+                staff_qs = Staff.objects.all().order_by("-updated_date")
+                summary = {"total_staff": total_staff}
+
+            # STAFF ACTIVE
+            elif tag == "staff_active":
+                active_staff = Staff.objects.filter(
+                    user__logout_time__isnull=True
+                ).count()
+                staff_qs = Staff.objects.filter(
+                    user__logout_time__isnull=True
+                ).order_by("-updated_date")
+                summary = {"active_staff": active_staff}
+
+            # STAFF SALARY / TOTAL EARNING
+            elif tag == "staff_salary":
+                total_earning = Staff.objects.annotate(
+                    salary_int=Cast("salary", IntegerField())
+                ).aggregate(total=Sum("salary_int"))["total"] or 0
+
+                staff_qs = Staff.objects.exclude(
+                    salary__isnull=True
+                ).exclude(
+                    salary=""
+                ).order_by("-updated_date")
+
+                summary = {"total_earning": total_earning}
+
+            # Serialize staff
+            serializer = ApiStaffSerializer(staff_qs, many=True)
+            page = paginator.paginate_queryset(serializer.data, request, view=self)
+
+            if page is not None:
+                paginated = paginator.get_paginated_response(page)
+                paginated.data.update(summary)
+                return paginated
+
+            return Response({"results": serializer.data, **summary})
+
+        # ---------------------------------------
+        # INVALID TAG
+        # ---------------------------------------
+        else:
+            return Response(
+                {
+                    "error": f"Invalid tag: {tag}. Valid tags: {lead_tags + staff_tags}"
+                },
+                status=400
+            )
+        # return Response(staff_serializer.data, status=status.HTTP_200_OK)
     
 
 
@@ -4864,95 +4958,182 @@ class StaffAddSelfLeadAPIView(APIView):
     
 
 
-    
-            elif tag == "not_picked":
-                staff_leads_qs = LeadUser.objects.filter(status="Not Picked")
 
-            elif tag == "lost":
-                staff_leads_qs = LeadUser.objects.filter(status="Lost")
 
-            elif tag == "pending_followups":
-                staff_leads_qs = LeadUser.objects.filter(
-                    status="Intrested",
-                    follow_up_date__isnull=False
-                )
 
-            elif tag == "today_followups":
-                staff_leads_qs = LeadUser.objects.filter(
-                    status="Intrested",
-                    follow_up_date=today
-                )
 
-            elif tag == "tomorrow_followups":
-                staff_leads_qs = LeadUser.objects.filter(
-                    status="Intrested",
-                    follow_up_date=tomorrow
-                )
+# ==========================================================
+# API: STAFF-ONLY - UPDATE LEAD (CHANGE STATUS)
+# ==========================================================
+class StaffUpdateLeadAPIView(APIView):
+    """
+    API endpoint for Staff to update lead status, message, and follow-up.
+    This is a new, separate API only for Staff (is_staff_new=True).
+    """
+    permission_classes = [IsAuthenticated, IsCustomStaffUser]
 
-            # Serialize
-            ordered_qs = staff_leads_qs.order_by("-updated_date")
-            serializer = ApiLeadUserSerializer(ordered_qs, many=True)
-            page = paginator.paginate_queryset(serializer.data, request, view=self)
-
-            # Lead tags DO NOT show staff summary
-            if page is not None:
-                return paginator.get_paginated_response(page)
-
-            return Response({"results": serializer.data})
-
-        # ---------------------------------------
-        # STAFF TAGS (NEW)
-        # ---------------------------------------
-        elif tag in staff_tags:
-
-            # STAFF TOTAL
-            if tag == "staff_total":
-                total_staff = Staff.objects.count()
-                staff_qs = Staff.objects.all().order_by("-updated_date")
-                summary = {"total_staff": total_staff}
-
-            # STAFF ACTIVE
-            elif tag == "staff_active":
-                active_staff = Staff.objects.filter(
-                    user__logout_time__isnull=True
-                ).count()
-                staff_qs = Staff.objects.filter(
-                    user__logout_time__isnull=True
-                ).order_by("-updated_date")
-                summary = {"active_staff": active_staff}
-
-            # STAFF SALARY / TOTAL EARNING
-            elif tag == "staff_salary":
-                total_earning = Staff.objects.annotate(
-                    salary_int=Cast("salary", IntegerField())
-                ).aggregate(total=Sum("salary_int"))["total"] or 0
-
-                staff_qs = Staff.objects.exclude(
-                    salary__isnull=True
-                ).exclude(
-                    salary=""
-                ).order_by("-updated_date")
-
-                summary = {"total_earning": total_earning}
-
-            # Serialize staff
-            serializer = StaffSerializer(staff_qs, many=True)
-            page = paginator.paginate_queryset(serializer.data, request, view=self)
-
-            if page is not None:
-                paginated = paginator.get_paginated_response(page)
-                paginated.data.update(summary)
-                return paginated
-
-            return Response({"results": serializer.data, **summary})
-
-        # ---------------------------------------
-        # INVALID TAG
-        # ---------------------------------------
-        else:
+    def post(self, request, id, format=None):
+        # 1. Get the logged-in staff's profile
+        try:
+            staff_profile = Staff.objects.get(email=request.user.email)
+        except Staff.DoesNotExist:
             return Response(
-                {
-                    "error": f"Invalid tag: {tag}. Valid tags: {lead_tags + staff_tags}"
-                },
-                status=400
+                {"error": "Staff profile not found for this user."},
+                status=status.HTTP_404_NOT_FOUND
             )
+
+        # 2. Get the lead being updated
+        try:
+            lead_object = get_object_or_404(LeadUser, id=id)
+        except Exception:
+            return Response({"error": f"Lead with id={id} not found."}, 
+                            status=status.HTTP_404_NOT_FOUND)
+
+        # 3. CRITICAL Security Check: Is this lead assigned to this staff?
+        if lead_object.assigned_to != staff_profile:
+            return Response(
+                {"error": "You do not have permission to update this lead."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        current_status = lead_object.status
+
+        # 4. Validate input data (status, message, etc.)
+        # We reuse the LeadUpdateSerializer
+        serializer = LeadUpdateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        validated_data = serializer.validated_data
+        new_status = validated_data.get('status')
+        message = validated_data.get('message', lead_object.message)
+        follow_date = validated_data.get('followDate')
+        follow_time = validated_data.get('followTime')
+
+        # 5. "Not Picked" logic (from your views.py)
+        if new_status == "Not Picked":
+            try:
+                Team_LeadData.objects.create(
+                    user=lead_object.user,
+                    name=lead_object.name,
+                    call=lead_object.call,
+                    status="Leads", 
+                    email=lead_object.email,
+                    team_leader=staff_profile.team_leader # Assign to staff's TL
+                )
+                lead_object.delete()
+                return Response({'message': 'Success: Lead moved back to Team Leader pool.'}, status=status.HTTP_200_OK)
+            except Exception as e:
+                return Response({'error': f'Failed to move lead: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # 6. Normal Update Logic
+        lead_object.status = new_status
+        lead_object.message = message
+        if follow_date:
+            lead_object.follow_up_date = follow_date
+        if follow_time:
+            lead_object.follow_up_time = follow_time
+            
+        lead_object.save()
+
+        # 7. Create Leads History
+        try:
+            Leads_history.objects.create(
+                leads=lead_object,
+                lead_id=id, 
+                status=new_status,
+                name=lead_object.name,
+                message=message,
+            )
+        except Exception as e:
+            print(f"Failed to create Leads_history: {e}")
+
+        # 8. Create Activity Log (using logic from your views.py)
+        user_type = get_user_type(request.user)
+        tagline = f"Lead status changed from {current_status} to {new_status} by user[Email: {request.user.email}, {user_type}]"
+        tag2 = new_status
+        ip = get_client_ip(request)
+
+        ActivityLog.objects.create(
+            staff=staff_profile,
+            team_leader=staff_profile.team_leader,
+            description=tagline,
+            ip_address=ip,
+            email=request.user.email,
+            user_type=user_type,
+            activity_type=tag2,
+            name=request.user.name,
+        )
+            
+        # 9. Success Response
+        response_serializer = ApiLeadUserSerializer(lead_object)
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
+    
+
+# ==========================================================
+# API: STAFF-ONLY - UPDATE LEAD'S PROJECT
+# ==========================================================
+class UpdateLeadProjectAPIView(APIView):
+    """
+    API endpoint Staff ke liye, taaki woh Lead ko Project assign kar sake.
+    POST: Ek LeadUser ko ek Project se link karta hai.
+    SIRF STAFF (is_staff_new=True) hi ise access kar sakta hai.
+    """
+    
+    permission_classes = [IsAuthenticated, IsCustomStaffUser]
+
+    def post(self, request, format=None):
+        
+        lead_id = request.data.get('lead_id')
+        project_id = request.data.get('project_id')
+
+        if not lead_id or not project_id:
+            return Response(
+                {"error": "lead_id aur project_id dono zaroori hain."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 1. Staff profile dhoondo
+        try:
+            staff = Staff.objects.get(email=request.user.email)
+        except Staff.DoesNotExist:
+            return Response({"error": "Staff profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 2. Lead dhoondo aur check karo ki woh isi Staff ka hai
+        try:
+            lead = get_object_or_404(LeadUser, id=lead_id)
+            if lead.assigned_to != staff:
+                return Response(
+                    {"error": "Aap is lead ko edit nahi kar sakte (Not assigned to you)."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        except Exception:
+             return Response({"error": "Lead not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 3. Project dhoondo
+        try:
+            project = get_object_or_404(Project, id=project_id)
+        except Exception:
+             return Response({"error": "Project not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+        # 4. Lead ko Project assign karo
+        try:
+            lead.project = project
+            lead.save()
+            
+            # Success response
+            serializer = ApiLeadUserSerializer(lead) # Updated lead waapis bhejo
+            return Response(serializer.data, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            # Yeh error tab aayega agar 'LeadUser' model me 'project' field nahi hai
+            return Response({"error": f"Lead ko save karte time error: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+            
+    
+
+
+
+
+
+
