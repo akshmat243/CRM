@@ -1021,48 +1021,48 @@ class AdminSideLeadsRecordAPIView(APIView):
         today = timezone.now().date()
         tomorrow = today + timedelta(days=1)
         
-        if tag == "total_visit_tag":
+        if tag == "total_visit":
             staff_leads_qs = LeadUser.objects.filter(status='Visit')
             team_leads_qs = Team_LeadData.objects.filter(status='Visit')
             
-        elif tag == "total_lost_lead_tag":
+        elif tag == "lost":
             staff_leads_qs = LeadUser.objects.filter(status='Lost')
             team_leads_qs = Team_LeadData.objects.filter(status='Lost')
             
-        elif tag == "total_not_picked_lead_tag":
+        elif tag == "not_picked":
             staff_leads_qs = LeadUser.objects.filter(status='Not Picked')
             team_leads_qs = Team_LeadData.objects.filter(status='Not Picked')
             
-        elif tag == "total_other_location_lead_tag":
+        elif tag == "other_location":
             staff_leads_qs = LeadUser.objects.filter(status='Other Location')
             team_leads_qs = Team_LeadData.objects.filter(status='Other Location')
             
-        elif tag == "total_not_interested_lead_tag":
+        elif tag == "not_interested":
             staff_leads_qs = LeadUser.objects.filter(status='Not Interested')
             team_leads_qs = Team_LeadData.objects.filter(status='Not Interested')
             
-        elif tag == "total_upload_lead_tag":
+        elif tag == "total_leads":
             team_leads_qs = Team_LeadData.objects.filter(status='Leads')
             
         elif tag == "total_assigned_lead_tag":
             staff_leads_qs = LeadUser.objects.filter(status='Leads')
             
-        elif tag == "total_interested_lead_tag":
+        elif tag == "interested":
             staff_leads_qs = LeadUser.objects.filter(status='Intrested')
             team_leads_qs = Team_LeadData.objects.filter(status='Intrested')
         
         # --- [YEH RAHA FIX START] ---
         # Followup tags sirf LeadUser (staff_leads_qs) se filter honge.
         
-        elif tag == "pending_followup_tag":
+        elif tag == "pending_followups":
             staff_leads_qs = LeadUser.objects.filter(Q(status='Intrested') & Q(follow_up_date__isnull=False))
             # team_leads_qs khaali rahega (jaisa upar define kiya hai)
 
-        elif tag == "today_followup_tag":
+        elif tag == "today_followups":
             staff_leads_qs = LeadUser.objects.filter(Q(status='Intrested') & Q(follow_up_date=today))
             # team_leads_qs khaali rahega
 
-        elif tag == "tomorrow_followup_tag":
+        elif tag == "tomorrow_followups":
             staff_leads_qs = LeadUser.objects.filter(Q(status='Intrested') & Q(follow_up_date=tomorrow))
             # team_leads_qs khaali rahega
         
@@ -1083,8 +1083,7 @@ class AdminSideLeadsRecordAPIView(APIView):
         if page is not None:
             return paginator.get_paginated_response(page)
 
-        return Response(combined_data, status=status.HTTP_200_OK)
-    
+        return Response(combined_data, status=status.HTTP_200_OK)    
     
 
 # ===================================================================
@@ -1162,7 +1161,7 @@ class ExcelUploadAPIView(APIView):
 
             if not name or pd.isna(name):
                 continue
-            if not status_val.lower() == "leads": # .lower() add kiya
+            if not status_val.lower() not in ["lead", "leads"]:
                 continue
             try:
                 if Team_LeadData.objects.filter(call=call).exists():
@@ -4655,11 +4654,8 @@ class SuperUserFreelancerLeadsAPIView(APIView):
 
 
 class SuperUserTeamLeaderLeadsAPIView(APIView):
-    """
-    ✅ Unified API for Superuser Dashboard (Team Leader + Staff Leads)
-    Supports both Staff/Lead status filters (Intrested, Lost, etc.)
-    and dashboard summary cards (total_staff, active_staff, total_earning).
-    """
+    permission_classes = [IsAuthenticated, CustomIsSuperuser]
+    pagination_class = StandardResultsSetPagination
 
     permission_classes = [AllowAny]
     pagination_class = StandardResultsSetPagination
@@ -4690,135 +4686,132 @@ class SuperUserTeamLeaderLeadsAPIView(APIView):
     # -----------------------------
     def get(self, request, tag, format=None):
         paginator = self.pagination_class()
+
+        staff_leads_qs = LeadUser.objects.none()
+        staff_qs = Staff.objects.none()
+
         today = timezone.now().date()
         tomorrow = today + timedelta(days=1)
 
-        # Initialize queryset
-        staff_leads_qs = LeadUser.objects.none()
-        user_qs = User.objects.none()
+        # ---------------------------------------
+        # LEAD TAGS
+        # ---------------------------------------
+        lead_tags = [
+            "total_leads","total_visit","interested","not_interested",
+            "other_location","not_picked","lost",
+            "pending_followups","today_followups","tomorrow_followups"
+        ]
 
-        # -----------------------------
-        #  1️⃣ STAFF + TEAM LEAD COUNTS
-        # -----------------------------
-        if tag == "total_staff":
-            user_qs = User.objects.filter(is_staff_new=True)
+        staff_tags = ["staff_total", "staff_active", "staff_salary"]
 
-        elif tag == "active_staff":
-            user_qs = User.objects.filter(
-                is_staff_new=True, logout_time__isnull=True
-            )
+        # ---------------------------------------
+        # IF LEAD TAG
+        # ---------------------------------------
+        if tag in lead_tags:
 
-        elif tag == "total_earning":
-            return Response({
-                "total_earning": 0,
-                "message": "Earning field not yet implemented. Placeholder response."
-            }, status=status.HTTP_200_OK)
+            if tag == "total_leads":
+                staff_leads_qs = LeadUser.objects.filter(status="Leads")
 
-        # -----------------------------
-        #  2️⃣ LEAD STATUS FILTERS
-        # -----------------------------
-        elif tag == "total_leads":
-            staff_leads_qs = LeadUser.objects.filter(status="Leads")
+            elif tag == "total_visit":
+                staff_leads_qs = LeadUser.objects.filter(status="Visit")
 
-        elif tag == "total_visit":
-            staff_leads_qs = LeadUser.objects.filter(status="Visit")
+            elif tag == "interested":
+                staff_leads_qs = LeadUser.objects.filter(status="Intrested")
 
-        elif tag == "interested":
-            staff_leads_qs = LeadUser.objects.filter(status="Intrested")
+            elif tag == "not_interested":
+                staff_leads_qs = LeadUser.objects.filter(status="Not Interested")
 
-        elif tag == "not_interested":
-            staff_leads_qs = LeadUser.objects.filter(status="Not Interested")
+            elif tag == "other_location":
+                staff_leads_qs = LeadUser.objects.filter(status="Other Location")
 
-        elif tag == "other_location":
-            staff_leads_qs = LeadUser.objects.filter(status="Other Location")
+            elif tag == "not_picked":
+                staff_leads_qs = LeadUser.objects.filter(status="Not Picked")
 
-        elif tag == "not_picked":
-            staff_leads_qs = LeadUser.objects.filter(status="Not Picked")
+            elif tag == "lost":
+                staff_leads_qs = LeadUser.objects.filter(status="Lost")
 
-        elif tag == "lost":
-            staff_leads_qs = LeadUser.objects.filter(status="Lost")
+            elif tag == "pending_followups":
+                staff_leads_qs = LeadUser.objects.filter(
+                    status="Intrested",
+                    follow_up_date__isnull=False
+                )
 
-        # -----------------------------
-        #  3️⃣ FOLLOW-UP FILTERS
-        # -----------------------------
-        elif tag == "pending_followups":
-            staff_leads_qs = LeadUser.objects.filter(
-                Q(status="Intrested") & Q(follow_up_date__isnull=False)
-            )
+            elif tag == "today_followups":
+                staff_leads_qs = LeadUser.objects.filter(
+                    status="Intrested",
+                    follow_up_date=today
+                )
 
-        elif tag == "today_followups":
-            staff_leads_qs = LeadUser.objects.filter(
-                Q(status="Intrested") & Q(follow_up_date=today)
-            )
+            elif tag == "tomorrow_followups":
+                staff_leads_qs = LeadUser.objects.filter(
+                    status="Intrested",
+                    follow_up_date=tomorrow
+                )
 
-        elif tag == "tomorrow_followups":
-            staff_leads_qs = LeadUser.objects.filter(
-                Q(status="Intrested") & Q(follow_up_date=tomorrow)
-            )
-
-        # -----------------------------
-        #  4️⃣ INVALID TAG HANDLING
-        # -----------------------------
-        else:
-            valid_tags = [
-                "total_staff", "active_staff", "total_earning",
-                "total_leads", "total_visit", "interested", "not_interested",
-                "other_location", "not_picked", "lost",
-                "pending_followups", "today_followups", "tomorrow_followups"
-            ]
-            return Response(
-                {"error": f"Invalid tag: {tag}. Valid tags are: {valid_tags}"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # -----------------------------
-        #  5️⃣ SERIALIZATION + PAGINATION
-        # -----------------------------
-        summary = self._summary()
-        response_data = {
-            "total_staff": summary["total_staff"],
-            "active_staff": summary["active_staff"],
-            "total_earning": summary["total_earning"],
-        }
-
-        # -----------------------------
-        #  CASE A: LEAD-BASED RESPONSE
-        # -----------------------------
-        if staff_leads_qs.exists():
+            # Serialize
             ordered_qs = staff_leads_qs.order_by("-updated_date")
             serializer = ApiLeadUserSerializer(ordered_qs, many=True)
             page = paginator.paginate_queryset(serializer.data, request, view=self)
 
+            # Lead tags DO NOT show staff summary
             if page is not None:
-                paginated_response = paginator.get_paginated_response(page)
-                paginated_response.data.update(response_data)
-                return paginated_response
+                return paginator.get_paginated_response(page)
 
-            final_response = {"results": serializer.data}
-            final_response.update(response_data)
-            return Response(final_response, status=status.HTTP_200_OK)
+            return Response({"results": serializer.data})
 
-        # -----------------------------
-        #  CASE B: USER-BASED RESPONSE
-        # -----------------------------
-        if user_qs.exists():
-            qs_to_use = user_qs.order_by("-updated_date")
-            serializer = ApiUserSerializer(qs_to_use, many=True)
+        # ---------------------------------------
+        # STAFF TAGS (NEW)
+        # ---------------------------------------
+        elif tag in staff_tags:
+
+            # STAFF TOTAL
+            if tag == "staff_total":
+                total_staff = Staff.objects.count()
+                staff_qs = Staff.objects.all().order_by("-updated_date")
+                summary = {"total_staff": total_staff}
+
+            # STAFF ACTIVE
+            elif tag == "staff_active":
+                active_staff = Staff.objects.filter(
+                    user__logout_time__isnull=True
+                ).count()
+                staff_qs = Staff.objects.filter(
+                    user__logout_time__isnull=True
+                ).order_by("-updated_date")
+                summary = {"active_staff": active_staff}
+
+            # STAFF SALARY / TOTAL EARNING
+            elif tag == "staff_salary":
+                total_earning = Staff.objects.annotate(
+                    salary_int=Cast("salary", IntegerField())
+                ).aggregate(total=Sum("salary_int"))["total"] or 0
+
+                staff_qs = Staff.objects.exclude(
+                    salary__isnull=True
+                ).exclude(
+                    salary=""
+                ).order_by("-updated_date")
+
+                summary = {"total_earning": total_earning}
+
+            # Serialize staff
+            serializer = StaffSerializer(staff_qs, many=True)
             page = paginator.paginate_queryset(serializer.data, request, view=self)
 
             if page is not None:
-                paginated_response = paginator.get_paginated_response(page)
-                paginated_response.data.update(response_data)
-                return paginated_response
+                paginated = paginator.get_paginated_response(page)
+                paginated.data.update(summary)
+                return paginated
 
-            final_response = {"results": serializer.data}
-            final_response.update(response_data)
-            return Response(final_response, status=status.HTTP_200_OK)
+            return Response({"results": serializer.data, **summary})
 
-        # -----------------------------
-        #  CASE C: EMPTY RESPONSE
-        # -----------------------------
-        response_data.update({"results": []})
-        return Response(response_data, status=status.HTTP_200_OK)
-
-
+        # ---------------------------------------
+        # INVALID TAG
+        # ---------------------------------------
+        else:
+            return Response(
+                {
+                    "error": f"Invalid tag: {tag}. Valid tags: {lead_tags + staff_tags}"
+                },
+                status=400
+            )
