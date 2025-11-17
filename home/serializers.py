@@ -1065,3 +1065,31 @@ class ApiUserSerializer(serializers.ModelSerializer):
 
     def get_duration(self, obj):
         return obj.duration  # ← This works because @property
+
+
+# home/serializers.py (file ke end me add karo)
+
+# ==========================================================
+# NAYA SERIALIZER: STAFF PROFILE (BINA TEAMLEADER KE)
+# ==========================================================
+class StaffOnlyProfileSerializer(serializers.ModelSerializer):
+    """
+    Serializer jo Staff ki poori profile dikhata hai, 
+    lekin nested 'team_leader' object ke BINA.
+    """
+    
+    # Hum User ki details (email, name, etc.) dikhayenge
+    user = DashboardUserSerializer(read_only=True) 
+
+    class Meta:
+        model = Staff
+        
+        # Hum '__all__' ki jagah, 'team_leader' ko chhod kar
+        # baaki saari fields dikhayenge
+        fields = [
+            'id', 'user', 'staff_id', 'name', 'email', 'mobile', 
+            'address', 'city', 'pincode', 'state', 'dob', 'pancard', 
+            'aadharCard', 'marksheet', 'degree', 'account_number', 
+            'upi_id', 'bank_name', 'ifsc_code', 'salary', 'achived_slab',
+            'referral_code', 'join_referral', 'created_date', 'updated_date'
+        ]

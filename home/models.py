@@ -322,6 +322,7 @@ class Slab(models.Model):
     start_value = models.CharField(max_length=50, null=True, blank=True)
     end_value = models.CharField(max_length=50, null=True, blank=True)
     amount = models.CharField(max_length=50, null=True, blank=True)
+    flat_percent = models.CharField(max_length=50, null=True, blank=True)
     created_date    = models.DateTimeField(auto_now_add=True)
     updated_date    = models.DateTimeField(auto_now=True)
 

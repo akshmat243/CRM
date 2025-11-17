@@ -104,6 +104,8 @@
                                         <!-- <th>{{ data.slab }}</th> -->
                                         <th>{{ data.slab_amount }}</th>
                                         <th>{{ data.earn_amount }}</th>
+                                        <th>{{ data.flat_percentage }}</th>
+                                        
                                     </tr>
                                     {% endfor %}
                                    
@@ -118,7 +120,7 @@
                                 <tr>
                                     <th scope="col">Slab</th>
                                     <th scope="col">Amount</th>
-                                </tr>
+                                    <th scope="col">Flat %</th> </tr>
                             </thead>
                             <tbody>
                                 {% for data in slab %}
@@ -126,9 +128,9 @@
                                     <td>{{ data.start_value }}-{{ data.end_value }}</td>
                                     {% if user_type == True %}
                                         <td>{{ data.amount }}</td>
-                                    {% else %}
+                                        <td>{{ data.flat_percent }} %</td> {% else %}
                                         <td>{{ data.amount|add:"-100" }}</td>
-                                    {% endif %}
+                                        <td>{{ data.flat_percent }} %</td> {% endif %}
                                 </tr>
                                 {% endfor %}
                             </tbody>

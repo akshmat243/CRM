@@ -161,6 +161,32 @@ urlpatterns = [
     #not interested
     path('api/staff/not-interested-leads/', api.StaffNotInterestedLeadsAPIView.as_view(), name='api_staff_not_interested_leads'),
 
+    # LEAD HISTORY
+    path('api/staff/lead-history/<int:id>/', api.StaffLeadHistoryAPIView.as_view(), name='api_staff_lead_history'),
+
+    #other location 
+    path('api/staff/other-location-leads/', api.StaffOtherLocationLeadsAPIView.as_view(), name='api_staff_other_location_leads'),
+
+    #not picked
+    path('api/staff/not-picked-leads/', api.StaffNotPickedLeadsAPIView.as_view(), name='api_staff_not_picked_leads'),
+
+    #lost
+    path('api/staff/lost-leads/', api.StaffLostLeadsAPIView.as_view(), name='api_staff_lost_leads'),
+
+    #visit
+    path('api/staff/visit-leads/', api.StaffVisitLeadsAPIView.as_view(), name='api_staff_visit_leads'),
+
+    #STAFF (TIME SHEET) 
+    path('api/staff/activity-logs/', api.StaffActivityLogAPIView.as_view(), name='api_staff_activity_logs'),
+
+    #productivity calender
+    path('api/staff/productivity-calendar/<int:staff_id>/', api.StaffProductivityCalendarAPIView.as_view(), name='api_staff_productivity_calendar'),
+
+    #  FOR STAFF (INCENTIVES) 
+    path('api/staff/incentives/', api.StaffIncentiveAPIView.as_view(), name='api_staff_incentives'),
+
+    # STAFF (VIEW/EDIT PROFILE) 
+    path('api/staff/profile/', api.StaffProfileViewAPIView.as_view(), name='api_staff_profile'),
 
 
     
