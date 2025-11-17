@@ -989,3 +989,23 @@ class LeadUpdateSerializer(serializers.Serializer):
     message = serializers.CharField(required=False, allow_blank=True)
     followDate = serializers.DateField(required=False, allow_null=True)
     followTime = serializers.TimeField(required=False, allow_null=True)
+
+
+
+class ApiUserSerializer(serializers.ModelSerializer):
+    duration = serializers.SerializerMethodField()
+    is_active = serializers.BooleanField(read_only=True)
+    # updated_at = serializers.DateTimeField(source='updated_date', format="%d-%b-%Y %I:%M %p", read_only=True)
+  # ← FIXED: NO source!
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'name', 'email', 'mobile',
+            'is_team_leader', 'is_staff_new', 'is_admin',
+            'is_active', 'duration', 'login_time', 'logout_time',
+            'profile_image', 'user_active', 'is_user_login'
+        ]
+
+    def get_duration(self, obj):
+        return obj.duration  # ← This works because @property
