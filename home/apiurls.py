@@ -155,6 +155,14 @@ urlpatterns = [
     # project select 
     path('api/staff/update-lead-project/', api.UpdateLeadProjectAPIView.as_view(), name='api_staff_update_lead_project'),
 
+    #interseted, today, tomoorow, pending followups
+    path('api/staff/interested-leads/<str:tag>/', api.StaffInterestedLeadsAPIView.as_view(), name='api_staff_interested_leads'),
+
+    #not interested
+    path('api/staff/not-interested-leads/', api.StaffNotInterestedLeadsAPIView.as_view(), name='api_staff_not_interested_leads'),
+
+
+
     
 
 

@@ -5129,7 +5129,70 @@ class UpdateLeadProjectAPIView(APIView):
             # Yeh error tab aayega agar 'LeadUser' model me 'project' field nahi hai
             return Response({"error": f"Lead ko save karte time error: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-            
+
+# ==========================================================
+# API: STAFF-ONLY - INTERESTED LEADS (BY TAG)
+# ==========================================================
+class StaffInterestedLeadsAPIView(APIView):
+    """
+    API endpoint for 'lost_leads' function (Staff Dashboard).
+    GET: Fetches a Staff's "Interested" leads, filtered by a tag 
+         (e.g., pending_follow, today_follow).
+    ONLY STAFF (is_staff_new=True) can access this.
+    """
+    
+    permission_classes = [IsAuthenticated, IsCustomStaffUser]
+    pagination_class = StandardResultsSetPagination
+
+    def get(self, request, tag, format=None):
+        paginator = self.pagination_class()
+        user = request.user
+        
+        # 1. Get the Staff profile based on the logged-in user's email
+        try:
+            staff = Staff.objects.get(email=user.email)
+        except Staff.DoesNotExist:
+            return Response({"error": "Staff profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 2. Get dates for filtering
+        today = timezone.now().date()
+        tomorrow = today + timedelta(days=1)
+
+        # 3. Base queryset: Only interested leads for this staff
+        base_queryset = LeadUser.objects.filter(assigned_to=staff, status='Intrested')
+        
+        queryset = LeadUser.objects.none() # Start with an empty queryset
+
+        # 4. Filter logic based on the tag (from your views.py)
+        if tag == 'pending_follow':
+            queryset = base_queryset.filter(follow_up_date__isnull=False)
+        
+        elif tag == 'today_follow':
+            queryset = base_queryset.filter(follow_up_date=today)
+        
+        elif tag == 'tommorrow_follow': # Note: Following the typo in your view
+            queryset = base_queryset.filter(follow_up_date=tomorrow)
+        
+        else:
+            # Default case (if tag is 'interested' or something else)
+            queryset = base_queryset.filter(follow_up_time__isnull=True)
+
+        # 5. Order and Paginate
+        queryset = queryset.order_by('-updated_date')
+        page = paginator.paginate_queryset(queryset, request, view=self)
+        
+        if page is not None:
+            serializer = ApiLeadUserSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
+        # Fallback if pagination fails
+        serializer = ApiLeadUserSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+
+
+
+
     
 
 
@@ -5137,3 +5200,114 @@ class UpdateLeadProjectAPIView(APIView):
 
 
 
+# home/api.py
+
+# ==========================================================
+# API: STAFF-ONLY - INTERESTED LEADS (BY TAG) [FINAL FIX]
+# ==========================================================
+class StaffInterestedLeadsAPIView(APIView):
+    """
+    API endpoint for 'lost_leads' function (Staff Dashboard).
+    GET: Fetches a Staff's "Interested" leads, filtered by a tag 
+         (e.g., pending_follow, today_follow, tommorrow_follow).
+    ONLY STAFF (is_staff_new=True) can access this.
+    """
+    
+    permission_classes = [IsAuthenticated, IsCustomStaffUser]
+    pagination_class = StandardResultsSetPagination
+
+    def get(self, request, tag, format=None):
+        paginator = self.pagination_class()
+        user = request.user
+        
+        # 1. Get the Staff profile
+        try:
+            staff = Staff.objects.get(email=user.email)
+        except Staff.DoesNotExist:
+            return Response({"error": "Staff profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 2. Get dates for filtering
+        today = timezone.now().date()
+        tomorrow = today + timedelta(days=1)
+
+        # 3. Base queryset: Only interested leads for this staff
+        base_queryset = LeadUser.objects.filter(assigned_to=staff, status='Intrested')
+        
+        queryset = LeadUser.objects.none() # Start with an empty queryset
+
+        # 4. Filter logic based on the tag (from your views.py)
+        
+        if tag == 'pending_follow':
+            queryset = base_queryset.filter(follow_up_date__isnull=False)
+        
+        elif tag == 'today_follow':
+            queryset = base_queryset.filter(follow_up_date=today)
+        
+        elif tag == 'tomorrow_follow': # <-- YEH HAI AAPKA TAG
+            queryset = base_queryset.filter(follow_up_date=tomorrow)
+        
+        elif tag == 'interested': # Default 'Interested' tag
+             queryset = base_queryset.filter(follow_up_time__isnull=True)
+             
+        else:
+            # Agar tag match nahi hua
+            valid_tags = ['pending_follow', 'today_follow', 'tomorrow_follow', 'interested']
+            return Response(
+                {"error": f"Invalid tag for this view: {tag}. Valid tags are: {valid_tags}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 5. Order and Paginate
+        queryset = queryset.order_by('-updated_date')
+        page = paginator.paginate_queryset(queryset, request, view=self)
+        
+        if page is not None:
+            serializer = ApiLeadUserSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
+        # Fallback if pagination fails
+        serializer = ApiLeadUserSerializer(queryset, many=True)
+        return Response(serializer.data)
+    
+
+
+# ==========================================================
+# API: STAFF-ONLY - NOT INTERESTED LEADS
+# ==========================================================
+class StaffNotInterestedLeadsAPIView(APIView):
+    """
+    API endpoint for 'customer' function (Staff Dashboard).
+    GET: Fetches all of a Staff's "Not Interested" leads.
+    ONLY STAFF (is_staff_new=True) can access this.
+    """
+    
+    permission_classes = [IsAuthenticated, IsCustomStaffUser]
+    pagination_class = StandardResultsSetPagination
+
+    def get(self, request, format=None):
+        paginator = self.pagination_class()
+        user = request.user
+        
+        # 1. Get the Staff profile
+        try:
+            staff = Staff.objects.get(email=user.email)
+        except Staff.DoesNotExist:
+            return Response({"error": "Staff profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 2. Get "Not Interested" leads for this staff
+        # (This is the 'else' block logic from your 'customer' function)
+        leads_qs = LeadUser.objects.filter(
+            status="Not Interested", 
+            assigned_to=staff
+        ).order_by("-updated_date")
+
+        # 3. Paginate and Serialize
+        page = paginator.paginate_queryset(leads_qs, request, view=self)
+        
+        if page is not None:
+            serializer = ApiLeadUserSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
+        # Fallback if pagination fails
+        serializer = ApiLeadUserSerializer(leads_qs, many=True)
+        return Response(serializer.data)
