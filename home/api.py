@@ -47,6 +47,7 @@ from rest_framework.authentication import BasicAuthentication
 #new import
 from django.db.models import Sum, IntegerField
 from django.db.models.functions import Cast
+from django.db.models import Prefetch
 
 
 # @method_decorator(csrf_exempt, name='dispatch')
@@ -4878,7 +4879,14 @@ class StaffDashboardAPIView(APIView):
         lead_filter = {'updated_date__range': [start_date, end_date]}
 
         # --- 3. Leads List (Paginated) ---
-        leads_qs = LeadUser.objects.filter(status="Leads", assigned_to=staff)
+       # ...
+              # --- 3. Leads List (Paginated) ---
+        leads_qs = LeadUser.objects.filter(status="Leads", assigned_to=staff).select_related('project')
+        page = paginator.paginate_queryset(leads_qs, request, view=self)
+        leads_serializer = ApiLeadUserSerializer(page, many=True)
+
+
+
         page = paginator.paginate_queryset(leads_qs, request, view=self)
         leads_serializer = ApiLeadUserSerializer(page, many=True)
 
@@ -4910,22 +4918,48 @@ class StaffDashboardAPIView(APIView):
         # Pehle paginator se response lo
         paginated_response = paginator.get_paginated_response(leads_serializer.data)
         
-        # Ab naya data dictionary banao (jismein 'counts' sabse upar hai)
+        # results list le lo (paginated response se)
+        results = paginated_response.data.get('results', [])
+
+        # 1) Sab assigned staff ids nikaalo (unique)
+        staff_ids = [r.get('assigned_to', {}).get('id') for r in results if r.get('assigned_to')]
+        staff_ids = list(set([sid for sid in staff_ids if sid]))
+
+        # 2) Un staff_ids ke saare projects ek query se le lo
+        projects_qs = Project.objects.filter(staff__id__in=staff_ids).order_by('-updated_date')
+
+        # 3) Projects ko staff_id ke hisaab se group karo
+        projects_by_staff = {}
+        for p in projects_qs:
+            if p.staff and p.staff.id:
+                sid = p.staff.id
+                projects_by_staff.setdefault(sid, []).append(p)
+
+        # 4) Har lead result ke andar 'projects' key add karo (serialized)
+        for idx, lead in enumerate(results):
+            assigned = lead.get('assigned_to')
+            if assigned and assigned.get('id'):
+                sid = assigned.get('id')
+                proj_list = projects_by_staff.get(sid, [])
+                # full project objects chahiye to serializer use karo:
+                results[idx]['projects'] = ProjectSerializer(proj_list, many=True).data
+            else:
+                results[idx]['projects'] = []
+
+        # 5) Final response banao aur return karo
         final_data = {
             "counts": counts_data,
             "whatsapp_marketing": MarketingSerializer(whatsapp_marketing).data if whatsapp_marketing else None,
             "projects": ProjectSerializer(projects, many=True).data,
             "setting": DashboardSettingsSerializer(setting).data if setting else None,
-            
-            # Pagination data ko yahaan daalo
-            "count": paginated_response.data['count'],
-            "next": paginated_response.data['next'],
-            "previous": paginated_response.data['previous'],
-            "results": paginated_response.data['results']
+            "count": paginated_response.data.get('count'),
+            "next": paginated_response.data.get('next'),
+            "previous": paginated_response.data.get('previous'),
+            "results": results
         }
-        
-        # Naya Response object return karo
+
         return Response(final_data, status=status.HTTP_200_OK)
+
         # --- [FIX ENDS] ---
 
 
@@ -5070,68 +5104,31 @@ class StaffUpdateLeadAPIView(APIView):
         return Response(response_serializer.data, status=status.HTTP_200_OK)
     
 
-# ==========================================================
-# API: STAFF-ONLY - UPDATE LEAD'S PROJECT
-# ==========================================================
 class UpdateLeadProjectAPIView(APIView):
-    """
-    API endpoint Staff ke liye, taaki woh Lead ko Project assign kar sake.
-    POST: Ek LeadUser ko ek Project se link karta hai.
-    SIRF STAFF (is_staff_new=True) hi ise access kar sakta hai.
-    """
-    
     permission_classes = [IsAuthenticated, IsCustomStaffUser]
 
     def post(self, request, format=None):
-        
         lead_id = request.data.get('lead_id')
         project_id = request.data.get('project_id')
 
-        if not lead_id or not project_id:
-            return Response(
-                {"error": "lead_id aur project_id dono zaroori hain."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        if not lead_id or project_id is None:
+            return Response({"error": "lead_id aur project_id dono zaroori hain."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 1. Staff profile dhoondo
         try:
             staff = Staff.objects.get(email=request.user.email)
         except Staff.DoesNotExist:
             return Response({"error": "Staff profile not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # 2. Lead dhoondo aur check karo ki woh isi Staff ka hai
-        try:
-            lead = get_object_or_404(LeadUser, id=lead_id)
-            if lead.assigned_to != staff:
-                return Response(
-                    {"error": "Aap is lead ko edit nahi kar sakte (Not assigned to you)."},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-        except Exception:
-             return Response({"error": "Lead not found."}, status=status.HTTP_404_NOT_FOUND)
+        lead = get_object_or_404(LeadUser, id=lead_id)
+        if lead.assigned_to != staff:
+            return Response({"error": "Aap is lead ko edit nahi kar sakte (Not assigned to you)."}, status=status.HTTP_403_FORBIDDEN)
 
-        # 3. Project dhoondo
-        try:
-            project = get_object_or_404(Project, id=project_id)
-        except Exception:
-             return Response({"error": "Project not found."}, status=status.HTTP_404_NOT_FOUND)
-        
-        # 4. Lead ko Project assign karo
-        try:
-            lead.project = project
-            lead.save()
-            
-            # Success response
-            serializer = ApiLeadUserSerializer(lead) # Updated lead waapis bhejo
-            return Response(serializer.data, status=status.HTTP_200_OK)
-            
-        except Exception as e:
-            # Yeh error tab aayega agar 'LeadUser' model me 'project' field nahi hai
-            return Response({"error": f"Lead ko save karte time error: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+        project = get_object_or_404(Project, id=project_id)
+        lead.project = project
+        lead.save()
 
-
-
+        serializer = ApiLeadUserSerializer(lead)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 

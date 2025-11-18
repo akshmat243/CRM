@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from .models import Admin
 # Yeh line file ke sabse upar add karo
 from django.db import IntegrityError
+from .models import Project
 
 class UserSerializer(serializers.ModelSerializer):
     """ user serializer """
@@ -173,21 +174,26 @@ class ApiStaffSerializer(serializers.ModelSerializer):
         model = Staff
         fields = ['id', 'name', 'staff_id', 'email', 'mobile']
 
+
+# upar pe ensure ProjectSerializer imported / defined before using it
 class ApiLeadUserSerializer(serializers.ModelSerializer):
-    """
-    Staff ke Leads (LeadUser model) ke liye serializer.
-    """
     assigned_to = ApiStaffSerializer(read_only=True)
+    project_id = serializers.PrimaryKeyRelatedField(source='project', read_only=True)
+    project = ProjectSerializer(read_only=True)
     team_leader = serializers.CharField(source='team_leader.name', read_only=True)
-    follow_up_date = serializers.DateField(format="%Y-%m-%d")
+    follow_up_date = serializers.DateField(format="%Y-%m-%d", allow_null=True)
     follow_up_time = serializers.TimeField(format="%H:%M:%S", allow_null=True)
-    
+
     class Meta:
         model = LeadUser
         fields = [
             'id', 'name', 'email', 'call', 'send', 'status', 'message', 'team_leader',
-            'follow_up_date', 'follow_up_time', 'created_date', 'assigned_to'
+            'follow_up_date', 'follow_up_time', 'created_date', 'assigned_to',
+            'project_id', 'project'
         ]
+
+
+
 
 class ApiTeamLeadDataSerializer(serializers.ModelSerializer):
     """
