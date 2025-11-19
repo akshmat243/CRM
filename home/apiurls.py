@@ -193,7 +193,30 @@ urlpatterns = [
 
 
 
+    # --- SUPERUSER PROFILE API ---
+    path('api/superuser/profile/', api.SuperUserProfileAPIView.as_view(), name='api_superuser_profile'),
 
+
+
+
+
+    #######################################################################################################
+                                            ## TEAM LEADER  ##
+    #######################################################################################################       
+
+
+
+    # --- YEH NAYI LINE TEAM LEADER (STAFF DASHBOARD) KE LIYE ADD KARO ---
+    path('api/team-leader/staff-dashboard/', api.TeamLeaderStaffDashboardAPIView.as_view(), name='api_team_leader_staff_dashboard'),
+
+    # --- TEAM LEADER ADD STAFF ---
+    path('api/team-leader/add-staff/', api.TeamLeaderAddStaffAPIView.as_view(), name='api_team_leader_add_staff'),
+
+    # --- TEAM LEADER EDIT STAFF ---
+    path('api/team-leader/staff/edit/<int:id>/', api.TeamLeaderStaffEditAPIView.as_view(), name='api_team_leader_staff_edit'),
+
+    # --- YEH NAYI LINE STAFF (CALENDAR) KE LIYE ADD KARO ---
+    path('api/staff/calendar/', api.StaffMyCalendarAPIView.as_view(), name='api_staff_my_calendar'),
 
 
 

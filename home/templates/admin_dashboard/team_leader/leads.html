@@ -693,5 +693,34 @@
                                       {% endif %}
                                   </button>
                                 </td>  -->
+<script>
+function updateLeadProject(leadId, projectId) {
+    if (!projectId) return; 
+
+    // API call karke data save karega
+    fetch('/accounts/api/staff/update-lead-project/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}' 
+        },
+        body: JSON.stringify({
+            lead_id: leadId,
+            project_id: projectId
+        })
+    })
+    .then(response => {
+        if (response.ok) {
+            console.log("Project saved successfully");
+            // Optional: Agar refresh karna hai to niche wali line uncomment kar de
+            // location.reload(); 
+        } else {
+            alert("Error updating project.");
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+</script>
+
 
 {% endblock %}

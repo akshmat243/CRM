@@ -1099,3 +1099,84 @@ class StaffOnlyProfileSerializer(serializers.ModelSerializer):
             'upi_id', 'bank_name', 'ifsc_code', 'salary', 'achived_slab',
             'referral_code', 'join_referral', 'created_date', 'updated_date'
         ]
+
+
+
+
+# home/serializers.py
+
+# ==========================================================
+# SUPERUSER PROFILE & SETTINGS SERIALIZERS
+# ==========================================================
+
+class SuperUserProfileSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Superuser profile update.
+    """
+    class Meta:
+        model = User
+        fields = ['id', 'name', 'email', 'mobile', 'profile_image']
+
+class DashboardSettingsSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Global Settings (Logo).
+    """
+    class Meta:
+        model = Settings
+        fields = ['id', 'logo']
+
+
+
+# home/serializers.py
+
+class TeamLeaderAddStaffSerializer(serializers.ModelSerializer):
+    """
+    Serializer specifically for Team Leader to add a new Staff.
+    """
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+    profile_image = serializers.ImageField(required=False)
+
+    class Meta:
+        model = Staff
+        # Saare fields jo form me hain
+        fields = [
+            'name', 'email', 'password', 'mobile', 'address', 'city', 'state', 'pincode',
+            'dob', 'pancard', 'aadharCard', 'marksheet', 'degree', 'account_number',
+            'upi_id', 'bank_name', 'ifsc_code', 'salary', 'profile_image'
+        ]
+
+    def validate_email(self, value):
+        # Check karo email pehle se registered hai ya nahi
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Email Already Exists")
+        return value
+
+    def create(self, validated_data):
+        # Data nikaalo
+        email = validated_data.pop('email')
+        password = validated_data.pop('password')
+        
+        # 1. User Create Karo
+        user = User.objects.create_user(
+            username=email, 
+            email=email, 
+            password=password, 
+            name=validated_data.get('name'),
+            mobile=validated_data.get('mobile'),
+            is_staff_new=True, # Important flag
+            profile_image=validated_data.get('profile_image')
+        )
+        
+        # 2. Logged-in Team Leader ko dhoondo
+        request = self.context.get('request')
+        team_leader_instance = Team_Leader.objects.get(user=request.user)
+
+        # 3. Staff Create Karo (Automatically assigned to this Team Leader)
+        staff = Staff.objects.create(
+            user=user, 
+            email=email, 
+            team_leader=team_leader_instance, 
+            **validated_data
+        )
+        return staff
