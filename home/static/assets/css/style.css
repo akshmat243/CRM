@@ -13084,7 +13084,7 @@ button.has-indicator {
   padding: 0.875rem 1rem;
   border-inline-end: 1px solid #eaeaea;
   border-block-end: 1px solid #eaeaea;
-  background-color:red;
+  background-color:white;
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -15439,6 +15439,60 @@ padding: 30px 30px 0 30px;
 
 .row{
   row-gap: 8px;
+}
+
+
+/* ===== Dashboard - override theme colors to white ===== */
+.dashboard_sidebar_bg,
+.dashboard_logo_bg,
+.navbar-header,
+.sidebar,
+.sidebar-menu-area,
+.sidebar-menu,
+.main-panel,
+.dashboard-main {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+}
+
+.sidebar-menu a,
+.sidebar-menu span,
+.menu-icon,
+.iconify-icon,
+.icon,
+.userdropdown p {
+  color: #000000 !important;
+}
+
+.dashboard_logo_bg {
+  background-image: none !important;
+}
+
+/* ensure white cards remain visible */
+.card, .desh-card {
+  background: #ffffff !important;
+  color: #000 !important;
+}
+
+
+
+
+
+
+/* --- Fix top logo background (orange/red strip) --- */
+.dashboard_logo_bg {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    background-image: none !important;
+}
+
+/* Parent container should also be white */
+.sidebar,
+#sidebar,
+.sidebar .bg-white,
+.dashboard_sidebar_bg {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
 }
 
 

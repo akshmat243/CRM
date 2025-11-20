@@ -47,9 +47,9 @@ urlpatterns = [
 
     
 
-    path('users/team-leader/add-new/', api.TeamLeaderAddAPIView.as_view(), name='api-team-leader-add-new'),
+    path('users/team-leader/add-new/', api.TeamLeaderSuperAdminAddAPIView.as_view(), name='api-team-leader-add-new'),
     path('users/team-leader/edit/<int:id>/', api.TeamLeaderEditAPIView.as_view(), name='api-teamleader-edit'),
-    path('api/reports/team-leader-leads/<int:id>/<str:tag>/', api.TeamLeadLeadsReportAPIView.as_view(), name='api_team_leader_leads_report'),
+    path('api/reports/team-leader-leads/<int:id>/<str:tag>/', api.TeamLeadSuperAdminLeadsReportAPIView.as_view(), name='api_team_leader_leads_report'),
 
     path('superuser/staff-leads/<str:tag>/', api.SuperUserStaffLeadsAPIView.as_view(), name='api-superuser-staff-leads'),
 
@@ -215,8 +215,23 @@ urlpatterns = [
     # --- TEAM LEADER EDIT STAFF ---
     path('api/team-leader/staff/edit/<int:id>/', api.TeamLeaderStaffEditAPIView.as_view(), name='api_team_leader_staff_edit'),
 
-    # --- YEH NAYI LINE STAFF (CALENDAR) KE LIYE ADD KARO ---
+    # ---  STAFF (CALENDAR) 
     path('api/team-leader/staff-calendar/<int:staff_id>/', api.TeamLeaderStaffCalendarAPIView.as_view(), name='api_team_leader_staff_calendar'),
+
+    # --- TEAM LEADER VIEW STAFF INCENTIVE ---
+    path('api/team-leader/staff-incentive/<int:staff_id>/', api.TeamLeaderStaffIncentiveAPIView.as_view(), name='api_team_leader_staff_incentive'),
+
+    # --- TEAM LEADER STAFF LEADS LIST (GET) ---
+    path('api/team-leader/staff-leads/<int:staff_id>/<str:tag>/', api.TeamLeaderStaffLeadsListAPIView.as_view(), name='api_tl_staff_leads_list'),
+
+    # --- TEAM LEADER EXPORT LEADS (POST) ---
+    path('api/team-leader/export-leads/', api.TeamLeaderExportLeadsAPIView.as_view(), name='api_tl_export_leads'),
+
+    # --- TEAM LEADER ALL LEADS (CARD CLICK) ---
+    path('api/team-leader/all-leads/<str:tag>/', api.TeamLeadLeadsReportAPIView.as_view(), name='api_tl_all_leads'),
+
+
+
 
 
 

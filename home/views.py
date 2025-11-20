@@ -3020,6 +3020,7 @@ def activitylogs(request):
             context = {
                 'logs': logs,
             }
+            print(logs)
             return render(request, "admin_dashboard/staff/activity_log.html", context)
         
         if request.user.is_staff_new:

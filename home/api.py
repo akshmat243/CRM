@@ -53,6 +53,12 @@ from django.db.models import Prefetch
 import logging
 
 
+from django.utils.timezone import localtime
+from django.utils.timezone import make_aware
+from django.utils.timezone import get_current_timezone
+
+
+
 # @method_decorator(csrf_exempt, name='dispatch')
 # class LoginApiView(APIView):
 
@@ -2215,7 +2221,7 @@ class StaffAddAPIView(APIView):
 # ===================================================================
 # NAYA TEAM LEADER ADD API (ADD_TEAM_LEADER_USER)
 # ===================================================================
-class TeamLeaderAddAPIView(APIView):
+class TeamLeaderSuperAdminAddAPIView(APIView):
     """
     API naya Team Leader user banane ke liye.
     (Superuser ya Admin chala sakta hai)
@@ -3146,7 +3152,7 @@ class ExportLeadsStatusWiseAPIView(APIView):
 # ==========================================================
 # API: TEAM LEADER LEADS REPORT (BY STATUS)
 # ==========================================================
-class TeamLeadLeadsReportAPIView(APIView):
+class TeamLeadSuperAdminLeadsReportAPIView(APIView):
 
     permission_classes = [IsAuthenticated , CustomIsSuperuser]
     pagination_class = StandardResultsSetPagination # Paginator set kiya
@@ -6271,3 +6277,334 @@ class AutoAssignLeadsAPIView(APIView):
     
 
 
+# ==========================================================
+# API: TEAM LEADER - VIEW STAFF INCENTIVE
+# ==========================================================
+class TeamLeaderStaffIncentiveAPIView(APIView):
+    """
+    API endpoint for 'incentive_slap_staff' (Team Leader Dashboard).
+    GET: Allows Team Leader to view incentives of a specific staff member.
+    ONLY TEAM LEADER (is_team_leader=True) can access this.
+    """
+    
+    permission_classes = [IsAuthenticated, IsCustomTeamLeaderUser]
+
+    def get(self, request, staff_id, format=None):
+        # 1. Get Team Leader Profile
+        try:
+            tl_instance = Team_Leader.objects.get(user=request.user)
+        except Team_Leader.DoesNotExist:
+            return Response({"error": "Team Leader profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 2. Get Staff and Check Permission
+        try:
+            staff = Staff.objects.get(id=staff_id)
+            # Check: Kya ye staff is Team Leader ke under hai?
+            if staff.team_leader != tl_instance:
+                return Response({"error": "You do not have permission to view this staff's incentives."}, status=status.HTTP_403_FORBIDDEN)
+        except Staff.DoesNotExist:
+            return Response({"error": "Staff not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 3. Get Filters (Month/Year)
+        months_list = [(i, calendar.month_name[i]) for i in range(1, 13)]
+        year = int(request.query_params.get('year', datetime.now().year))
+        month = int(request.query_params.get('month', datetime.now().month))
+
+        # 4. Get User Type (Freelancer or Not)
+        user_type = staff.user.is_freelancer
+
+        # 5. Get Slab Data & Adjust Amount logic
+        slab_qs = Slab.objects.all()
+        slab_data = SlabSerializer(slab_qs, many=True).data
+        
+        # Logic: Agar user Staff hai (Freelancer nahi), to Amount me se 100 minus karo
+        # (Bilkul waisa jaise humne Staff API me kiya tha)
+        if not user_type:
+            for slab_item in slab_data:
+                try:
+                    original_amount = int(slab_item.get('amount', 0))
+                    slab_item['amount'] = str(original_amount - 100) 
+                except (ValueError, TypeError):
+                    pass
+
+        # 6. Get Sell Data (Earning History)
+        sell_property_qs = Sell_plot.objects.filter(
+            staff=staff, 
+            updated_date__year=year,
+            updated_date__month=month,
+        ).order_by('-created_date')
+
+        total_earn_amount = sell_property_qs.aggregate(total_earn=Sum('earn_amount'))
+        total_earn = total_earn_amount.get('total_earn') or 0
+
+        # 7. Final Response
+        response_data = {
+            'slab': slab_data,
+            'sell_property': SellPlotSerializer(sell_property_qs, many=True).data,
+            'total_earn': total_earn,
+            'year': year,
+            'month': month,
+            'months_list': months_list,
+            'user_type': user_type, # True if Freelancer, False if Staff
+            'staff_name': staff.name
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+
+
+
+
+
+# ==========================================================
+# API: TEAM LEADER - VIEW STAFF LEADS (LIST)
+# ==========================================================
+class TeamLeaderStaffLeadsListAPIView(APIView):
+    """
+    API endpoint for 'teamleader_perticular_leads'.
+    GET: Fetches list of leads for a specific staff, filtered by status (tag).
+    ONLY TEAM LEADER can access this.
+    """
+    permission_classes = [IsAuthenticated, IsCustomTeamLeaderUser]
+    pagination_class = StandardResultsSetPagination
+
+    def get(self, request, staff_id, tag, format=None):
+        # 1. Verify Team Leader & Staff Relationship
+        try:
+            tl_instance = Team_Leader.objects.get(user=request.user)
+            staff = Staff.objects.get(id=staff_id)
+            if staff.team_leader != tl_instance:
+                 return Response({"error": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+        except (Team_Leader.DoesNotExist, Staff.DoesNotExist):
+            return Response({"error": "Invalid Team Leader or Staff."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 2. Filter Leads based on Tag
+        base_qs = LeadUser.objects.filter(assigned_to=staff)
+        
+        if tag == "Intrested":
+            leads = base_qs.filter(status='Intrested')
+        elif tag == "Not Interested":
+            leads = base_qs.filter(status='Not Interested')
+        elif tag == "Other Location":
+            leads = base_qs.filter(status='Other Location')
+        elif tag == "Lost":
+            leads = base_qs.filter(status='Lost')
+        elif tag == "Visit":
+            leads = base_qs.filter(status='Visit')
+        else:
+            leads = base_qs # All leads if tag doesn't match
+
+        leads = leads.order_by('-updated_date')
+
+        # 3. Paginate & Serialize
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(leads, request, view=self)
+        if page is not None:
+            serializer = ApiLeadUserSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
+        serializer = ApiLeadUserSerializer(leads, many=True)
+        return Response(serializer.data)
+# home/api.py
+
+
+class TeamLeaderExportLeadsAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsCustomTeamLeaderUser]
+
+    def post(self, request, format=None):
+        try:
+            staff_id = request.data.get('staff_id')
+            status_val = request.data.get('status')
+            start_date_str = request.data.get('start_date')
+            end_date_str = request.data.get('end_date')
+            all_interested = request.data.get('all_interested')
+
+            tl_instance = Team_Leader.objects.get(user=request.user)
+
+            # FILTER: ALL Interested Leads
+            if all_interested == "1":
+                base_qs = LeadUser.objects.filter(team_leader=tl_instance, status="Intrested")
+                staff_name = "All_Staff"
+            else:
+                staff = Staff.objects.get(id=staff_id)
+                if staff.team_leader != tl_instance:
+                    return Response({"error": "Permission denied."}, status=403)
+
+                base_qs = LeadUser.objects.filter(assigned_to=staff, status=status_val)
+                staff_name = staff.name
+
+            # DATE RANGE
+            tz = get_current_timezone()
+            start_date = make_aware(datetime.strptime(start_date_str, "%Y-%m-%d"), tz)
+            end_date = make_aware(
+                datetime.strptime(end_date_str, "%Y-%m-%d") + timedelta(days=1) - timedelta(seconds=1), 
+                tz
+            )
+
+            leads = base_qs.filter(updated_date__range=[start_date, end_date])
+
+            if not leads.exists():
+                return Response({"message": "No data found for export."}, status=404)
+
+            # PREPARE DATA
+            data = [{
+                'Name': l.name,
+                'Call': l.call,
+                'Status': l.status,
+                'Staff Name': l.assigned_to.name if l.assigned_to else "N/A",
+                'Message': l.message,
+                'Date': l.updated_date.astimezone(tz).strftime('%Y-%m-%d %H:%M:%S')
+            } for l in leads]
+
+            df = pd.DataFrame(data)
+
+            response = HttpResponse(
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            filename_status = "Intrested" if all_interested == "1" else status_val
+            response['Content-Disposition'] = (
+                f'attachment; filename={staff_name}_{filename_status}_{start_date_str}_to_{end_date_str}.xlsx'
+            )
+
+            with pd.ExcelWriter(response, engine='xlsxwriter') as writer:
+                df.to_excel(writer, index=False, sheet_name='Leads')
+
+            return response
+
+        except Exception as e:
+            return Response({
+                "error": "Failed to export leads.",
+                "details": str(e)
+            }, status=500)
+        
+
+
+
+# home/api.py
+
+class TeamLeadLeadsReportAPIView(APIView):
+    """
+    API endpoint for 'all_leads_data' function (Team Leader Dashboard).
+    GET: Fetches combined leads list AND Dashboard Card Counts.
+    [UPDATE]: Removed pending/today/tomorrow followup tags.
+    """
+    permission_classes = [IsAuthenticated, IsCustomTeamLeaderUser]
+    pagination_class = StandardResultsSetPagination
+
+    def get(self, request, tag, format=None):
+        try:
+            team_lead = Team_Leader.objects.get(user=request.user)
+        except Team_Leader.DoesNotExist:
+            return Response({"error": "Team Leader profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 1. Get Staff Members
+        staff_members = Staff.objects.filter(team_leader=team_lead)
+
+        # --- CALCULATE DASHBOARD COUNTS (For Top Cards) ---
+        total_staff = staff_members.count()
+        associate_staff = staff_members.filter(user__is_freelancer=True).count()
+        
+        logged_in_count = 0
+        logged_out_count = 0
+        
+        for staff in staff_members:
+            last_log = UserActivityLog.objects.filter(user=staff.user).order_by('-login_time').first()
+            if last_log:
+                if last_log.logout_time:
+                    logged_out_count += 1
+                else:
+                    logged_in_count += 1
+            else:
+                 logged_out_count += 1
+        
+        total_upload_leads = Team_LeadData.objects.filter(assigned_to=None, team_leader=team_lead).count()
+
+        counts_data = {
+            'total_staff': total_staff,
+            'login_staff': logged_in_count,
+            'logout_staff': logged_out_count,
+            'associate_staff': associate_staff,
+            'total_upload_leads': total_upload_leads
+        }
+        # ----------------------------------------
+
+        # 2. Map Tags to DB Statuses
+        status_map = {
+            'total_leads_tag': 'Leads',
+            'total_interested_tag': 'Intrested',
+            'total_not_interested_tag': 'Not Interested',
+            'total_other_location_tag': 'Other Location',
+            'total_not_picked_tag': 'Not Picked',
+            'total_lost_tag': 'Lost',
+            'total_visit_tag': 'Visit'
+        }
+        
+        # 3. Initialize Querysets
+        staff_leads_qs = LeadUser.objects.none()
+        tl_leads_qs = Team_LeadData.objects.none()
+
+        # 4. Filtering Logic (Followups hata diye hain)
+        
+        # A. Upload Leads Tag (Ye sirf Team_LeadData table me hote hain)
+        if tag == 'total_upload_lead_tag':
+            tl_leads_qs = Team_LeadData.objects.filter(
+                assigned_to=None,
+                team_leader=team_lead,
+                status='Leads' 
+            )
+
+        # B. Status Tags (Interested, Lost, etc.)
+        elif tag in status_map:
+            status_val = status_map[tag]
+            # 1. Staff Leads
+            staff_leads_qs = LeadUser.objects.filter(
+                assigned_to__in=staff_members, 
+                status=status_val
+            )
+            # 2. Team Leader Leads
+            tl_leads_qs = Team_LeadData.objects.filter(
+                assigned_to=None, 
+                team_leader=team_lead, 
+                status=status_val
+            )
+            
+        else:
+            # Agar tag match nahi hua
+            valid_tags = ['total_upload_lead_tag'] + list(status_map.keys())
+            return Response({
+                "error": f"Invalid tag: '{tag}'",
+                "valid_tags_are": valid_tags
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 5. Sort & Serialize
+        staff_leads_qs = staff_leads_qs.order_by('-updated_date')
+        tl_leads_qs = tl_leads_qs.order_by('-created_date')
+
+        staff_data = ApiLeadUserSerializer(staff_leads_qs, many=True).data
+        tl_data = ApiTeamLeadDataSerializer(tl_leads_qs, many=True).data
+
+        # 6. Combine
+        for item in staff_data: item['source'] = 'Staff Lead'
+        for item in tl_data: item['source'] = 'Team Lead Data'
+
+        combined_data = staff_data + tl_data
+
+        # 7. Pagination
+        page = int(request.query_params.get('page', 1))
+        page_size = 10
+        start = (page - 1) * page_size
+        end = start + page_size
+        total_count = len(combined_data)
+        paginated_results = combined_data[start:end]
+        
+        has_next = end < total_count
+        has_previous = start > 0
+
+        # 8. Final Response
+        return Response({
+            'counts': counts_data,
+            'count': total_count,
+            'page': page,
+            'next': f"?page={page+1}" if has_next else None,
+            'previous': f"?page={page-1}" if has_previous else None,
+            'results': paginated_results
+        }, status=status.HTTP_200_OK)
