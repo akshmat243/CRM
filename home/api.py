@@ -4856,59 +4856,73 @@ class SuperUserTeamLeaderLeadsAPIView(APIView):
 # ==========================================================
 # API: STAFF-ONLY - LEADS DASHBOARD (CARDS + LIST) [RE-ORDERED]
 # ==========================================================
+
 class StaffDashboardAPIView(APIView):
     """
-    API endpoint 'leads' function ke liye (Staff Dashboard).
-    GET: Staff ke saare cards (Total Leads, Visit, etc.) aur leads ki list laata hai.
-    SIRF STAFF (is_staff_new=True) hi ise access kar sakta hai.
-    [UPDATE]: Response order change kiya gaya hai.
+    Staff-only Leads Dashboard (cards + paginated list).
+    Filters both leads list and card counts by provided start_date/end_date.
+    Accepts dates in 'YYYY-MM-DD' or 'DD-MM-YYYY'.
     """
-    
-    permission_classes = [IsAuthenticated, IsCustomStaffUser] # Sirf Staff ke liye
+    permission_classes = [IsAuthenticated, IsCustomStaffUser]
     pagination_class = StandardResultsSetPagination
+
+    def _parse_date_safe(self, s):
+        if not s:
+            return None
+        s = s.strip()
+        for fmt in ('%Y-%m-%d', '%d-%m-%Y'):
+            try:
+                return datetime.strptime(s, fmt).date()
+            except ValueError:
+                continue
+        return None
 
     def get(self, request, format=None):
         paginator = self.pagination_class()
-        
-        # --- 1. Get Staff Instance ---
+
+        # 1) Staff instance
         try:
             staff = Staff.objects.get(email=request.user.email)
         except Staff.DoesNotExist:
             return Response({"error": "Staff profile not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # --- 2. Date Filters ---
-        today = timezone.now().date()
-        start_date_str = request.query_params.get('start_date')
-        end_date_str = request.query_params.get('end_date')
+        # 2) Read & parse date params (trim keys/values to avoid accidental spaces)
+        raw_params = {k.strip(): (v.strip() if isinstance(v, str) else v) for k, v in request.query_params.items()}
+        start_date_str = raw_params.get('start_date')
+        end_date_str = raw_params.get('end_date')
 
-        if start_date_str and end_date_str:
-            start_date = timezone.make_aware(datetime.strptime(start_date_str, '%Y-%m-%d'))
-            end_date = timezone.make_aware(datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1)) - timedelta(seconds=1)
+        parsed_start = self._parse_date_safe(start_date_str)
+        parsed_end = self._parse_date_safe(end_date_str)
+
+        tz = timezone.get_current_timezone()
+        today = timezone.localdate()
+
+        if parsed_start and parsed_end:
+            start_dt = timezone.make_aware(datetime.combine(parsed_start, datetime.min.time()), tz)
+            # end of day
+            end_dt = timezone.make_aware(datetime.combine(parsed_end, datetime.max.time()), tz)
         else:
-            start_date = timezone.make_aware(datetime.combine(today, datetime.min.time()))
-            end_date = timezone.make_aware(datetime.combine(today, datetime.max.time()))
-        
-        lead_filter = {'updated_date__range': [start_date, end_date]}
+            # default: today's full day
+            start_dt = timezone.make_aware(datetime.combine(today, datetime.min.time()), tz)
+            end_dt = timezone.make_aware(datetime.combine(today, datetime.max.time()), tz)
 
-        # --- 3. Leads List (Paginated) ---
-       # ...
-              # --- 3. Leads List (Paginated) ---
-        leads_qs = LeadUser.objects.filter(status="Leads", assigned_to=staff).select_related('project')
+        # date Q for updated_date OR created_date
+        date_q = Q(updated_date__range=(start_dt, end_dt)) | Q(created_date__range=(start_dt, end_dt))
+
+        # 3) Leads queryset (filtered by staff & date)
+        leads_qs = LeadUser.objects.filter(status="Leads", assigned_to=staff).filter(date_q).select_related('project')
+
+        # Paginate leads
         page = paginator.paginate_queryset(leads_qs, request, view=self)
         leads_serializer = ApiLeadUserSerializer(page, many=True)
 
-
-
-        page = paginator.paginate_queryset(leads_qs, request, view=self)
-        leads_serializer = ApiLeadUserSerializer(page, many=True)
-
-        # --- 4. Card Counts (Date Filter ke saath) ---
-        interested_count = LeadUser.objects.filter(status="Intrested", assigned_to=staff, **lead_filter).count()
-        not_interested_count = LeadUser.objects.filter(status="Not Interested", assigned_to=staff, **lead_filter).count()
-        other_location_count = LeadUser.objects.filter(status="Other Location", assigned_to=staff, **lead_filter).count()
-        not_picked_count = LeadUser.objects.filter(status="Not Picked", assigned_to=staff, **lead_filter).count()
-        visits_count = LeadUser.objects.filter(status="Visit", assigned_to=staff, **lead_filter).count()
-        total_leads_count = leads_qs.count() 
+        # 4) Card counts (apply same date filter)
+        interested_count = LeadUser.objects.filter(status="Intrested", assigned_to=staff).filter(date_q).count()
+        not_interested_count = LeadUser.objects.filter(status="Not Interested", assigned_to=staff).filter(date_q).count()
+        other_location_count = LeadUser.objects.filter(status="Other Location", assigned_to=staff).filter(date_q).count()
+        not_picked_count = LeadUser.objects.filter(status="Not Picked", assigned_to=staff).filter(date_q).count()
+        visits_count = LeadUser.objects.filter(status="Visit", assigned_to=staff).filter(date_q).count()
+        total_leads_count = leads_qs.count()
 
         counts_data = {
             'total_leads': total_leads_count,
@@ -4919,46 +4933,35 @@ class StaffDashboardAPIView(APIView):
             'total_visits_leads': visits_count,
         }
 
-        # --- 5. Extra Data (Marketing, Projects, Settings) ---
+        # 5) Extra data
         whatsapp_marketing = Marketing.objects.filter(source="whatsapp", user=request.user).last()
         projects = Project.objects.all()
         setting = Settings.objects.filter().last()
 
-        # --- [YEH RAHA FIX] ---
-        # 6. Final Response Banao (Custom Order Ke Saath)
-        
-        # Pehle paginator se response lo
+        # 6) Build final response with project grouping (same logic as you had)
         paginated_response = paginator.get_paginated_response(leads_serializer.data)
-        
-        # results list le lo (paginated response se)
         results = paginated_response.data.get('results', [])
 
-        # 1) Sab assigned staff ids nikaalo (unique)
+        # extract staff ids from paginated leads results (if serializer includes assigned_to)
         staff_ids = [r.get('assigned_to', {}).get('id') for r in results if r.get('assigned_to')]
         staff_ids = list(set([sid for sid in staff_ids if sid]))
 
-        # 2) Un staff_ids ke saare projects ek query se le lo
         projects_qs = Project.objects.filter(staff__id__in=staff_ids).order_by('-updated_date')
-
-        # 3) Projects ko staff_id ke hisaab se group karo
         projects_by_staff = {}
         for p in projects_qs:
-            if p.staff and p.staff.id:
+            if getattr(p, 'staff', None) and getattr(p.staff, 'id', None):
                 sid = p.staff.id
                 projects_by_staff.setdefault(sid, []).append(p)
 
-        # 4) Har lead result ke andar 'projects' key add karo (serialized)
         for idx, lead in enumerate(results):
             assigned = lead.get('assigned_to')
             if assigned and assigned.get('id'):
                 sid = assigned.get('id')
                 proj_list = projects_by_staff.get(sid, [])
-                # full project objects chahiye to serializer use karo:
                 results[idx]['projects'] = ProjectSerializer(proj_list, many=True).data
             else:
                 results[idx]['projects'] = []
 
-        # 5) Final response banao aur return karo
         final_data = {
             "counts": counts_data,
             "whatsapp_marketing": MarketingSerializer(whatsapp_marketing).data if whatsapp_marketing else None,
