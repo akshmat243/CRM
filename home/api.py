@@ -5848,45 +5848,80 @@ class SuperUserProfileAPIView(APIView):
         return self.patch(request, format)
     
 
-# home/api.py
 
-# ==========================================================
-# API: TEAM LEADER-ONLY - STAFF DASHBOARD [FINAL VERIFIED]
-# ==========================================================
 class TeamLeaderStaffDashboardAPIView(APIView):
     """
-    API endpoint for 'staff_user' function (Team Leader Dashboard).
-    GET: Fetches Staff List and Card Counts for a Team Leader.
+    Team Leader -> Staff Dashboard (full replacement)
+    - Filters lead counts by date range (updated_date OR created_date).
+    - Filters staff_list by user.date_joined when start_date & end_date provided.
+    - Use all_staff for lead counts (so counts remain for whole team).
     """
-    
     permission_classes = [IsAuthenticated, IsCustomTeamLeaderUser]
     pagination_class = StandardResultsSetPagination
 
+    def _parse_date_safe(self, s):
+        """Accepts 'YYYY-MM-DD' or 'DD-MM-YYYY' (returns date or None)."""
+        if not s:
+            return None
+        s = s.strip()
+        for fmt in ('%Y-%m-%d', '%d-%m-%Y'):
+            try:
+                return datetime.strptime(s, fmt).date()
+            except ValueError:
+                continue
+        return None
+
     def get(self, request, format=None):
-        # 1. Get Team Leader Profile
+        # 1) Team leader instance
         try:
             team_leader_instance = Team_Leader.objects.get(user=request.user)
         except Team_Leader.DoesNotExist:
             return Response({"error": "Team Leader profile not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # 2. Get All Staff Members
-        staff_members = Staff.objects.filter(team_leader=team_leader_instance)
-        
-        # --- Count Associates (Freelancers) ---
-        # Agar ye 0 aa raha hai, iska matlab DB me 'is_freelancer' False hai.
-        associate_staff_count = staff_members.filter(user__is_freelancer=True).count()
+        # 2) Build staff querysets
+        all_staff_qs = Staff.objects.filter(team_leader=team_leader_instance)
+        associate_staff_count = all_staff_qs.filter(user__is_freelancer=True).count()
 
-        # --- Staff Logs (List Data) ---
+        # 3) Read & parse query params (trim keys/values to avoid accidental spaces)
+        raw_params = {k.strip(): (v.strip() if isinstance(v, str) else v) for k, v in request.query_params.items()}
+        start_date_str = raw_params.get('start_date')
+        end_date_str = raw_params.get('end_date')
+
+        parsed_start = self._parse_date_safe(start_date_str)
+        parsed_end = self._parse_date_safe(end_date_str)
+
+        tz = timezone.get_current_timezone()
+        today = timezone.localdate()
+
+        if parsed_start and parsed_end:
+            start_dt = timezone.make_aware(datetime.combine(parsed_start, datetime.min.time()), tz)
+            end_dt = timezone.make_aware(datetime.combine(parsed_end, datetime.max.time()), tz)
+        else:
+            # fallback to today's full day (previous behaviour if params missing/invalid)
+            start_dt = timezone.make_aware(datetime.combine(today, datetime.min.time()), tz)
+            end_dt = timezone.make_aware(datetime.combine(today, datetime.max.time()), tz)
+
+        # date Q: check updated_date OR created_date in range
+        date_q = Q(updated_date__range=(start_dt, end_dt)) | Q(created_date__range=(start_dt, end_dt))
+
+        # 4) Choose staff_list source (filtered by date_joined when params provided)
+        if parsed_start and parsed_end:
+            # Filter staff by user.date_joined between start_dt and end_dt
+            staff_list_qs = all_staff_qs.filter(user__date_joined__range=(start_dt, end_dt))
+        else:
+            staff_list_qs = all_staff_qs
+
+        # 5) Build staff_list (user_logs) from staff_list_qs (so UI sees filtered staff)
         user_logs = []
         logged_in_count = 0
         logged_out_count = 0
         now = timezone.now()
-        
-        for staff in staff_members:
+
+        for staff in staff_list_qs:
             last_log = UserActivityLog.objects.filter(user=staff.user).order_by('-login_time').first()
             status_log = 'No data'
             duration = 'No data'
-            
+
             if last_log:
                 if last_log.logout_time:
                     status_log = 'Inactive'
@@ -5896,11 +5931,10 @@ class TeamLeaderStaffDashboardAPIView(APIView):
                     status_log = 'Active'
                     duration_seconds = (now - last_log.login_time).total_seconds()
                     logged_in_count += 1
-                
                 duration = str(timedelta(seconds=int(duration_seconds)))
             else:
-                 logged_out_count += 1
-            
+                logged_out_count += 1
+
             user_logs.append({
                 'id': staff.id,
                 'username': staff.name,
@@ -5909,35 +5943,13 @@ class TeamLeaderStaffDashboardAPIView(APIView):
                 'created_date': staff.user.date_joined,
                 'status': status_log,
                 'duration': duration,
-                'is_freelancer': staff.user.is_freelancer, # Check karo ye True hai ya False
-                'user_active': staff.user.user_active
+                'is_freelancer': staff.user.is_freelancer,
+                'user_active': staff.user.user_active,
             })
-            
-        total_staff = len(user_logs) # Total count from list
 
-        # --- Date Filter Logic (Strict) ---
-        today = timezone.now().date()
-        start_date_str = request.query_params.get('start_date')
-        end_date_str = request.query_params.get('end_date')
+        total_staff = staff_list_qs.count()
 
-        if start_date_str and end_date_str:
-            try:
-                start_date = timezone.make_aware(datetime.strptime(start_date_str, '%Y-%m-%d'))
-                # End date should be end of the day (23:59:59)
-                end_date_dt = datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1) - timedelta(seconds=1)
-                end_date = timezone.make_aware(end_date_dt)
-            except ValueError:
-                 # Fallback
-                 start_date = timezone.make_aware(datetime.combine(today, datetime.min.time()))
-                 end_date = timezone.make_aware(datetime.combine(today, datetime.max.time()))
-        else:
-            start_date = timezone.make_aware(datetime.combine(today, datetime.min.time()))
-            end_date = timezone.make_aware(datetime.combine(today, datetime.max.time()))
-        
-        lead_filter = {'updated_date__range': [start_date, end_date]}
-        
-        # --- Card Counts Calculation ---
-        # Initialize all to 0
+        # 6) Card counts (lead counts) - use all_staff_qs so cards reflect whole team
         total_leads = 0
         total_interested_leads = 0
         total_not_interested_leads = 0
@@ -5946,33 +5958,30 @@ class TeamLeaderStaffDashboardAPIView(APIView):
         lost_leads = 0
         visits_leads = 0
 
-        # 1. Staff Leads Count (Filtered)
-        for staff in staff_members:
-            staff_leads = LeadUser.objects.filter(assigned_to=staff)
-            # Filter laga kar count karo
-            total_leads += staff_leads.filter(status="Leads", **lead_filter).count()
-            total_interested_leads += staff_leads.filter(status="Intrested", **lead_filter).count()
-            total_not_interested_leads += staff_leads.filter(status="Not Interested", **lead_filter).count()
-            other_location_leads += staff_leads.filter(status="Other Location", **lead_filter).count()
-            not_picked_leads += staff_leads.filter(status="Not Picked", **lead_filter).count()
-            lost_leads += staff_leads.filter(status="Lost", **lead_filter).count()
-            visits_leads += staff_leads.filter(status="Visit", **lead_filter).count()
-        
-        # 2. Team Leader Unassigned Leads (Total Uploads - No Filter usually)
-        leads2 = Team_LeadData.objects.filter(assigned_to=None, team_leader=team_leader_instance)
-        total_upload_leads = leads2.count()
-        
-        # 3. Team Leader's Own Leads (Filtered)
-        # Note: Team_LeadData might rely on created_date if updated_date is not available
-        # But usually we filter by updated_date for reports
-        total_leads += leads2.filter(status="Leads", **lead_filter).count()
-        total_interested_leads += leads2.filter(status="Intrested", **lead_filter).count()
-        total_not_interested_leads += leads2.filter(status="Not Interested", **lead_filter).count()
-        other_location_leads += leads2.filter(status="Other Location", **lead_filter).count()
-        not_picked_leads += leads2.filter(status="Not Picked", **lead_filter).count()
-        lost_leads += leads2.filter(status="Lost", **lead_filter).count()
-        visits_leads += leads2.filter(status="Visit", **lead_filter).count()
-        
+        for staff in all_staff_qs:
+            staff_leads_qs = LeadUser.objects.filter(assigned_to=staff).filter(date_q)
+
+            total_leads += staff_leads_qs.filter(status="Leads").count()
+            total_interested_leads += staff_leads_qs.filter(status="Intrested").count()
+            total_not_interested_leads += staff_leads_qs.filter(status="Not Interested").count()
+            other_location_leads += staff_leads_qs.filter(status="Other Location").count()
+            not_picked_leads += staff_leads_qs.filter(status="Not Picked").count()
+            lost_leads += staff_leads_qs.filter(status="Lost").count()
+            visits_leads += staff_leads_qs.filter(status="Visit").count()
+
+        # 7) Team_LeadData unassigned uploads (apply same date filter)
+        leads2_qs = Team_LeadData.objects.filter(assigned_to=None, team_leader=team_leader_instance)
+        total_upload_leads = leads2_qs.count()
+        leads2_filtered = leads2_qs.filter(date_q)
+
+        total_leads += leads2_filtered.filter(status="Leads").count()
+        total_interested_leads += leads2_filtered.filter(status="Intrested").count()
+        total_not_interested_leads += leads2_filtered.filter(status="Not Interested").count()
+        other_location_leads += leads2_filtered.filter(status="Other Location").count()
+        not_picked_leads += leads2_filtered.filter(status="Not Picked").count()
+        lost_leads += leads2_filtered.filter(status="Lost").count()
+        visits_leads += leads2_filtered.filter(status="Visit").count()
+
         counts_data = {
             'total_staff': total_staff,
             'associate_staff': associate_staff_count,
@@ -5988,17 +5997,15 @@ class TeamLeaderStaffDashboardAPIView(APIView):
             'visits_leads': visits_leads,
         }
 
-        # --- Extra Data ---
+        # 8) Settings
         setting = Settings.objects.filter().last()
-        
+
         response_data = {
             "counts": counts_data,
             "staff_list": user_logs,
             "setting": DashboardSettingsSerializer(setting).data if setting else None,
-            "debug_filter_start": start_date, # Debugging ke liye: Check karo date kya ja rahi hai
-            "debug_filter_end": end_date
         }
-        
+
         return Response(response_data, status=status.HTTP_200_OK)
 
 
@@ -6102,41 +6109,48 @@ class TeamLeaderStaffEditAPIView(APIView):
     
 
 
-
 # ==========================================================
-# API: STAFF-ONLY - MY PRODUCTIVITY CALENDAR
+# API: TEAM LEADER - VIEW STAFF CALENDAR
 # ==========================================================
-class StaffMyCalendarAPIView(APIView):
+class TeamLeaderStaffCalendarAPIView(APIView):
     """
-    API endpoint for 'staff_productivity_calendar_view' (Staff Dashboard).
-    GET: Fetches the logged-in Staff's own productivity calendar.
-    ONLY STAFF (is_staff_new=True) can access this.
+    API endpoint for Team Leader to view a Staff's productivity calendar.
+    GET: Fetches calendar for a specific staff_id.
+    ONLY TEAM LEADER (is_team_leader=True) can access this.
     """
     
-    permission_classes = [IsAuthenticated, IsCustomTeamLeaderUser ]
+    permission_classes = [IsAuthenticated, IsCustomTeamLeaderUser]
 
-    def get(self, request, format=None):
-        user = request.user
-        
-        # 1. Get Staff Profile (from token)
+    def get(self, request, staff_id, format=None):
+        # 1. Get Team Leader Profile
         try:
-            staff = Staff.objects.get(email=user.email)
-        except Staff.DoesNotExist:
-            return Response({"error": "Staff profile not found."}, status=status.HTTP_404_NOT_FOUND)
+            team_leader_instance = Team_Leader.objects.get(user=request.user)
+        except Team_Leader.DoesNotExist:
+            return Response({"error": "Team Leader profile not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # 2. Get Month/Year Filters
-        # Default to current month/year if not provided
+        # 2. Get Staff and Check Permission (Is staff under this TL?)
+        try:
+            staff = Staff.objects.get(id=staff_id)
+            if staff.team_leader != team_leader_instance:
+                 return Response({"error": "You do not have permission to view this staff's calendar."}, status=status.HTTP_403_FORBIDDEN)
+        except Staff.DoesNotExist:
+            return Response({"error": "Staff not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 3. Get Month/Year Filters
         current_date = datetime.now()
-        year = int(request.query_params.get('year', current_date.year))
-        month = int(request.query_params.get('month', current_date.month))
-        
+        try:
+            year = int(request.query_params.get('year', current_date.year))
+            month = int(request.query_params.get('month', current_date.month))
+        except ValueError:
+            year = current_date.year
+            month = current_date.month
+            
         months_list = [(i, calendar.month_name[i]) for i in range(1, 13)]
 
-        # 3. Calculate Daily Salary Base
+        # 4. Calculate Daily Salary Base
         days_in_month = monthrange(year, month)[1]
         salary_arg = staff.salary
         
-        # Handle None or empty string salary
         if not salary_arg:
             salary_float = 0.0
         else:
@@ -6147,7 +6161,7 @@ class StaffMyCalendarAPIView(APIView):
             
         daily_salary = round(salary_float / days_in_month) if days_in_month > 0 else 0
 
-        # 4. Get Leads Data (Interested Leads updated in this month)
+        # 5. Get Leads Data
         leads_data = LeadUser.objects.filter(
             assigned_to=staff,
             updated_date__year=year,
@@ -6155,13 +6169,9 @@ class StaffMyCalendarAPIView(APIView):
             status='Intrested'
         ).values('updated_date__day').annotate(count=Count('id'))
 
-        # 5. Calculate Productivity Per Day
-        productivity_data = {day: {'leads': 0, 'salary': 0} for day in range(1, days_in_month + 1)}
-        total_earned_salary = 0
-
-        # Map DB data to dictionary
+        # 6. Calculate Productivity
         leads_map = {item['updated_date__day']: item['count'] for item in leads_data}
-
+        total_earned_salary = 0
         weekdays = list(calendar.day_name)
         calendar_list = []
 
@@ -6169,7 +6179,6 @@ class StaffMyCalendarAPIView(APIView):
             date_obj = datetime(year, month, day).date()
             leads_count = leads_map.get(day, 0)
             
-            # Salary Logic from your view
             if leads_count >= 10:
                 daily_earn = daily_salary
             else:
@@ -6177,7 +6186,6 @@ class StaffMyCalendarAPIView(APIView):
 
             total_earned_salary += daily_earn
             
-            # Structure for JSON response
             calendar_list.append({
                 'day': day,
                 'date': date_obj,
@@ -6186,23 +6194,77 @@ class StaffMyCalendarAPIView(APIView):
                 'salary': daily_earn
             })
 
-        # 6. Final Response
+        # 7. Final Response
         response_data = {
             "staff_details": StaffProfileSerializer(staff).data,
             "year": year,
             "month": month,
             "months_list": months_list,
-            
-            # Yeh data cards me dikhane ke liye
-            "monthly_salary": salary_float,   # Total Salary (Fixed)
-            "earn_salary": round(total_earned_salary, 2), # Earned Salary (Calculated)
-            
-            # Calendar Data
-            "calendar_data": calendar_list
+            "monthly_salary": salary_float,
+            "earn_salary": round(total_earned_salary, 2),
+            "calendar_data": DailyProductivitySerializer(calendar_list, many=True).data
         }
         
         return Response(response_data, status=status.HTTP_200_OK)
+    
 
 
+
+class AutoAssignLeadsAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        user_email = request.user.email
+        request_user = Staff.objects.filter(email=user_email).last()
+
+        if not request_user:
+            return Response({"error": "Staff user not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        team_leader = request_user.team_leader
+
+        # Count leads already assigned
+        current_total_assign_leads = LeadUser.objects.filter(
+            assigned_to=request_user, 
+            status='Leads'
+        ).count()
+
+        if current_total_assign_leads != 0:
+            return Response({"error": "You already have leads."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Leads available for assignment
+        team_leader_total_leads = Team_LeadData.objects.filter(
+            assigned_to=None,
+            status='Leads'
+        )
+
+        leads_count = 0
+
+        for lead in team_leader_total_leads:
+            if leads_count >= 100:
+                break
+
+            # Skip duplicates
+            if LeadUser.objects.filter(call=lead.call).exists():
+                continue
+
+            LeadUser.objects.create(
+                name=lead.name,
+                email=lead.email,
+                call=lead.call,
+                send=False,
+                status=lead.status,
+                assigned_to=request_user,
+                team_leader=team_leader,
+                user=lead.user,
+            )
+
+            lead.delete()
+            leads_count += 1
+
+        return Response(
+            {"message": "Auto leads assigned successfully.", "assigned_leads": leads_count},
+            status=status.HTTP_200_OK
+        )
+    
 
 

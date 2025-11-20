@@ -216,7 +216,7 @@ urlpatterns = [
     path('api/team-leader/staff/edit/<int:id>/', api.TeamLeaderStaffEditAPIView.as_view(), name='api_team_leader_staff_edit'),
 
     # --- YEH NAYI LINE STAFF (CALENDAR) KE LIYE ADD KARO ---
-    path('api/staff/calendar/', api.StaffMyCalendarAPIView.as_view(), name='api_staff_my_calendar'),
+    path('api/team-leader/staff-calendar/<int:staff_id>/', api.TeamLeaderStaffCalendarAPIView.as_view(), name='api_team_leader_staff_calendar'),
 
 
 
@@ -225,6 +225,12 @@ urlpatterns = [
 
 
 
+
+
+
+
+    #AUTO ASSIGN LEADS 
+    path("auto-assign-leads/", AutoAssignLeadsAPIView.as_view(), name="auto-assign-leads"),
 
 
    ]   
