@@ -47,9 +47,9 @@ urlpatterns = [
 
     
 
-    path('users/team-leader/add-new/', api.TeamLeaderAddAPIView.as_view(), name='api-team-leader-add-new'),
+    path('users/team-leader/add-new/', api.TeamLeaderSuperAdminAddAPIView.as_view(), name='api-team-leader-add-new'),
     path('users/team-leader/edit/<int:id>/', api.TeamLeaderEditAPIView.as_view(), name='api-teamleader-edit'),
-    path('api/reports/team-leader-leads/<int:id>/<str:tag>/', api.TeamLeadLeadsReportAPIView.as_view(), name='api_team_leader_leads_report'),
+    path('api/reports/team-leader-leads/<int:id>/<str:tag>/', api.TeamLeadSuperAdminLeadsReportAPIView.as_view(), name='api_team_leader_leads_report'),
 
     path('superuser/staff-leads/<str:tag>/', api.SuperUserStaffLeadsAPIView.as_view(), name='api-superuser-staff-leads'),
 
@@ -92,7 +92,7 @@ urlpatterns = [
     path('api/projects/', api.ProjectListCreateAPIView.as_view(), name='api_project_list_create'),
     path('api/superuser/project/edit/<int:id>/', api.ProjectEditAPIView.as_view(), name='api_superuser_project_edit'),
 
-    path('api/activitylogs/', api.ActivityLogsAPIView.as_view(), name='api_activity_logs'),
+    path('api/activityloggs/', api.ActivityLogsAPIView.as_view(), name='api_activity_logs'),
 
 
     #team leader dashbord supeuserside
@@ -149,10 +149,120 @@ urlpatterns = [
     #add new  lead
     path('api/staff/add-self-lead/', api.StaffAddSelfLeadAPIView.as_view(), name='api_staff_add_self_lead'),
 
+    # change status
+    path('api/staff/update-lead/<int:id>/', api.StaffUpdateLeadAPIView.as_view(), name='api_staff_update_lead'),
+
+    # project select 
+    path('api/staff/update-lead-project/', api.UpdateLeadProjectAPIView.as_view(), name='api_staff_update_lead_project'),
+
+    #interseted, today, tomoorow, pending followups
+    path('api/staff/interested-leads/<str:tag>/', api.StaffInterestedLeadsAPIView.as_view(), name='api_staff_interested_leads'),
+
+    #not interested
+    path('api/staff/not-interested-leads/', api.StaffNotInterestedLeadsAPIView.as_view(), name='api_staff_not_interested_leads'),
+
+    # LEAD HISTORY
+    path('api/staff/lead-history/<int:id>/', api.StaffLeadHistoryAPIView.as_view(), name='api_staff_lead_history'),
+
+    #other location 
+    path('api/staff/other-location-leads/', api.StaffOtherLocationLeadsAPIView.as_view(), name='api_staff_other_location_leads'),
+
+    #not picked
+    path('api/staff/not-picked-leads/', api.StaffNotPickedLeadsAPIView.as_view(), name='api_staff_not_picked_leads'),
+
+    #lost
+    path('api/staff/lost-leads/', api.StaffLostLeadsAPIView.as_view(), name='api_staff_lost_leads'),
+
+    #visit
+    path('api/staff/visit-leads/', api.StaffVisitLeadsAPIView.as_view(), name='api_staff_visit_leads'),
+
+    #STAFF (TIME SHEET) 
+    path('api/staff/activity-logs/', api.StaffActivityLogAPIView.as_view(), name='api_staff_activity_logs'),
+
+    #productivity calender
+    path('api/staff/productivity-calendar/<int:staff_id>/', api.StaffProductivityCalendarAPIView.as_view(), name='api_staff_productivity_calendar'),
+
+    #  FOR STAFF (INCENTIVES) 
+    path('api/staff/incentives/', api.StaffIncentiveAPIView.as_view(), name='api_staff_incentives'),
+
+    # STAFF (VIEW/EDIT PROFILE) 
+    path('api/staff/profile/', api.StaffProfileViewAPIView.as_view(), name='api_staff_profile'),
+
+
     
 
 
 
+    # --- SUPERUSER PROFILE API ---
+    path('api/superuser/profile/', api.SuperUserProfileAPIView.as_view(), name='api_superuser_profile'),
+
+
+
+
+
+    #######################################################################################################
+                                            ## TEAM LEADER  ##
+    #######################################################################################################       
+
+
+
+    # --- YEH NAYI LINE TEAM LEADER (STAFF DASHBOARD) KE LIYE ADD KARO ---
+    path('api/team-leader/staff-dashboard/', api.TeamLeaderStaffDashboardAPIView.as_view(), name='api_team_leader_staff_dashboard'),
+
+    # --- TEAM LEADER ADD STAFF ---
+    path('api/team-leader/add-staff/', api.TeamLeaderAddStaffAPIView.as_view(), name='api_team_leader_add_staff'),
+
+    # --- TEAM LEADER EDIT STAFF ---
+    path('api/team-leader/staff/edit/<int:id>/', api.TeamLeaderStaffEditAPIView.as_view(), name='api_team_leader_staff_edit'),
+
+    # ---  STAFF (CALENDAR) 
+    path('api/team-leader/staff-calendar/<int:staff_id>/', api.TeamLeaderStaffCalendarAPIView.as_view(), name='api_team_leader_staff_calendar'),
+
+    # --- TEAM LEADER VIEW STAFF INCENTIVE ---
+    path('api/team-leader/staff-incentive/<int:staff_id>/', api.TeamLeaderStaffIncentiveAPIView.as_view(), name='api_team_leader_staff_incentive'),
+
+    # --- TEAM LEADER STAFF LEADS LIST (GET) ---
+    path('api/team-leader/staff-leads/<int:staff_id>/<str:tag>/', api.TeamLeaderStaffLeadsListAPIView.as_view(), name='api_tl_staff_leads_list'),
+
+    # --- TEAM LEADER EXPORT LEADS (POST) ---
+    path('api/team-leader/export-leads/', api.TeamLeaderExportLeadsAPIView.as_view(), name='api_tl_export_leads'),
+
+    # --- TEAM LEADER ALL LEADS (CARD CLICK) ---
+    path('api/team-leader/all-leads/<str:tag>/', api.TeamLeadLeadsReportAPIView.as_view(), name='api_tl_all_leads'),
+
+    #STAFFPRODUCTIVITY
+    path('api/team-leader/productivity-report/', api.TeamLeaderStaffProductivityReportAPIView.as_view(), name='api_team_leader_productivity_report'),
+
+    # --- FREELANCER PRODUCTIVITY REPORT ---
+    path('team-leader/freelancer-productivity/', TeamLeaderFreelancerProductivityAPIView.as_view(), name='teamleader-freelancer-productivity'),
+
+    # --- TEAM LEADER LEADS DASHBOARD ---
+    path('api/leads/', LeadsDashboardAPIView.as_view(), name='leads-dashboard'),
+
+    #ADDLEADAPI
+    path('api/leads/add/', AddLeadAPI.as_view(), name='api-add-lead'),
+
+
+    #TEAMCUSTOMESTAGSS
+    path('api/teamcustomer/<str:tag>/', TeamCustomerAPIView.as_view(), name='api-teamcustomer-tag'),
+
+    # --- TEAM LEADER UPDATE LEAD STATUS ---
+    path('api/team-leader/update-lead/<int:id>/', api.TeamLeaderUpdateLeadAPIView.as_view(), name='api_tl_update_lead'),
+
+    # --- TEAM LEADER LEAD HISTORY ---
+    path('api/team-leader/lead-history/<int:id>/', api.TeamLeaderLeadHistoryAPIView.as_view(), name='api_tl_lead_history'),
+
+    #ACTIVITY LOGS
+    path('api/activityteamlogs/', ActivityLogsRoleAPIView.as_view(), name='api-activitylogs-role'),
+
+    #VISITTEAMLEADER
+    path('api/visits/', VisitTeamLeaderAPIView.as_view(), name='api-visits'),
+
+    # EXPORTSLEADS
+    path('api/team-leader/export-dashboard-leads/', api.TeamLeaderExportDashboardLeadsAPIView.as_view(), name='api_tl_export_dashboard'),
+
+    # --- TEAM LEADER PROFILE ---
+    path('api/team-leader/profile/', api.TeamLeaderProfileViewAPIView.as_view(), name='api_tl_profile'),
 
 
 
@@ -162,6 +272,9 @@ urlpatterns = [
 
 
 
+
+    #AUTO ASSIGN LEADS 
+    path("auto-assign-leads/", AutoAssignLeadsAPIView.as_view(), name="auto-assign-leads"),
 
 
    ]   

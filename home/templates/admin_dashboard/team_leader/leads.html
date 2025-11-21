@@ -332,13 +332,13 @@
                 </button>
               </td>
               <td class="team_status">
-    <select name="project_id_{{ user.id }}" class="form-select" style="width: 100px;">
+    <select name="project_id_{{ user.id }}" class="form-select" style="width: 100px;" onchange="updateLeadProject({{ user.id }}, this.value)">
         <option value="">Select</option>
-        
         {% for project in projects %}
-            <option value="{{ project.id }}">{{ project.name }}</option>
+            <option value="{{ project.id }}" {% if user.project.id == project.id %}selected{% endif %}>
+                {{ project.name }}
+            </option>
         {% endfor %}
-        
     </select>
 </td>
             </tr>
@@ -555,6 +555,8 @@
     });
   });
 
+// admin_dashboard/team_leader/leads.html (Line ~430)
+
   $(document).ready(function () {
     $('#saveChangesBtn').on('click', function (e) {
       e.preventDefault();
@@ -564,6 +566,11 @@
       var id = $('#form-id').val();
       var status = $('#status').val();
       var message = $('#dobBasic').val();
+      
+      // --- [YEH NAYI LINES ADD KARO] ---
+      var followDate = $('#followDate').val(); 
+      var followTime = $('#followTime').val();
+      // --- [NAYA CODE END] ---
 
       $.ajax({
         url: '/lead_user/update/' + id + '/',
@@ -571,6 +578,12 @@
         data: {
           'status': status,
           'message': message,
+          
+          // --- [YEH BHI ADD KARO] ---
+          'followDate': followDate,
+          'followTime': followTime,
+          // --- [NAYA CODE END] ---
+          
           'csrfmiddlewaretoken': '{{ csrf_token }}',
         },
         success: function (response) {
@@ -680,5 +693,34 @@
                                       {% endif %}
                                   </button>
                                 </td>  -->
+<script>
+function updateLeadProject(leadId, projectId) {
+    if (!projectId) return; 
+
+    // API call karke data save karega
+    fetch('/accounts/api/staff/update-lead-project/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}' 
+        },
+        body: JSON.stringify({
+            lead_id: leadId,
+            project_id: projectId
+        })
+    })
+    .then(response => {
+        if (response.ok) {
+            console.log("Project saved successfully");
+            // Optional: Agar refresh karna hai to niche wali line uncomment kar de
+            // location.reload(); 
+        } else {
+            alert("Error updating project.");
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+</script>
+
 
 {% endblock %}

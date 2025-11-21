@@ -3020,6 +3020,7 @@ def activitylogs(request):
             context = {
                 'logs': logs,
             }
+            print(logs)
             return render(request, "admin_dashboard/staff/activity_log.html", context)
         
         if request.user.is_staff_new:
@@ -4049,6 +4050,8 @@ def staff_productivity_view(request):
     total_all_lost = 0
     total_all_visit = 0
     total_all_calls = 0
+    total_visit_percentage = 0
+    total_interested_percentage = 0
     
     if request.user.is_superuser:
         fiter = 1
@@ -4076,6 +4079,13 @@ def staff_productivity_view(request):
         user_instance = request.user.username
         team_leader_instance = Team_Leader.objects.filter(email=user_instance).last()
         staffs = Staff.objects.filter(team_leader=team_leader_instance, user__user_active=True, user__is_freelancer=False)
+
+    # --- [YEH CODE ADD KARO - STAFF KE LIYE] ---
+    if request.user.is_staff_new:
+        fiter = 3 # Staff ke liye code
+        # Staff sirf apna data dekh sakta hai
+        staffs = Staff.objects.filter(user=request.user)
+    # --- [CODE END] -    
     total_staff_count = staffs.count()
     for staff in staffs:
         # if date_filter and end_date:
@@ -4239,8 +4249,10 @@ def staff_productivity_view(request):
             )
 
             total_calls = leads_by_date['interested'] + leads_by_date['not_interested'] + leads_by_date['other_location'] + leads_by_date['not_picked'] + leads_by_date['lost'] + leads_by_date['visit']
+# --- [YEH 2 LINES ADD KARO] ---
             visit_percentage = (leads_by_date['visit'] / leads_by_date['total_leads'] * 100) if leads_by_date['total_leads'] > 0 else 0
             interested_percentage = (leads_by_date['interested'] / leads_by_date['total_leads'] * 100) if leads_by_date['total_leads'] > 0 else 0
+            # --- [NAYA CODE END] ---
 
             total_visit_percentage = (total_all_visit / total_all_leads * 100) if total_all_leads > 0 else 0
             total_interested_percentage = (total_all_interested / total_all_leads * 100) if total_all_leads > 0 else 0
@@ -4280,8 +4292,9 @@ def staff_productivity_view(request):
             total_all_calls += total_calls
     
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        return JsonResponse({'staff_data': staff_data,
-                             'total_calls': total_calls,
+        return JsonResponse({
+                'staff_data': staff_data,
+                'total_calls': total_calls,
                 'total_all_leads': total_all_leads,
                 'total_all_interested': total_all_interested,
                 'total_all_not_interested': total_all_not_interested,
