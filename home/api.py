@@ -59,6 +59,36 @@ from django.utils.timezone import get_current_timezone
 
 
 
+# -----------------------------
+# UNIVERSAL MARKETING PERMISSION
+# -----------------------------
+from rest_framework.permissions import BasePermission
+
+class MarketingAccessPermission(BasePermission):
+    """
+    Allow access to: Superuser, Admin, Team Leader, Staff.
+    """
+
+    def has_permission(self, request, view):
+        user = request.user
+
+        if not user.is_authenticated:
+            return False
+        
+        # Allowed roles
+        if user.is_superuser:
+            return True
+        if getattr(user, "is_admin", False):
+            return True
+        if getattr(user, "is_team_leader", False):
+            return True
+        if getattr(user, "is_staff_new", False):
+            return True
+        
+        return False
+
+
+
 # @method_decorator(csrf_exempt, name='dispatch')
 # class LoginApiView(APIView):
 
@@ -643,7 +673,7 @@ class StaffProfileAPIView(APIView):
         return Response({"success": "Your profile has been successfully updated."}, status=status.HTTP_200_OK)
     
 class EditRecordAPIView(APIView):
-    permission_classes = [IsAuthenticated , CustomIsSuperuser , IsCustomTeamLeaderUser , IsCustomStaffUser , IsCustomAdminUser]
+    permission_classes = [IsAuthenticated, MarketingAccessPermission]
 
     def get(self, request, source):
         user = request.user
@@ -669,7 +699,7 @@ class EditRecordAPIView(APIView):
 
 
 class UpdateRecordAPIView(APIView):
-    permission_classes = [IsAuthenticated , CustomIsSuperuser , IsCustomTeamLeaderUser , IsCustomAdminUser , IsCustomStaffUser]
+    permission_classes = [IsAuthenticated, MarketingAccessPermission]
 
     def post(self, request):
         data = request.data
@@ -7438,6 +7468,282 @@ class ActivityLogsRoleAPIView(APIView):
             'reference_image': '/mnt/data/c2dc665d-9d54-40ab-a57d-08f450e93be3.png'
         }
         return Response(response, status=status.HTTP_200_OK)
+
+
+
+
+
+
+
+
+
+class VisitTeamLeaderAPIView(APIView):
+    """
+    GET /api/visits/?page=1
+
+    - superuser: LeadUser.objects.filter(status='Visit')
+    - team_leader: LeadUser.objects.filter(team_leader=that_tl, status='Visit')
+    - others: Team_LeadData.objects.filter(team_leader=that_tl, status='Visit')
+
+    Response:
+    {
+      "items": [...],
+      "total_items": 123,
+      "page": 1,
+      "page_size": 50,
+      "total_pages": 3,
+      "page_range": [1,2,3],
+      "reference_image": "/mnt/data/c2dc665d-9d54-40ab-a57d-08f450e93be3.png"
+    }
+    """
+    permission_classes = [IsAuthenticated , IsCustomTeamLeaderUser]
+
+    def get(self, request, format=None):
+        user = request.user
+        page_size = 50
+
+        # Default empty queryset + serializer info
+        items = []
+        total_count = 0
+        serializer_class = None
+
+        # superuser -> LeadUser status=Visit
+        if getattr(user, 'is_superuser', False):
+            qs = LeadUser.objects.filter(status='Visit').order_by('-updated_date')
+            serializer_class = ApiLeadUserSerializer
+
+        # team leader -> their LeadUser visits
+        elif getattr(user, 'is_team_leader', False):
+            team_leader = Team_Leader.objects.filter(email=user.email).last() or Team_Leader.objects.filter(user=user).last()
+            if not team_leader:
+                return Response({"detail": "Team leader profile not found."}, status=status.HTTP_404_NOT_FOUND)
+            qs = LeadUser.objects.filter(team_leader=team_leader, status='Visit').order_by('-updated_date')
+            serializer_class = ApiLeadUserSerializer
+
+        # others -> Team_LeadData for that team_leader
+        else:
+            team_leader = Team_Leader.objects.filter(email=user.email).last() or Team_Leader.objects.filter(user=user).last()
+            # if no team_leader found, return empty but 200 (original view used team_leader variable; keep safe)
+            if not team_leader:
+                qs = Team_LeadData.objects.none()
+            else:
+                qs = Team_LeadData.objects.filter(team_leader=team_leader, status='Visit').order_by('-created_date')
+            serializer_class = ApiTeamLeadDataSerializer
+
+        # Optional: support search param ?search=...
+        q = request.query_params.get('search', '').strip()
+        if q:
+            # apply search for both LeadUser and Team_LeadData where fields exist
+            if serializer_class == ApiLeadUserSerializer:
+                qs = qs.filter(Q(name__icontains=q) | Q(call__icontains=q) | Q(email__icontains=q))
+            else:
+                qs = qs.filter(Q(name__icontains=q) | Q(call__icontains=q) | Q(email__icontains=q))
+
+        # Pagination
+        paginator = Paginator(qs, page_size)
+        page_number = request.query_params.get('page', 1)
+        page_obj = paginator.get_page(page_number)
+
+        serializer = serializer_class(page_obj.object_list, many=True, context={'request': request})
+        items = serializer.data
+        total_count = paginator.count
+        total_pages = paginator.num_pages
+        current_page = page_obj.number
+
+        # page_range minimal numeric (no '...' strings)
+        if total_pages <= 7:
+            page_range = list(range(1, total_pages + 1))
+        else:
+            pr = list(range(1, 4))
+            start = max(3, current_page - 2)
+            end = min(current_page + 1, total_pages - 2)
+            pr.extend(list(range(start, end + 1)))
+            pr.extend(list(range(total_pages - 2, total_pages + 1)))
+            page_range = sorted(set(pr))
+
+        response = {
+            'items': items,
+            'total_items': total_count,
+            'page': current_page,
+            'page_size': page_size,
+            'total_pages': total_pages,
+            'page_range': page_range,
+            'reference_image': '/mnt/data/c2dc665d-9d54-40ab-a57d-08f450e93be3.png'
+        }
+        return Response(response, status=status.HTTP_200_OK)
+    
+
+
+
+
+# home/api.py
+
+class TeamLeaderExportDashboardLeadsAPIView(APIView):
+    """
+    API to export leads for 4 specific pages: Interested, Pending, Today, Tomorrow.
+    POST: Generates Excel file based on 'tag' and optional date range.
+    """
+    permission_classes = [IsAuthenticated, IsCustomTeamLeaderUser]
+
+    def post(self, request, format=None):
+        # 1. Get Params
+        tag = request.data.get('tag') # E.g., 'today_followups', 'Intrested'
+        staff_id = request.data.get('staff_id')
+        start_date_str = request.data.get('start_date')
+        end_date_str = request.data.get('end_date')
+        
+        # 2. Verify Team Leader
+        try:
+            tl_instance = Team_Leader.objects.get(user=request.user)
+        except Team_Leader.DoesNotExist:
+            return Response({"error": "Team Leader profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 3. Determine Base Queryset (All TL leads or Specific Staff)
+        if staff_id:
+            try:
+                staff = Staff.objects.get(id=staff_id)
+                if staff.team_leader != tl_instance:
+                    return Response({"error": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+                # Staff Leads
+                base_qs = LeadUser.objects.filter(assigned_to=staff)
+            except Staff.DoesNotExist:
+                 return Response({"error": "Staff not found."}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            # All Leads under TL (Assigned to any staff OR unassigned)
+            staff_members = Staff.objects.filter(team_leader=tl_instance)
+            base_qs = LeadUser.objects.filter(
+                Q(assigned_to__in=staff_members) | Q(team_leader=tl_instance, assigned_to=None)
+            )
+
+        # 4. Date Setup
+        today = timezone.now().date()
+        tomorrow = today + timedelta(days=1)
+
+        # --- 5. FILTER LOGIC BASED ON TAG ---
+        
+        if tag == 'today_followups':
+            # Logic: Status Interested + FollowUp Date is TODAY
+            leads = base_qs.filter(status='Intrested', follow_up_date=today)
+            filename_tag = "Today_FollowUps"
+            
+        elif tag == 'tomorrow_followups':
+            # Logic: Status Interested + FollowUp Date is TOMORROW
+            leads = base_qs.filter(status='Intrested', follow_up_date=tomorrow)
+            filename_tag = "Tomorrow_FollowUps"
+
+        elif tag == 'pending_followups':
+            # Logic: Status Interested + FollowUp Date exists (Pending)
+            leads = base_qs.filter(status='Intrested', follow_up_date__isnull=False)
+            filename_tag = "Pending_FollowUps"
+
+        elif tag == 'Intrested':
+            # Logic: Status Interested + User selected Date Range (Created/Updated)
+            try:
+                if start_date_str and end_date_str:
+                    s_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+                    e_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+                    
+                    start = timezone.make_aware(datetime.combine(s_date, datetime.min.time()))
+                    end = timezone.make_aware(datetime.combine(e_date, datetime.max.time()))
+                    
+                    # Filter by updated_date
+                    leads = base_qs.filter(status='Intrested', updated_date__range=[start, end])
+                else:
+                    # Default: All Interested
+                    leads = base_qs.filter(status='Intrested')
+            except ValueError:
+                 return Response({"error": "Invalid date format."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            filename_tag = "Interested_Leads"
+
+        else:
+             return Response({"error": "Invalid tag provided."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # --- 6. GENERATE EXCEL ---
+        data = []
+        for lead in leads:
+            assigned_name = lead.assigned_to.name if lead.assigned_to else "Unassigned"
+            
+            data.append({
+                'Name': lead.name,
+                'Call': lead.call,
+                'Status': lead.status,
+                'Staff Name': assigned_name,
+                'Follow Up Date': lead.follow_up_date,
+                'Follow Up Time': lead.follow_up_time,
+                'Message': lead.message,
+                'Date Added': localtime(lead.created_date).strftime('%Y-%m-%d'),
+            })
+
+        if not data:
+             return Response({"message": "No data found for export."}, status=status.HTTP_404_NOT_FOUND)
+
+        df = pd.DataFrame(data)
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename={filename_tag}_{today}.xlsx'
+
+        with pd.ExcelWriter(response, engine='xlsxwriter') as writer:
+            df.to_excel(writer, index=False, sheet_name='Leads')
+
+        return response
+    
+
+
+
+# ==========================================================
+# API: TEAM LEADER - VIEW/UPDATE PROFILE
+# ==========================================================
+class TeamLeaderProfileViewAPIView(APIView):
+    """
+    API endpoint for 'team_view_profile' (Team Leader Dashboard).
+    GET: Fetches logged-in Team Leader's profile.
+    PATCH: Updates logged-in Team Leader's profile.
+    ONLY TEAM LEADER can access this.
+    """
+    permission_classes = [IsAuthenticated, IsCustomTeamLeaderUser]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def get_tl_object(self, request):
+        try:
+            return Team_Leader.objects.get(user=request.user)
+        except Team_Leader.DoesNotExist:
+            return None
+
+    def get(self, request, format=None):
+        tl_instance = self.get_tl_object(request)
+        if not tl_instance:
+            return Response({"error": "Team Leader profile not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = TeamLeaderProfileSerializer(tl_instance)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, format=None):
+        tl_instance = self.get_tl_object(request)
+        if not tl_instance:
+            return Response({"error": "Team Leader profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Use existing update serializer which handles User + TL model update
+        serializer = TeamLeaderUpdateSerializer(instance=tl_instance, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            updated_instance = serializer.save()
+            return Response({
+                "message": "Profile updated successfully",
+                "data": TeamLeaderProfileSerializer(updated_instance).data
+            }, status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+    def post(self, request, format=None):
+        return self.patch(request, format)
+    
+
+
+
+
+
+
+
 
 
 

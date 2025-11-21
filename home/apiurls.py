@@ -255,6 +255,14 @@ urlpatterns = [
     #ACTIVITY LOGS
     path('api/activityteamlogs/', ActivityLogsRoleAPIView.as_view(), name='api-activitylogs-role'),
 
+    #VISITTEAMLEADER
+    path('api/visits/', VisitTeamLeaderAPIView.as_view(), name='api-visits'),
+
+    # EXPORTSLEADS
+    path('api/team-leader/export-dashboard-leads/', api.TeamLeaderExportDashboardLeadsAPIView.as_view(), name='api_tl_export_dashboard'),
+
+    # --- TEAM LEADER PROFILE ---
+    path('api/team-leader/profile/', api.TeamLeaderProfileViewAPIView.as_view(), name='api_tl_profile'),
 
 
 

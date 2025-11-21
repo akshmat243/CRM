@@ -1284,3 +1284,28 @@ class LeadCreateSerializer(serializers.ModelSerializer):
 # ------------------------------
 
 
+# home/serializers.py
+
+# ==========================================================
+# TEAM LEADER PROFILE SERIALIZER
+# ==========================================================
+class TeamLeaderProfileSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Team Leader Profile View.
+    Shows TL details and User details.
+    """
+    user = DashboardUserSerializer(read_only=True)
+    
+    class Meta:
+        model = Team_Leader
+        fields = [
+            'id', 'user', 'team_leader_id', 'name', 'email', 'mobile',
+            'address', 'city', 'pincode', 'state', 'dob', 
+            'created_date', 'updated_date'
+        ]
+
+
+
+
+
+
