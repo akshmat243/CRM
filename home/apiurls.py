@@ -101,19 +101,19 @@ urlpatterns = [
     # for staff dashbord  
     path('api/superuser/staff-report/', api.SuperUserStaffReportAPIView.as_view(), name='api_superuser_staff_report'),
 
-            #ADMIN DASHBOARD
-    path('api/admin/team-leader-report/', api.AdminTeamLeaderReportAPIView.as_view(), name='api_admin_team_leader_report'),
-    path('api/admin/add-team-leader/', api.TeamLeaderAddAPIView.as_view(), name='api_admin_add_team_leader'),
+    #         #ADMIN DASHBOARD
+    # path('api/admin/team-leader-report/', api.AdminTeamLeaderReportAPIView.as_view(), name='api_admin_team_leader_report'),
+    # path('api/admin/add-team-leader/', api.TeamLeaderAddAPIView.as_view(), name='api_admin_add_team_leader'),
   
 
-    # 1. Superuser waali line
-    path('api/superuser/staff-leads/<str:tag>/', api.SuperUserStaffLeadsAPIView.as_view(), name='api-superuser-staff-leads'),
+    # # 1. Superuser waali line
+    # path('api/superuser/staff-leads/<str:tag>/', api.SuperUserStaffLeadsAPIView.as_view(), name='api-superuser-staff-leads'),
     
-    # 2. Admin waali cards  line ke liye 
-    path('api/admin/staff-leads/<str:tag>/', api.AdminStaffLeadsAPIView.as_view(), name='api-admin-staff-leads'),
+    # # 2. Admin waali cards  line ke liye 
+    # path('api/admin/staff-leads/<str:tag>/', api.AdminStaffLeadsAPIView.as_view(), name='api-admin-staff-leads'),
 
-    path('api/admin/staff-report/', api.StaffReportAPIView.as_view(), name='api_admin_staff_report'),
-    path('api/admin/add-staff/', api.AdminStaffAddAPIView.as_view(), name='api_admin_add_staff'),
+    # path('api/admin/staff-report/', api.StaffReportAPIView.as_view(), name='api_admin_staff_report'),
+    # path('api/admin/add-staff/', api.AdminStaffAddAPIView.as_view(), name='api_admin_add_staff'),
     
     #teamleader superuserside list SUPERUSERDASHBOARD
     path('api/superuser/get-team-leaders/', api.SuperUserTeamLeaderListAPIView.as_view(), name='api_superuser_get_team_leaders'),
@@ -121,27 +121,28 @@ urlpatterns = [
 
 
 
-    #ADMINDASHBOARDAPI 2ND PART
+    # #ADMINDASHBOARDAPI 2ND PART
 
 
-    #edit team leader admin side 
-    path('api/admin/team-leader/edit/<int:id>/', api.AdminTeamLeaderEditAPIView.as_view(), name='api_admin_team_leader_edit'),
+    # #edit team leader admin side 
+    # path('api/admin/team-leader/edit/<int:id>/', api.AdminTeamLeaderEditAPIView.as_view(), name='api_admin_team_leader_edit'),
 
-    #staff edit admin dashboard
-    path('api/admin/staff/edit/<int:id>/', api.AdminStaffEditAPIView.as_view(), name='api_admin_staff_edit'),
+    # #staff edit admin dashboard
+    # path('api/admin/staff/edit/<int:id>/', api.AdminStaffEditAPIView.as_view(), name='api_admin_staff_edit'),
 
-    #staff incentive
-    path('api/admin/staff-incentive/<int:staff_id>/', api.AdminStaffIncentiveAPIView.as_view(), name='api_admin_staff_incentive'),
+    # #staff incentive
+    # path('api/admin/staff-incentive/<int:staff_id>/', api.AdminStaffIncentiveAPIView.as_view(), name='api_admin_staff_incentive'),
 
-    #staffearn calender
-    path('api/admin/staff-calendar/<int:staff_id>/', api.AdminStaffProductivityCalendarAPIView.as_view(), name='api_admin_staff_calendar'),
+    # #staffearn calender
+    # path('api/admin/staff-calendar/<int:staff_id>/', api.AdminStaffProductivityCalendarAPIView.as_view(), name='api_admin_staff_calendar'),
 
-    #satff view admin dash board
-    path('api/admin/staff-leads/by-staff/<int:id>/<str:tag>/', api.AdminStaffParticularLeadsAPIView.as_view(), name='api_admin_staff_particular_leads'),
+    # #satff view admin dash board
+    # path('api/admin/staff-leads/by-staff/<int:id>/<str:tag>/', api.AdminStaffParticularLeadsAPIView.as_view(), name='api_admin_staff_particular_leads'),
 
 
-    #ADMINDASHBOARDAPI 3rd HARSHITSHARMA
-    
+    #####################################################################################################################################
+    #                                               STAFF                                                                               #
+    #####################################################################################################################################
 
     #staff dasboard  
     path('api/staff/dashboard/', api.StaffDashboardAPIView.as_view(), name='api_staff_dashboard'),
@@ -263,6 +264,102 @@ urlpatterns = [
 
     # --- TEAM LEADER PROFILE ---
     path('api/team-leader/profile/', api.TeamLeaderProfileViewAPIView.as_view(), name='api_tl_profile'),
+
+     #... ADD SELL FREELANCER ...
+    path('api/v2/add_sell_freelancer/<int:id>/', AddSellFreelancerV2APIView.as_view(), name='api_add_sell_freelancer_v2'),
+
+
+    ####################################################################################################
+    #                                      TEAMLEADER END                                              #
+    ####################################################################################################
+
+
+
+    # --- SUPERUSER PROFILE API ---
+   # path('api/superuser/profile/', api.SuperUserProfileAPIView.as_view(), name='api_superuser_profile'),                          
+
+
+    
+    ####################################################################################################
+    #                                        ADMIN                                                     #
+    ####################################################################################################
+
+    
+    
+            #ADMIN DASHBOARD
+    path('api/admin/team-leader-report/', api.AdminTeamLeaderReportAPIView.as_view(), name='api_admin_team_leader_report'),
+    path('api/admin/add-team-leader/', api.TeamLeaderAddAPIView.as_view(), name='api_admin_add_team_leader'),
+  
+
+    # 1. Superuser waali line
+    path('api/superuser/staff-leads/<str:tag>/', api.SuperUserStaffLeadsAPIView.as_view(), name='api-superuser-staff-leads'),
+    
+    # 2. Admin waali cards  line ke liye 
+    path('api/admin/staff-leads/<str:tag>/', api.AdminStaffLeadsAPIView.as_view(), name='api-admin-staff-leads'),
+
+    path('api/admin/staff-report/', api.StaffReportAPIView.as_view(), name='api_admin_staff_report'),
+    path('api/admin/add-staff/', api.AdminStaffAddAPIView.as_view(), name='api_admin_add_staff'),
+    
+
+
+    #edit team leader admin side 
+    path('api/admin/team-leader/edit/<int:id>/', api.AdminTeamLeaderEditAPIView.as_view(), name='api_admin_team_leader_edit'),
+
+    #staff edit admin dashboard
+    path('api/admin/staff/edit/<int:id>/', api.AdminStaffEditAPIView.as_view(), name='api_admin_staff_edit'),
+
+    #staff incentive
+    path('api/admin/staff-incentive/<int:staff_id>/', api.AdminStaffIncentiveAPIView.as_view(), name='api_admin_staff_incentive'),
+
+    #staffearn calender
+    path('api/admin/staff-calendar/<int:staff_id>/', api.AdminStaffProductivityCalendarAPIView.as_view(), name='api_admin_staff_calendar'),
+
+    #satff view admin dash board
+    path('api/admin/staff-leads/by-staff/<int:id>/<str:tag>/', api.AdminStaffParticularLeadsAPIView.as_view(), name='api_admin_staff_particular_leads'),
+
+    # --- YEH NAYI LINE ADMIN STAFF LEADS (CARD CLICK) KE LIYE ADD KARO ---
+    path('api/adminn/staff-leads/<str:tag>/', api.AdminnStaffLeadsAPIView.as_view(), name='api_admin_staff_leads'),
+
+    # --- ADMIN PROFILE ---
+    path('api/admin/profile/', api.AdminProfileViewAPIView.as_view(), name='api_admin_profile'),
+
+    # --- UNIVERSAL TOGGLE API ---
+    path('api/toggle-user-status/<int:user_id>/', api.ToggleUserStatusAPIView.as_view(), name='api_toggle_user_status'),
+    # --- ADMIN ACTIVITY LOGS ---
+    path('api/admin/activity-logs/', api.AdminActivityLogAPIView.as_view(), name='api_admin_activity_logs'),
+
+    # --- FREELANCER PRODUCTIVITY REPORT ---
+    path('api/productivity/freelancer-report/', api.FreelancerProductivityReportAPIView.as_view(), name='api_freelancer_productivity_report'),
+ 
+    # --- ADMIN PRODUCTIVITY REPORT ---
+    path('api/admin/productivity-report/', api.AdminProductivityReportAPIView.as_view(), name='api_admin_productivity_report'),
+
+    # --- TEAM LEADER PRODUCTIVITY (FOR ADMIN/SUPERUSER) ---
+    path('api/productivity/team-leader-report/', api.TeamLeaderProductivityViewAPIView.as_view(), name='api_teamleader_productivity_report'),
+
+    # --- ADMIN TOTAL LEADS (SELF) ---
+    path('api/admin/total-leads/', api.AdminTotalLeadsAPIView.as_view(), name='api_admin_total_leads'),
+
+    #... ADDLEAD ...
+    path('leads/admin/add/', AddLeadBySelfAPIView.as_view(), name='api_add_lead_by_self'),
+
+    # --- ADMIN LEAD HISTORY ---
+    path('api/admin/lead-history/<int:id>/', api.AdminLeadHistoryAPIView.as_view(), name='api_admin_lead_history'),
+
+    
+    # ... INTRESTED LOST LEADS
+    path('lost-leads/', AdminLostLeadsAPIView.as_view(), name='api-lost-leads-admin'),
+
+    # --- ADMIN UPDATE LEAD STATUS ---
+    path('api/admin/update-lead/<int:id>/', api.AdminUpdateLeadAPIView.as_view(), name='api_admin_update_lead'),
+
+
+
+
+    
+    # NOTINTRESTED
+    path('admin/not-interested-leads/', AdminNotInterestedLeadsAPIView.as_view(), name='api-admin-not-interested-leads'),
+
 
 
 

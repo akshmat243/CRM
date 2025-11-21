@@ -2186,8 +2186,8 @@ class AdminStaffLeadsAPIView(APIView):
             'interested': 'Intrested',
             'not_interested': 'Not Interested',
             'other_location': 'Other Location',
-            'not_picked': 'Not Picked',
-            'lost': 'Lost'
+            'not_picked': 'Not Picked'
+            
         }
 
         if tag in status_map:
@@ -7747,4 +7747,1196 @@ class TeamLeaderProfileViewAPIView(APIView):
 
 
 
+# # ==========================================================
+# # API: SUPERUSER-ONLY - VIEW/UPDATE PROFILE & SETTINGS
+# # ==========================================================
+# class SuperUserProfileAPIView(APIView):
+#     """
+#     API endpoint for Superuser 'view_profile' function.
+#     GET: Fetches Superuser profile and System Settings (Logo).
+#     PATCH: Updates Profile (Name, Email, Image) or Settings (Logo).
+#     ONLY SUPERUSER can access this.
+#     """
+#     permission_classes = [IsAuthenticated, CustomIsSuperuser]
+#     parser_classes = [MultiPartParser, FormParser] # Image/File upload ke liye
 
+#     def get(self, request, format=None):
+#         # 1. Serialize User Data
+#         user_serializer = SuperUserProfileSerializer(request.user)
+        
+#         # 2. Serialize Settings Data (Logo)
+#         setting = Settings.objects.last()
+#         setting_data = DashboardSettingsSerializer(setting).data if setting else None
+        
+#         return Response({
+#             'admin': user_serializer.data,
+#             'setting': setting_data
+#         }, status=status.HTTP_200_OK)
+
+#     def patch(self, request, format=None):
+#         user = request.user
+#         data = request.data.copy() # Copy data to make it mutable
+        
+#         # --- 1. Handle Logo Update (if 'tag' is logo or 'logo' file is present) ---
+#         if data.get('tag') == 'logo' or 'logo' in request.FILES:
+#             logo = request.FILES.get('logo')
+#             if logo:
+#                 setting = Settings.objects.last()
+#                 if setting:
+#                     setting.logo = logo
+#                     setting.save()
+#                 else:
+#                     # Create new settings if not exists
+#                     setting = Settings.objects.create(logo=logo)
+                
+#                 return Response({
+#                     "message": "Logo updated successfully",
+#                     "setting": DashboardSettingsSerializer(setting).data
+#                 }, status=status.HTTP_200_OK)
+#             else:
+#                  return Response({"error": "Logo file not provided."}, status=status.HTTP_400_BAD_REQUEST)
+
+#         # --- 2. Handle Profile Update ---
+        
+#         # Check for Email Duplication
+#         new_email = data.get('email')
+#         if new_email and new_email != user.email:
+#             if User.objects.filter(email=new_email).exclude(id=user.id).exists():
+#                 return Response({"error": "Email Already Exists"}, status=status.HTTP_400_BAD_REQUEST)
+        
+#         # Update User fields
+#         serializer = SuperUserProfileSerializer(instance=user, data=data, partial=True)
+        
+#         if serializer.is_valid():
+#             updated_user = serializer.save()
+            
+#             # Sync username with email (as per your view logic)
+#             if new_email:
+#                 updated_user.username = new_email
+#                 updated_user.save()
+                
+#             return Response({
+#                 "message": "Profile updated successfully",
+#                 "admin": SuperUserProfileSerializer(updated_user).data
+#             }, status=status.HTTP_200_OK)
+            
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+#     def post(self, request, format=None):
+#         # Allow POST to work just like PATCH
+#         return self.patch(request, format)
+    
+
+
+
+
+
+# ==========================================================
+# API: ADMIN - STAFF LEADS LIST (BY STATUS TAG)
+# ==========================================================
+class AdminnStaffLeadsAPIView(APIView):
+    """
+    API endpoint for 'super_user_side_staff_leads' (Admin Side).
+    GET: Fetches list of leads for an Admin based on status tags.
+    ONLY ADMIN (is_admin=True) can access this.
+    """
+    
+    permission_classes = [IsAuthenticated, IsCustomAdminUser]
+    pagination_class = StandardResultsSetPagination
+
+    def get(self, request, tag, format=None):
+        paginator = self.pagination_class()
+        
+        # 1. Get Admin Profile
+        try:
+            # 'self_user' field logged-in user se link hota hai
+            admin_instance = Admin.objects.get(self_user=request.user)
+        except Admin.DoesNotExist:
+            return Response({"error": "Admin profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 2. Get Team Leaders under this Admin
+        team_leaders = Team_Leader.objects.filter(admin=admin_instance)
+
+        # 3. Base Queryset: Filter leads belonging to these Team Leaders
+        # (LeadUser model me 'team_leader' field hota hai)
+        base_qs = LeadUser.objects.filter(team_leader__in=team_leaders).order_by('-updated_date')
+
+        # 4. Apply Tag Filters (Based on your function)
+        if tag == 'total_lead':
+            leads = base_qs.filter(status="Leads")
+        elif tag == 'visits':
+            leads = base_qs.filter(status="Visit")
+        elif tag == 'interested':
+            leads = base_qs.filter(status="Intrested") # Note spelling 'Intrested' from models
+        elif tag == 'not_interested':
+            leads = base_qs.filter(status="Not Interested")
+        elif tag == 'other_location':
+            leads = base_qs.filter(status="Other Location")
+        elif tag == 'not_picked':
+            leads = base_qs.filter(status="Not Picked")
+        elif tag == 'Total_earning': # Adding this just in case, though not in your 'if' block context list
+            leads = base_qs.filter(status="Total_earning")
+        else:
+            return Response(
+                {"error": f"Invalid tag: {tag}. Valid tags are: total_lead, visits, interested, not_interested, other_location, not_picked, Total_earning"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 5. Paginate and Serialize
+        page = paginator.paginate_queryset(leads, request, view=self)
+        
+        if page is not None:
+            serializer = ApiLeadUserSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
+        serializer = ApiLeadUserSerializer(leads, many=True)
+        return Response(serializer.data)
+
+
+
+
+# ==========================================================
+# API: ADMIN - VIEW/UPDATE PROFILE
+# ==========================================================
+class AdminProfileViewAPIView(APIView):
+    """
+    API endpoint for 'admin_view_profile' (Admin Dashboard).
+    GET: Fetches logged-in Admin's profile.
+    PATCH: Updates logged-in Admin's profile.
+    ONLY ADMIN (is_admin=True) can access this.
+    """
+    permission_classes = [IsAuthenticated, IsCustomAdminUser]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def get_admin_object(self, request):
+        try:
+            # Using email as per your view logic, but self_user is safer if linked correctly
+            return Admin.objects.get(email=request.user.email)
+        except Admin.DoesNotExist:
+            return None
+
+    def get(self, request, format=None):
+        admin_instance = self.get_admin_object(request)
+        if not admin_instance:
+            return Response({"error": "Admin profile not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = AdminProfileSerializer(admin_instance)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, format=None):
+        admin_instance = self.get_admin_object(request)
+        if not admin_instance:
+            return Response({"error": "Admin profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Use existing update serializer which handles User + Admin model update
+        serializer = AdminUpdateSerializer(instance=admin_instance, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            updated_instance = serializer.save()
+            return Response({
+                "message": "Profile updated successfully",
+                "data": AdminProfileSerializer(updated_instance).data
+            }, status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+    def post(self, request, format=None):
+        return self.patch(request, format)
+    
+
+
+
+
+
+
+# home/api.py
+
+class ToggleUserStatusAPIView(APIView):
+    """
+    Universal API to toggle user_active status.
+    Works for: Superuser (Can toggle anyone), Admin (Can toggle their TLs/Staff), TL (Can toggle their Staff).
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, user_id, format=None):
+        # 1. Target User Dhoondo (Jisko toggle karna hai)
+        try:
+            target_user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 2. Permission Logic (Kaun kisko toggle kar sakta hai)
+        is_allowed = False
+        requester = request.user
+
+        # Case A: Superuser (Sabka Maalik)
+        if requester.is_superuser:
+            is_allowed = True
+
+        # Case B: Admin (Apne TLs aur unke Staff ko toggle kar sakta hai)
+        elif requester.is_admin:
+            try:
+                admin_profile = Admin.objects.get(self_user=requester)
+                
+                # Check if target is a Team Leader under this Admin
+                if target_user.is_team_leader:
+                    if Team_Leader.objects.filter(user=target_user, admin=admin_profile).exists():
+                        is_allowed = True
+                
+                # Check if target is a Staff under a TL of this Admin
+                elif target_user.is_staff_new:
+                    if Staff.objects.filter(user=target_user, team_leader__admin=admin_profile).exists():
+                        is_allowed = True
+            except Admin.DoesNotExist:
+                pass
+
+        # Case C: Team Leader (Sirf apne Staff ko toggle kar sakta hai)
+        elif requester.is_team_leader:
+            try:
+                tl_profile = Team_Leader.objects.get(user=requester)
+                
+                # Check if target is a Staff under this TL
+                if target_user.is_staff_new:
+                    if Staff.objects.filter(user=target_user, team_leader=tl_profile).exists():
+                        is_allowed = True
+            except Team_Leader.DoesNotExist:
+                pass
+
+        # 3. Action (Agar permission hai toh toggle karo)
+        if is_allowed:
+            # Toggle status (True -> False, False -> True)
+            target_user.user_active = not target_user.user_active
+            target_user.save()
+            
+            status_msg = "Active" if target_user.user_active else "Inactive"
+            return Response({
+                "message": f"User is now {status_msg}", 
+                "user_active": target_user.user_active
+            }, status=status.HTTP_200_OK)
+        
+        else:
+            return Response({"error": "Permission denied. You cannot toggle this user."}, status=status.HTTP_403_FORBIDDEN)
+        
+
+
+
+
+
+# ==========================================================
+# API: ADMIN-ONLY - ACTIVITY LOGS (TIME SHEET)
+# ==========================================================
+class AdminActivityLogAPIView(APIView):
+    """
+    API endpoint for 'activitylogs' function (Admin Dashboard).
+    GET: Fetches activity logs relevant to the logged-in Admin.
+    ONLY ADMIN (is_admin=True) can access this.
+    """
+    
+    permission_classes = [IsAuthenticated, IsCustomAdminUser]
+    pagination_class = ActivityLogPagination # Using your custom pagination
+
+    def get(self, request, format=None):
+        # 1. Get Admin Profile
+        try:
+            # 'self_user' is the User instance linked to Admin
+            admin_user = Admin.objects.get(self_user=request.user)
+        except Admin.DoesNotExist:
+            # Fallback: Try getting by email if self_user logic fails (as per your view logic backup)
+            try:
+                admin_user = Admin.objects.filter(email=request.user.email).last()
+                if not admin_user:
+                    return Response({"error": "Admin profile not found."}, status=status.HTTP_404_NOT_FOUND)
+            except:
+                return Response({"error": "Admin profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 2. Get Logs for this Admin
+        # Logic from your view: logs = ActivityLog.objects.filter(admin=admin_user).order_by('-created_date')
+        logs_qs = ActivityLog.objects.filter(admin=admin_user).order_by('-created_date')
+
+        # 3. Paginate & Serialize
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(logs_qs, request, view=self)
+        
+        if page is not None:
+            serializer = ActivityLogSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
+        # Fallback if pagination fails
+        serializer = ActivityLogSerializer(logs_qs, many=True)
+        return Response(serializer.data)
+    
+
+
+
+
+
+
+
+# ==========================================================
+# API: FREELANCER PRODUCTIVITY REPORT (ALL ROLES)
+# ==========================================================
+class FreelancerProductivityReportAPIView(APIView):
+    """
+    API endpoint for 'freelancer_productivity_view'.
+    GET: Fetches productivity stats for Freelancers (Associates).
+    Supports Superuser, Admin, and Team Leader roles.
+    """
+    permission_classes = [IsAuthenticated , IsCustomAdminUser ]
+
+    def get(self, request, format=None):
+        # 1. Get Query Params
+        date_filter = request.query_params.get('date')
+        end_date_str = request.query_params.get('endDate')
+        teamleader_id = request.query_params.get('teamleader_id')
+        admin_id = request.query_params.get('admin_id')
+        
+        # 2. Determine Staffs (Freelancers) based on User Role
+        staffs = Staff.objects.none()
+        
+        if request.user.is_superuser:
+            staffs = Staff.objects.filter(user__user_active=True, user__is_freelancer=True)
+            if admin_id:
+                staffs = staffs.filter(team_leader__admin=admin_id)
+            if teamleader_id:
+                staffs = staffs.filter(team_leader=teamleader_id)
+
+        elif request.user.is_admin:
+            try:
+                admin_user = Admin.objects.get(self_user=request.user)
+                staffs = Staff.objects.filter(
+                    team_leader__admin=admin_user, 
+                    user__user_active=True, 
+                    user__is_freelancer=True
+                )
+                if teamleader_id:
+                    staffs = staffs.filter(team_leader=teamleader_id)
+            except Admin.DoesNotExist:
+                pass
+
+        elif request.user.is_team_leader:
+            try:
+                team_leader = Team_Leader.objects.get(user=request.user)
+                staffs = Staff.objects.filter(
+                    team_leader=team_leader, 
+                    user__user_active=True, 
+                    user__is_freelancer=True
+                )
+            except Team_Leader.DoesNotExist:
+                pass
+
+        # 3. Date Filter Logic
+        today = timezone.now().date()
+        start_date = timezone.make_aware(datetime.combine(today, datetime.min.time()))
+        end_date = timezone.make_aware(datetime.combine(today, datetime.max.time()))
+        
+        if date_filter:
+            try:
+                s_date = datetime.strptime(date_filter, '%Y-%m-%d')
+                start_date = timezone.make_aware(datetime.combine(s_date, datetime.min.time()))
+                
+                if end_date_str:
+                    e_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+                    end_date = timezone.make_aware(datetime.combine(e_date, datetime.max.time()))
+                else:
+                    # If no end date, assume single day filter (start to end of that day)
+                    end_date = timezone.make_aware(datetime.combine(s_date, datetime.max.time()))
+            except ValueError:
+                pass
+
+        # Filters
+        # Updated date for status changes
+        activity_filter = {'updated_date__range': [start_date, end_date]}
+        # Created date for new leads
+        creation_filter = {'created_date__range': [start_date, end_date]}
+
+        # 4. Aggregation Variables
+        staff_data = []
+        total_all_leads = 0
+        total_all_interested = 0
+        total_all_not_interested = 0
+        total_all_other_location = 0
+        total_all_not_picked = 0
+        total_all_lost = 0
+        total_all_visit = 0
+        total_all_calls = 0
+
+        # 5. Loop and Calculate
+        for staff in staffs:
+            # Calculate Leads for this Staff
+            staff_leads = LeadUser.objects.filter(assigned_to=staff)
+            
+            # Counts
+            total = staff_leads.filter(status="Leads", **creation_filter).count()
+            interested = staff_leads.filter(status="Intrested", **activity_filter).count()
+            not_interested = staff_leads.filter(status="Not Interested", **activity_filter).count()
+            other_location = staff_leads.filter(status="Other Location", **activity_filter).count()
+            not_picked = staff_leads.filter(status="Not Picked", **activity_filter).count()
+            lost = staff_leads.filter(status="Lost", **activity_filter).count()
+            visit = staff_leads.filter(status="Visit", **activity_filter).count()
+
+            total_calls = interested + not_interested + other_location + not_picked + lost + visit
+
+            # Percentages
+            visit_percentage = (visit / total * 100) if total > 0 else 0
+            interested_percentage = (interested / total * 100) if total > 0 else 0
+
+            staff_data.append({
+                'id': staff.id,
+                'name': staff.name,
+                'total_leads': total,
+                'interested': interested,
+                'not_interested': not_interested,
+                'other_location': other_location,
+                'not_picked': not_picked,
+                'lost': lost,
+                'visit': visit,
+                'visit_percentage': round(visit_percentage, 2),
+                'interested_percentage': round(interested_percentage, 2),
+                'total_calls': total_calls,
+            })
+
+            # Accumulate Totals
+            total_all_leads += total
+            total_all_interested += interested
+            total_all_not_interested += not_interested
+            total_all_other_location += other_location
+            total_all_not_picked += not_picked
+            total_all_lost += lost
+            total_all_visit += visit
+            total_all_calls += total_calls
+
+        # 6. Grand Total Percentages
+        total_visit_percentage = (total_all_visit / total_all_leads * 100) if total_all_leads > 0 else 0
+        total_interested_percentage = (total_all_interested / total_all_leads * 100) if total_all_leads > 0 else 0
+
+        # 7. Final Response
+        response_data = {
+            "counts": {
+                'total_all_leads': total_all_leads,
+                'total_all_interested': total_all_interested,
+                'total_all_not_interested': total_all_not_interested,
+                'total_all_other_location': total_all_other_location,
+                'total_all_not_picked': total_all_not_picked,
+                'total_all_lost': total_all_lost,
+                'total_all_visit': total_all_visit,
+                'total_all_calls': total_all_calls,
+                'total_visit_percentage': round(total_visit_percentage, 2),
+                'total_interested_percentage': round(total_interested_percentage, 2),
+                'total_staff_count': staffs.count(),
+            },
+            "staff_data": staff_data,
+            "filter_dates": {
+                "start": str(start_date.date()),
+                "end": str(end_date.date())
+            }
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+    
+
+
+
+
+# ==========================================================
+# API: ADMIN-ONLY - STAFF PRODUCTIVITY REPORT (CARDS + LIST)
+# ==========================================================
+class AdminProductivityReportAPIView(APIView):
+    """
+    API endpoint for Admin Dashboard -> Staff Users Page.
+    GET: Fetches productivity stats, earnings, and list for all staff under this Admin.
+    """
+    permission_classes = [IsAuthenticated, IsCustomAdminUser]
+
+    def get(self, request, format=None):
+        # 1. Get Admin Profile
+        try:
+            admin_instance = Admin.objects.get(self_user=request.user)
+        except Admin.DoesNotExist:
+            return Response({"error": "Admin profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 2. Get Query Params
+        teamleader_id = request.query_params.get('teamleader_id')
+        date_filter = request.query_params.get('date')
+        end_date_str = request.query_params.get('endDate')
+
+        # 3. Date Filter Logic
+        today = timezone.now().date()
+        start_date = timezone.make_aware(datetime.combine(today, datetime.min.time()))
+        end_date = timezone.make_aware(datetime.combine(today, datetime.max.time()))
+        filter_status = "Today (Default)"
+
+        if date_filter and end_date_str:
+            try:
+                s_date = datetime.strptime(date_filter, '%Y-%m-%d')
+                if isinstance(end_date_str, str):
+                    e_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+                else:
+                    e_date = end_date_str
+                
+                start_date = timezone.make_aware(datetime.combine(s_date, datetime.min.time()))
+                end_date = timezone.make_aware(e_date + timedelta(days=1)) - timedelta(seconds=1)
+                filter_status = f"Custom: {start_date.date()} to {end_date.date()}"
+            except ValueError:
+                pass 
+
+        # Filters Definitions
+        # Activity (Status Change) -> Updated Date
+        update_filter = {'updated_date__range': [start_date, end_date]}
+        # New Entry (Total Leads / Earnings) -> Created Date
+        create_filter = {'created_date__range': [start_date, end_date]}
+        # Sell Plot date filter (using 'date' field usually, or created_date)
+        sell_filter = {'created_date__range': [start_date, end_date]} 
+
+        # 4. Get Staff Members (Under this Admin)
+        # Filter: Active users, Non-freelancers (Regular Staff)
+        staffs = Staff.objects.filter(
+            team_leader__admin=admin_instance,
+            user__user_active=True, 
+            user__is_freelancer=False
+        )
+
+        # Optional: Filter by specific Team Leader
+        if teamleader_id:
+            staffs = staffs.filter(team_leader_id=teamleader_id)
+        
+        staff_data = []
+        
+        # Aggregates Initialization
+        total_all_leads = 0
+        total_all_interested = 0
+        total_all_not_interested = 0
+        total_all_other_location = 0
+        total_all_not_picked = 0
+        total_all_lost = 0
+        total_all_visit = 0
+        total_all_earning = 0.0
+
+        # 5. Loop and Calculate
+        for staff in staffs:
+            # --- A. Leads Calculation (LeadUser) ---
+            staff_leads = LeadUser.objects.filter(assigned_to=staff)
+            
+            total = staff_leads.filter(status="Leads", **create_filter).count()
+            visit = staff_leads.filter(status="Visit", **update_filter).count()
+            interested = staff_leads.filter(status="Intrested", **update_filter).count()
+            not_interested = staff_leads.filter(status="Not Interested", **update_filter).count()
+            other_location = staff_leads.filter(status="Other Location", **update_filter).count()
+            not_picked = staff_leads.filter(status="Not Picked", **update_filter).count()
+            lost = staff_leads.filter(status="Lost", **update_filter).count()
+
+            # --- B. Earning Calculation (Sell_plot) ---
+            # Calculate total earning for this staff in the date range
+            earning_agg = Sell_plot.objects.filter(staff=staff, **sell_filter).aggregate(total=Sum('earn_amount'))
+            total_earned_amount = earning_agg['total'] if earning_agg['total'] else 0.0
+
+            # --- C. Append to List ---
+            staff_data.append({
+                'id': staff.id,
+                'name': staff.name,
+                'team_leader': staff.team_leader.name if staff.team_leader else "N/A",
+                'mobile': staff.mobile,
+                'created_date': staff.created_date,
+                'user_active': staff.user.user_active,
+                
+                # Individual Stats
+                'total_leads': total,
+                'visit': visit,
+                'interested': interested,
+                'not_interested': not_interested,
+                'other_location': other_location,
+                'not_picked': not_picked,
+                'lost': lost,
+                'earn': total_earned_amount
+            })
+
+            # --- D. Accumulate Grand Totals ---
+            total_all_leads += total
+            total_all_visit += visit
+            total_all_interested += interested
+            total_all_not_interested += not_interested
+            total_all_other_location += other_location
+            total_all_not_picked += not_picked
+            total_all_lost += lost
+            try:
+                total_all_earning += float(total_earned_amount)
+            except ValueError:
+                pass
+
+        # 6. Final Response Construction
+        counts_data = {
+            'total_leads': total_all_leads,
+            'total_visit': total_all_visit,
+            'interested': total_all_interested,
+            'not_interested': total_all_not_interested,
+            'other_location': total_all_other_location,
+            'not_picked': total_all_not_picked,
+            'lost_leads': total_all_lost,
+            'total_earning': total_all_earning
+        }
+
+        setting = Settings.objects.filter().last()
+        
+        response_data = {
+            'filter_status': filter_status,
+            'counts': counts_data,      # Cards Data
+            'staff_list': staff_data,   # Table Data
+            'setting': DashboardSettingsSerializer(setting).data if setting else None,
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+
+
+
+
+# ==========================================================
+# API: TEAM LEADER PRODUCTIVITY REPORT (FOR ADMIN/SUPERUSER)
+# ==========================================================
+class TeamLeaderProductivityViewAPIView(APIView):
+    """
+    API endpoint for 'teamleader_productivity_view'.
+    GET: Fetches productivity stats for Team Leaders (Aggregated from their Staff).
+    Accessible by: Superuser, Admin.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, format=None):
+        # 1. Get Query Params
+        date_filter = request.query_params.get('date')
+        end_date_str = request.query_params.get('endDate')
+        admin_id = request.query_params.get('admin_id')
+        
+        # 2. Determine Team Leaders based on User Role
+        team_leaders = Team_Leader.objects.none()
+        
+        if request.user.is_superuser:
+            team_leaders = Team_Leader.objects.filter(user__user_active=True)
+            if admin_id:
+                team_leaders = team_leaders.filter(admin=admin_id)
+        
+        elif request.user.is_admin:
+            try:
+                # Get logged-in Admin
+                # Assuming 'self_user' link or direct email match
+                # View logic: Team_Leader.objects.filter(admin__self_user=request.user ...)
+                team_leaders = Team_Leader.objects.filter(
+                    admin__self_user=request.user, 
+                    user__user_active=True
+                )
+                if admin_id:
+                     # If admin tries to filter by another admin ID (should not happen for regular admin, but logic is there)
+                     team_leaders = team_leaders.filter(admin=admin_id)
+            except Exception:
+                pass
+        
+        # If user is neither superuser nor admin, return empty or error
+        elif not (request.user.is_superuser or request.user.is_admin):
+             return Response({"error": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+
+        # 3. Date Filter Logic
+        today = timezone.now().date()
+        start_date = timezone.make_aware(datetime.combine(today, datetime.min.time()))
+        end_date = timezone.make_aware(datetime.combine(today, datetime.max.time()))
+        
+        if date_filter:
+            try:
+                s_date = datetime.strptime(date_filter, '%Y-%m-%d')
+                start_date = timezone.make_aware(datetime.combine(s_date, datetime.min.time()))
+                
+                if end_date_str:
+                    e_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+                    end_date = timezone.make_aware(datetime.combine(e_date, datetime.max.time()))
+                else:
+                    end_date = timezone.make_aware(datetime.combine(s_date, datetime.max.time()))
+            except ValueError:
+                pass
+
+        # Filters
+        activity_filter = {'updated_date__range': [start_date, end_date]}
+        creation_filter = {'created_date__range': [start_date, end_date]}
+
+        # 4. Aggregation Variables
+        staff_data = [] # Actually team leader data list
+        total_all_leads = 0
+        total_all_interested = 0
+        total_all_not_interested = 0
+        total_all_other_location = 0
+        total_all_not_picked = 0
+        total_all_lost = 0
+        total_all_visit = 0
+        total_all_calls = 0
+
+        # 5. Loop Team Leaders
+        for tl in team_leaders:
+            # Initialize counters for this Team Leader
+            tl_leads = 0
+            tl_interested = 0
+            tl_not_interested = 0
+            tl_other_location = 0
+            tl_not_picked = 0
+            tl_lost = 0
+            tl_visit = 0
+            
+            # Get Staff associated with this Team Leader
+            staff_members = Staff.objects.filter(team_leader=tl)
+
+            # Aggregate data from all staff under this TL
+            for staff in staff_members:
+                staff_leads = LeadUser.objects.filter(assigned_to=staff)
+                
+                tl_leads += staff_leads.filter(**creation_filter).count()
+                tl_interested += staff_leads.filter(status="Intrested", **activity_filter).count()
+                tl_not_interested += staff_leads.filter(status="Not Interested", **activity_filter).count()
+                tl_other_location += staff_leads.filter(status="Other Location", **activity_filter).count()
+                tl_not_picked += staff_leads.filter(status="Not Picked", **activity_filter).count()
+                tl_lost += staff_leads.filter(status="Lost", **activity_filter).count()
+                tl_visit += staff_leads.filter(status="Visit", **activity_filter).count()
+
+            # Also include TL's own direct leads if any (not in your view logic, but good to have?)
+            # Your view logic ONLY iterates staff_members, so we stick to that.
+            
+            tl_total_calls = tl_interested + tl_not_interested + tl_other_location + tl_not_picked + tl_lost + tl_visit
+
+            # Percentages
+            visit_percentage = (tl_visit / tl_leads * 100) if tl_leads > 0 else 0
+            interested_percentage = (tl_interested / tl_leads * 100) if tl_leads > 0 else 0
+
+            staff_data.append({
+                'id': tl.id,
+                'name': tl.name,
+                'total_leads': tl_leads,
+                'interested': tl_interested,
+                'not_interested': tl_not_interested,
+                'other_location': tl_other_location,
+                'not_picked': tl_not_picked,
+                'lost': tl_lost,
+                'visit': tl_visit,
+                'visit_percentage': round(visit_percentage, 2),
+                'interested_percentage': round(interested_percentage, 2),
+                'total_calls': tl_total_calls,
+            })
+
+            # Accumulate Grand Totals
+            total_all_leads += tl_leads
+            total_all_interested += tl_interested
+            total_all_not_interested += tl_not_interested
+            total_all_other_location += tl_other_location
+            total_all_not_picked += tl_not_picked
+            total_all_lost += tl_lost
+            total_all_visit += tl_visit
+            total_all_calls += tl_total_calls
+
+        # 6. Grand Total Percentages
+        total_visit_percentage = (total_all_visit / total_all_leads * 100) if total_all_leads > 0 else 0
+        total_interested_percentage = (total_all_interested / total_all_leads * 100) if total_all_leads > 0 else 0
+
+        # 7. Final Response
+        response_data = {
+            "counts": {
+                'total_all_leads': total_all_leads,
+                'total_all_interested': total_all_interested,
+                'total_all_not_interested': total_all_not_interested,
+                'total_all_other_location': total_all_other_location,
+                'total_all_not_picked': total_all_not_picked,
+                'total_all_lost': total_all_lost,
+                'total_all_visit': total_all_visit,
+                'total_all_calls': total_all_calls,
+                'total_visit_percentage': round(total_visit_percentage, 2),
+                'total_interested_percentage': round(total_interested_percentage, 2),
+                'total_team_leaders_count': team_leaders.count(),
+            },
+            "team_leader_data": staff_data, # Rename to clear confusion
+            "filter_dates": {
+                "start": str(start_date.date()),
+                "end": str(end_date.date())
+            }
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+
+
+# ==========================================================
+# API: ADMIN-ONLY - TOTAL LEADS (SELF/DIRECT)
+# ==========================================================
+class AdminTotalLeadsAPIView(APIView):
+    """
+    API endpoint for 'total_leads_admin' function.
+    GET: Fetches leads with status='Leads' created directly by the Admin (user=request.user).
+    ONLY ADMIN (is_admin=True) can access this.
+    """
+    
+    permission_classes = [IsAuthenticated, IsCustomAdminUser]
+    pagination_class = StandardResultsSetPagination
+
+    def get(self, request, format=None):
+        paginator = self.pagination_class()
+        
+        # Logic from your view: LeadUser.objects.filter(status="Leads", user=request.user)
+        # Yeh wo leads hain jo Admin ne khud banaye hain ya uske naam par hain
+        leads_qs = LeadUser.objects.filter(
+            status="Leads", 
+            user=request.user
+        ).order_by('-updated_date') # Default ordering
+
+        # Paginate & Serialize
+        page = paginator.paginate_queryset(leads_qs, request, view=self)
+        
+        if page is not None:
+            serializer = ApiLeadUserSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
+        serializer = ApiLeadUserSerializer(leads_qs, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+
+
+
+class AddSellFreelancerV2APIView(APIView):
+    """
+    POST-only API for Team Leader to create Sell_plot for staff/freelancer.
+    URL pattern: /accounts/api/v2/add_sell_freelancer/<int:id>/   (id = staff id or 0)
+    Permission: only team-leader users (IsTeamLeaderOnly)
+    """
+    permission_classes = [IsAuthenticated, IsCustomTeamLeaderUser ]
+
+    def post(self, request, id, format=None):
+        """
+        POST payload (JSON) example:
+        {
+          "project_name": "Project X",
+          "project_location": "Site A",
+          "description": "Sold plot",
+          "size_in_gaj": "10",
+          "plot_no": "P-123",
+          "date": "2025-11-21",
+          "staff_id": 21    # only required if URL id == 0
+        }
+        """
+        # verify team leader profile exists
+        team_leader = Team_Leader.objects.filter(email=request.user.email).last()
+        if not team_leader:
+            return Response({"detail": "Team leader profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Pass context so serializer can access request + view kwargs (id)
+        serializer = SellPlotCreateSerializer(data=request.data, context={"request": request, "view": self})
+        if not serializer.is_valid():
+            return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Additional ownership check: ensure staff belongs to this team leader
+        # Get staff id used by serializer: prefer URL id unless it's 0
+        used_staff_id = id if int(id) != 0 else request.data.get("staff_id")
+        try:
+            used_staff_id = int(used_staff_id)
+        except Exception:
+            return Response({"detail": "staff_id must be provided (integer) when url id is 0."}, status=status.HTTP_400_BAD_REQUEST)
+
+        staff_instance = Staff.objects.filter(id=used_staff_id).last()
+        if not staff_instance:
+            return Response({"detail": f"Staff not found with id {used_staff_id}."}, status=status.HTTP_404_NOT_FOUND)
+
+        if staff_instance.team_leader is None or staff_instance.team_leader.id != team_leader.id:
+            return Response({"detail": "You can only create sell records for staff belonging to your own team."}, status=status.HTTP_403_FORBIDDEN)
+
+        # create and return
+        try:
+            sell = serializer.save()
+        except Exception as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        out = SellPlotSerializer(sell)
+        return Response({"message": "Sell created", "sell": out.data}, status=status.HTTP_201_CREATED)
+    
+
+
+
+
+class AddLeadBySelfAPIView(APIView):
+    """
+    POST-only endpoint to create a lead from the logged-in user (staff / team leader / admin / superuser).
+    Body expects: name, email, mobile, status, description
+    """
+    permission_classes = [IsAuthenticated , IsCustomAdminUser]
+
+    def post(self, request, *args, **kwargs):
+        serializer = LeadCreateSerializer(data=request.data, context={'request': request})
+        if not serializer.is_valid():
+            return Response({'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = request.user
+
+        # Determine context (staff/team leader/admin)
+        try:
+            if getattr(user, "is_staff_new", False):
+                # Staff creates: must have Staff profile
+                staff_instance = Staff.objects.filter(email=user.email).last()
+                if not staff_instance:
+                    return Response({'error': 'Staff profile not found for this user.'}, status=status.HTTP_400_BAD_REQUEST)
+
+                # Create lead with assigned_to = staff_instance and team_leader from staff
+                lead = serializer.save(
+                    user=user,
+                    team_leader=staff_instance.team_leader,
+                    assigned_to=staff_instance
+                )
+
+            elif getattr(user, "is_team_leader", False):
+                team_leader_instance = Team_Leader.objects.filter(email=user.email).last()
+                if not team_leader_instance:
+                    return Response({'error': 'Team Leader profile not found for this user.'}, status=status.HTTP_400_BAD_REQUEST)
+
+                lead = serializer.save(
+                    user=user,
+                    team_leader=team_leader_instance
+                )
+
+            elif getattr(user, "is_admin", False) or getattr(user, "is_superuser", False):
+                # Admin / superuser: create lead with user=request.user (no assigned_to)
+                lead = serializer.save(user=user)
+
+            else:
+                # Other roles: deny or handle as needed
+                return Response({'error': 'You do not have permission to create a lead via this endpoint.'}, status=status.HTTP_403_FORBIDDEN)
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        out = ApiLeadUserSerializer(lead, context={'request': request})
+        return Response({'message': 'Lead created', 'data': out.data}, status=status.HTTP_201_CREATED)
+
+
+
+
+# ==========================================================
+# API: ADMIN-ONLY - LEAD HISTORY
+# ==========================================================
+class AdminLeadHistoryAPIView(APIView):
+    """
+    API endpoint for 'LeadHistory' function (Admin Dashboard).
+    GET: Fetches history of a specific lead.
+    ONLY ADMIN (is_admin=True) can access this for their teams.
+    """
+    permission_classes = [IsAuthenticated, IsCustomAdminUser]
+    pagination_class = StandardResultsSetPagination
+
+    def get(self, request, id, format=None):
+        # 1. Verify Admin
+        try:
+            admin_profile = Admin.objects.get(self_user=request.user)
+        except Admin.DoesNotExist:
+            return Response({"error": "Admin profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 2. Verify Lead Access
+        # Check karo ki lead is Admin ke kisi Team Leader (aur uske Staff) ki hai ya nahi
+        try:
+            lead = LeadUser.objects.get(id=id)
+            is_authorized = False
+            
+            # Case A: Lead is assigned to a Staff -> Staff ke TL -> TL ka Admin
+            if lead.assigned_to and lead.assigned_to.team_leader and lead.assigned_to.team_leader.admin == admin_profile:
+                is_authorized = True
+                
+            # Case B: Lead is assigned directly to a Team Leader -> TL ka Admin
+            elif lead.team_leader and lead.team_leader.admin == admin_profile:
+                is_authorized = True
+                
+            if not is_authorized:
+                return Response({"error": "Permission denied. This lead does not belong to your network."}, status=status.HTTP_403_FORBIDDEN)
+
+        except LeadUser.DoesNotExist:
+            return Response({"error": "Lead not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 3. Get History
+        history_qs = Leads_history.objects.filter(lead_id=id).order_by('-updated_date')
+
+        # 4. Paginate & Serialize
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(history_qs, request, view=self)
+        
+        if page is not None:
+            serializer = LeadsHistorySerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
+        serializer = LeadsHistorySerializer(history_qs, many=True)
+        return Response(serializer.data)
+    
+
+
+
+
+
+
+
+class AdminLostLeadsAPIView(APIView):
+    """
+    GET /accounts/api/lost-leads/?tag=<tagname>&page=<n>
+    Only accessible by admin users (is_admin=True or superuser).
+    Returns list of leads filtered like your lost_leads function.
+    """
+    permission_classes = [IsAuthenticated, IsCustomAdminUser  ]
+
+    def get(self, request, format=None):
+        # ensure admin
+        user = request.user
+        admin_instance = Admin.objects.filter(self_user=user).last()
+        if not admin_instance:
+            return Response({"detail": "Admin profile not found for this user."}, status=status.HTTP_403_FORBIDDEN)
+
+        tag = request.query_params.get('tag', '').strip()
+        today = timezone.now().date()
+        tomorrow = today + timedelta(days=1)
+
+        # base queryset for admin: interested leads under admin
+        qs = LeadUser.objects.filter(status="Intrested", team_leader__admin=admin_instance)
+
+        # apply tag filters (mirror your view logic)
+        if tag == 'pending_follow':
+            qs = qs.filter(Q(follow_up_date__isnull=False)).order_by('-updated_date')
+        elif tag == 'today_follow':
+            qs = qs.filter(Q(follow_up_date=today)).order_by('-updated_date')
+        elif tag == 'tommorrow_follow' or tag == 'tomorrow_follow':
+            # allow both spellings just in case
+            qs = qs.filter(Q(follow_up_date=tomorrow)).order_by('-updated_date')
+        elif tag == '':
+            # no tag provided: default listing (you can decide ordering)
+            qs = qs.order_by('-updated_date')
+        else:
+            # invalid tag -> return 400 with allowed tags
+            allowed = ['pending_follow', 'today_follow', 'tommorrow_follow']
+            return Response({
+                "detail": f"Invalid tag '{tag}'. Allowed tags: {allowed} or omit tag to get default list."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # pagination: reuse DRF's PageNumberPagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 50
+        result_page = paginator.paginate_queryset(qs, request)
+
+        serializer = ApiLeadUserSerializer(result_page, many=True, context={"request": request})
+        return paginator.get_paginated_response({"leads": serializer.data})
+    
+
+
+# ==========================================================
+# API: ADMIN-ONLY - UPDATE LEAD STATUS
+# ==========================================================
+class AdminUpdateLeadAPIView(APIView):
+    """
+    API for Admin to update a lead's status (e.g., Leads -> Interested).
+    PATCH: Updates status, message, follow-up info.
+    ONLY ADMIN (is_admin=True) can access this.
+    """
+    
+    permission_classes = [IsAuthenticated, IsCustomAdminUser]
+
+    def patch(self, request, id, format=None):
+        # 1. Verify Admin
+        try:
+            admin_profile = Admin.objects.get(self_user=request.user)
+        except Admin.DoesNotExist:
+            return Response({"error": "Admin profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 2. Verify Lead Access
+        # Check karo ki lead is Admin ke network ki hai
+        try:
+            lead_user = LeadUser.objects.get(id=id)
+            is_authorized = False
+            
+            # Check via Staff -> TL -> Admin
+            if lead_user.assigned_to and lead_user.assigned_to.team_leader and lead_user.assigned_to.team_leader.admin == admin_profile:
+                is_authorized = True
+            # Check via Direct TL -> Admin
+            elif lead_user.team_leader and lead_user.team_leader.admin == admin_profile:
+                is_authorized = True
+                
+            if not is_authorized:
+                 return Response({"error": "Permission denied. This lead is not under your administration."}, status=status.HTTP_403_FORBIDDEN)
+
+        except LeadUser.DoesNotExist:
+            return Response({"error": "Lead not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        current_status = lead_user.status
+
+        # 3. Update Logic
+        serializer = LeadUpdateSerializer(instance=lead_user, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            status_val = serializer.validated_data.get('status')
+            message = serializer.validated_data.get('message', lead_user.message)
+            
+            # --- Special Logic: Not Picked (Recycle Lead) ---
+            if status_val == "Not Picked":
+                try:
+                    Team_LeadData.objects.create(
+                        user=lead_user.user,
+                        name=lead_user.name,
+                        call=lead_user.call,
+                        status="Leads",
+                        email=lead_user.email,
+                        team_leader=lead_user.assigned_to.team_leader if lead_user.assigned_to else lead_user.team_leader
+                    )
+                    lead_user.delete() # Delete from current assignment
+                    return Response({'message': 'Lead status changed to Not Picked (Recycled).'}, status=status.HTTP_200_OK)
+                except Exception as e:
+                    return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            # --- Normal Update ---
+            # Follow-up dates agar aayi hain to update karo
+            if 'followDate' in request.data:
+                lead_user.follow_up_date = request.data['followDate']
+            if 'followTime' in request.data:
+                lead_user.follow_up_time = request.data['followTime']
+                
+            serializer.save() # Status aur Message save karo
+
+            # 4. Create Logs (History & Activity)
+            try:
+                Leads_history.objects.create(
+                    leads=lead_user,
+                    lead_id=id,
+                    status=status_val,
+                    name=lead_user.name,
+                    message=message
+                )
+                
+                ip = get_client_ip(request)
+                user_type = get_user_type(request.user)
+                tagline = f"Lead status changed from {current_status} to {status_val} by Admin {admin_profile.name}"
+                
+                ActivityLog.objects.create(
+                    admin=admin_profile,
+                    description=tagline,
+                    ip_address=ip,
+                    email=request.user.email,
+                    user_type=user_type,
+                    activity_type=status_val,
+                    name=request.user.name,
+                )
+            except Exception:
+                pass 
+
+            return Response({'message': 'Lead updated successfully', 'data': ApiLeadUserSerializer(lead_user).data}, status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def post(self, request, id, format=None):
+        return self.patch(request, id, format)
+
+
+
+class AdminNotInterestedLeadsAPIView(APIView):
+    """
+    GET: Return list of leads with status 'Not Interested' for the admin owned team leaders.
+    Only accessible by users with is_admin = True.
+    """
+    permission_classes = [IsAuthenticated, IsCustomAdminUser ]
+
+    def get(self, request, format=None):
+        # find admin profile for current user
+        admin_profile = Admin.objects.filter(self_user=request.user).last()
+        if not admin_profile:
+            return Response({"detail": "Admin profile not found for this user."}, status=status.HTTP_404_NOT_FOUND)
+
+        # queryset: leads where team_leader.admin == admin_profile and status == "Not Interested"
+        leads_qs = LeadUser.objects.filter(status="Not Interested", team_leader__admin=admin_profile).order_by('-updated_date')
+
+        serializer = ApiLeadUserSerializer(leads_qs, many=True, context={'request': request})
+        return Response({"users_lead_lost": serializer.data}, status=status.HTTP_200_OK)        

@@ -1308,4 +1308,74 @@ class TeamLeaderProfileSerializer(serializers.ModelSerializer):
 
 
 
+# home/serializers.py
+
+# ==========================================================
+# SUPERUSER PROFILE SERIALIZERS
+# ==========================================================
+
+class SuperUserProfileSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Superuser profile update (User model).
+    """
+    class Meta:
+        model = User
+        fields = ['id', 'name', 'email', 'mobile', 'profile_image', 'username']
+        read_only_fields = ['username'] # Username change nahi hoga (email se sync hoga)
+
+class DashboardSettingsSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Global Settings (Logo).
+    """
+    class Meta:
+        model = Settings
+        fields = ['id', 'logo']
+
+
+
+# home/serializers.py
+
+# ==========================================================
+# ADMIN PROFILE SERIALIZER
+# ==========================================================
+class AdminProfileSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Admin Profile View.
+    Shows Admin details and User details.
+    """
+    user = DashboardUserSerializer(read_only=True)
+    
+    class Meta:
+        model = Admin
+        fields = [
+            'id', 'user', 'admin_id', 'name', 'email', 'mobile',
+            'address', 'city', 'pincode', 'state', 'dob', 'pancard',
+            'aadharCard', 'account_number', 'upi_id', 'bank_name', 'ifsc_code',
+            'created_date'
+        ]
+
+
+
+
+class ActivityLogMinimalSerializer(serializers.ModelSerializer):
+    # Column mapping:
+    #  - "E-mail" column in your screenshot is actually the description text,
+    #    so we expose it as `description` but you can rename key if UI expects 'email'.
+    description = serializers.CharField(source='description', read_only=True)
+    activity_type = serializers.CharField(source='activity_type', read_only=True)
+    user_type = serializers.CharField(source='user_type', read_only=True)
+
+    # Format created_date exactly like template (example: "Nov. 21, 2025, 7:19 a.m.")
+    created_date = serializers.DateTimeField(format="%b. %d, %Y, %I:%M %p", read_only=True)
+
+    class Meta:
+        model = ActivityLog
+        # We will expose only these fields in the order you want
+        fields = ['name', 'description', 'activity_type', 'user_type', 'created_date']
+
+
+
+        
+
+
 

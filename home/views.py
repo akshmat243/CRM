@@ -3628,6 +3628,8 @@ def visit_team_leader_side(request):
 def get_lead_user_data(request, id):
     if request.user.is_superuser:
         lead_user = get_object_or_404(Team_LeadData, id=id)
+    if request.user.is_admin:
+        lead_user = get_object_or_404(LeadUser, id=id)
     if request.user.is_staff_new:
         lead_user = get_object_or_404(LeadUser, id=id)
     if request.user.is_team_leader:
@@ -3646,6 +3648,8 @@ def get_lead_user_data(request, id):
 def update_lead_user(request, id):
     if request.user.is_superuser:
         lead_user = get_object_or_404(Team_LeadData, id=id)
+    if request.user.is_admin:
+        lead_user = get_object_or_404(LeadUser, id=id)
     if request.user.is_staff_new:
         lead_user = get_object_or_404(LeadUser, id=id)
     if request.user.is_team_leader:
