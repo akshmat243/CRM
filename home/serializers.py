@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from .models import Admin
 # Yeh line file ke sabse upar add karo
 from django.db import IntegrityError
+from .models import Project
 
 class UserSerializer(serializers.ModelSerializer):
     """ user serializer """
@@ -173,21 +174,26 @@ class ApiStaffSerializer(serializers.ModelSerializer):
         model = Staff
         fields = ['id', 'name', 'staff_id', 'email', 'mobile']
 
+
+# upar pe ensure ProjectSerializer imported / defined before using it
 class ApiLeadUserSerializer(serializers.ModelSerializer):
-    """
-    Staff ke Leads (LeadUser model) ke liye serializer.
-    """
     assigned_to = ApiStaffSerializer(read_only=True)
+    project_id = serializers.PrimaryKeyRelatedField(source='project', read_only=True)
+    project = ProjectSerializer(read_only=True)
     team_leader = serializers.CharField(source='team_leader.name', read_only=True)
-    follow_up_date = serializers.DateField(format="%Y-%m-%d")
+    follow_up_date = serializers.DateField(format="%Y-%m-%d", allow_null=True)
     follow_up_time = serializers.TimeField(format="%H:%M:%S", allow_null=True)
-    
+
     class Meta:
         model = LeadUser
         fields = [
             'id', 'name', 'email', 'call', 'send', 'status', 'message', 'team_leader',
-            'follow_up_date', 'follow_up_time', 'created_date', 'assigned_to'
+            'follow_up_date', 'follow_up_time', 'created_date', 'assigned_to',
+            'project_id', 'project'
         ]
+
+
+
 
 class ApiTeamLeadDataSerializer(serializers.ModelSerializer):
     """
@@ -1065,3 +1071,241 @@ class ApiUserSerializer(serializers.ModelSerializer):
 
     def get_duration(self, obj):
         return obj.duration  # ← This works because @property
+
+
+# home/serializers.py (file ke end me add karo)
+
+# ==========================================================
+# NAYA SERIALIZER: STAFF PROFILE (BINA TEAMLEADER KE)
+# ==========================================================
+class StaffOnlyProfileSerializer(serializers.ModelSerializer):
+    """
+    Serializer jo Staff ki poori profile dikhata hai, 
+    lekin nested 'team_leader' object ke BINA.
+    """
+    
+    # Hum User ki details (email, name, etc.) dikhayenge
+    user = DashboardUserSerializer(read_only=True) 
+
+    class Meta:
+        model = Staff
+        
+        # Hum '__all__' ki jagah, 'team_leader' ko chhod kar
+        # baaki saari fields dikhayenge
+        fields = [
+            'id', 'user', 'staff_id', 'name', 'email', 'mobile', 
+            'address', 'city', 'pincode', 'state', 'dob', 'pancard', 
+            'aadharCard', 'marksheet', 'degree', 'account_number', 
+            'upi_id', 'bank_name', 'ifsc_code', 'salary', 'achived_slab',
+            'referral_code', 'join_referral', 'created_date', 'updated_date'
+        ]
+
+
+
+
+# home/serializers.py
+
+# ==========================================================
+# SUPERUSER PROFILE & SETTINGS SERIALIZERS
+# ==========================================================
+
+class SuperUserProfileSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Superuser profile update.
+    """
+    class Meta:
+        model = User
+        fields = ['id', 'name', 'email', 'mobile', 'profile_image']
+
+class DashboardSettingsSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Global Settings (Logo).
+    """
+    class Meta:
+        model = Settings
+        fields = ['id', 'logo']
+
+
+
+# home/serializers.py
+
+class TeamLeaderAddStaffSerializer(serializers.ModelSerializer):
+    """
+    Serializer specifically for Team Leader to add a new Staff.
+    """
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+    profile_image = serializers.ImageField(required=False)
+
+    class Meta:
+        model = Staff
+        # Saare fields jo form me hain
+        fields = [
+            'name', 'email', 'password', 'mobile', 'address', 'city', 'state', 'pincode',
+            'dob', 'pancard', 'aadharCard', 'marksheet', 'degree', 'account_number',
+            'upi_id', 'bank_name', 'ifsc_code', 'salary', 'profile_image'
+        ]
+
+    def validate_email(self, value):
+        # Check karo email pehle se registered hai ya nahi
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Email Already Exists")
+        return value
+
+    def create(self, validated_data):
+        # Data nikaalo
+        email = validated_data.pop('email')
+        password = validated_data.pop('password')
+        
+        # 1. User Create Karo
+        user = User.objects.create_user(
+            username=email, 
+            email=email, 
+            password=password, 
+            name=validated_data.get('name'),
+            mobile=validated_data.get('mobile'),
+            is_staff_new=True, # Important flag
+            profile_image=validated_data.get('profile_image')
+        )
+        
+        # 2. Logged-in Team Leader ko dhoondo
+        request = self.context.get('request')
+        team_leader_instance = Team_Leader.objects.get(user=request.user)
+
+        # 3. Staff Create Karo (Automatically assigned to this Team Leader)
+        staff = Staff.objects.create(
+            user=user, 
+            email=email, 
+            team_leader=team_leader_instance, 
+            **validated_data
+        )
+        return staff
+    
+
+
+
+class LeadForDashboardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LeadUser
+        fields = '__all__' 
+
+
+
+
+# ==========================================================
+# API: TEAM-LEADER - ADD NEW LEAD (BY SELF) SERIALIZER
+# ==========================================================
+class TeamLeaderLeadCreateSerializer(serializers.ModelSerializer):
+    """
+    Use this for the endpoint that allows a Team Leader to create a lead.
+    Frontend sends: name, email, mobile, status, description
+    We map: mobile -> call, description -> message
+    The view should pass team_leader and user via serializer.save()
+    """
+    mobile = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    description = serializers.CharField(source='message', write_only=True, required=False, allow_blank=True)
+    status = serializers.CharField(required=False, allow_blank=True)
+
+    class Meta:
+        model = LeadUser
+        # We only accept minimal fields from client
+        fields = ('id', 'name', 'email', 'mobile', 'status', 'description')
+
+    def validate_name(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("Name is required.")
+        return value.strip()
+
+    def create(self, validated_data):
+        # map mobile -> call and description->message
+        mobile = validated_data.pop('mobile', '') or ''
+        message = validated_data.pop('message', '')  # because source='message' maps description -> message
+        # team_leader and user must be passed by view in serializer.save()
+        team_leader = self.context.get('team_leader') or self._kwargs.get('team_leader') if hasattr(self, '_kwargs') else None
+        user = self.context.get('request').user if self.context.get('request') else None
+
+        # if the view passes team_leader in save(kwargs), that will be available in validated_data kwargs,
+        # so we try to fetch from self._kwargs passed by DRF - but safest is to allow view to pass via save()
+        extra_kwargs = {}
+        # If team_leader passed via save(kwargs) it will be in self.context or view must provide; below we check validated_data
+        # Create lead:
+        lead = LeadUser.objects.create(
+            user = user,
+            team_leader = team_leader,
+            name = validated_data.get('name', ''),
+            email = validated_data.get('email', ''),
+            call = mobile,
+            message = message,
+            status = validated_data.get('status', '')
+        )
+        return lead
+
+
+
+
+class LeadCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for creating Lead from Team Leader API.
+    Frontend sends: name, email, mobile, status, description
+    We map mobile -> call and description -> message (model fields)
+    """
+    mobile = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    description = serializers.CharField(source='message', write_only=True, required=False, allow_blank=True)
+    status = serializers.CharField(required=False, allow_blank=True)
+
+    class Meta:
+        model = LeadUser
+        fields = ('id', 'name', 'email', 'mobile', 'status', 'description')
+
+    def validate_name(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("Name is required.")
+        return value.strip()
+
+    def create(self, validated_data):
+        # map mobile -> call and description -> message
+        mobile = validated_data.pop('mobile', '') or ''
+        message = validated_data.pop('message', '')  # because source='message' maps description -> message
+
+        # team_leader and user should be passed by the view via serializer.context or serializer.save(kwargs)
+        team_leader = self.context.get('team_leader', None)
+        user = self.context.get('request').user if self.context.get('request') else None
+
+        lead = LeadUser.objects.create(
+            user = user,
+            team_leader = team_leader,
+            name = validated_data.get('name', ''),
+            email = validated_data.get('email', ''),
+            call = mobile,
+            message = message,
+            status = validated_data.get('status', '')
+        )
+        return lead
+# ------------------------------
+
+
+# home/serializers.py
+
+# ==========================================================
+# TEAM LEADER PROFILE SERIALIZER
+# ==========================================================
+class TeamLeaderProfileSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Team Leader Profile View.
+    Shows TL details and User details.
+    """
+    user = DashboardUserSerializer(read_only=True)
+    
+    class Meta:
+        model = Team_Leader
+        fields = [
+            'id', 'user', 'team_leader_id', 'name', 'email', 'mobile',
+            'address', 'city', 'pincode', 'state', 'dob', 
+            'created_date', 'updated_date'
+        ]
+
+
+
+
+
+

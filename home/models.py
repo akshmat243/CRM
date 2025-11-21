@@ -246,6 +246,9 @@ class LeadUser(models.Model):
     status      = models.CharField(max_length=255,default='Leads', choices=STATUS_LEAD)
     message     = models.TextField(null=True, blank=True)
     follow_up_date  = models.DateField(null=True, blank=True)
+# add inside LeadUser model
+    project = models.ForeignKey('Project', on_delete=models.SET_NULL, null=True, blank=True)
+
     follow_up_time  = models.TimeField(null=True, blank=True)
     created_date    = models.DateTimeField(auto_now_add=True, blank=True, null=True)
     updated_date    = models.DateTimeField(auto_now=True, blank=True, null=True)
@@ -322,6 +325,7 @@ class Slab(models.Model):
     start_value = models.CharField(max_length=50, null=True, blank=True)
     end_value = models.CharField(max_length=50, null=True, blank=True)
     amount = models.CharField(max_length=50, null=True, blank=True)
+    flat_percent = models.CharField(max_length=50, null=True, blank=True)
     created_date    = models.DateTimeField(auto_now_add=True)
     updated_date    = models.DateTimeField(auto_now=True)
 

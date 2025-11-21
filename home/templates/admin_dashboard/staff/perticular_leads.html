@@ -1,4 +1,4 @@
-{% extends request.user.is_superuser|yesno:'base.html,admin_dashboard/base.html' %}
+{% extends request.user.is_superuser|yesno:'base.html,admin_dashboard/staff/base.html' %}
 {% block content %}
 {% load static %}
 
