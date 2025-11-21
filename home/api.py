@@ -669,7 +669,7 @@ class EditRecordAPIView(APIView):
 
 
 class UpdateRecordAPIView(APIView):
-    permission_classes = [IsAuthenticated , CustomIsSuperuser]
+    permission_classes = [IsAuthenticated , CustomIsSuperuser , IsCustomTeamLeaderUser , IsCustomAdminUser , IsCustomStaffUser]
 
     def post(self, request):
         data = request.data
@@ -7342,6 +7342,103 @@ class TeamLeaderLeadHistoryAPIView(APIView):
         serializer = LeadsHistorySerializer(history_qs, many=True)
         return Response(serializer.data)
     
+
+
+
+
+class ActivityLogsRoleAPIView(APIView):
+    """
+    GET /api/activitylogs/  -> returns activity logs based on request.user's role:
+      - superuser: all logs
+      - admin: logs with admin profile
+      - team_leader: logs with team_leader profile
+      - staff_new: logs for that user or staff profile
+    Query params:
+      - page (optional, default 1)
+      - page_size (optional, default 100)
+    """
+    permission_classes = [IsAuthenticated , IsCustomTeamLeaderUser]
+
+    def get(self, request, format=None):
+        user = request.user
+
+        # Determine role and base queryset (follow original view logic)
+        if getattr(user, 'is_superuser', False):
+            qs = ActivityLog.objects.all().order_by('-created_date')
+        elif getattr(user, 'is_admin', False):
+            # find Admin profile by email (original view used Admin.objects.filter(email=user_email).last())
+            admin_profile = Admin.objects.filter(email=user.email).last()
+            if not admin_profile:
+                return Response({"detail": "Admin profile not found for this user."}, status=status.HTTP_404_NOT_FOUND)
+            qs = ActivityLog.objects.filter(admin=admin_profile).order_by('-created_date')
+        elif getattr(user, 'is_team_leader', False):
+            team_leader_profile = Team_Leader.objects.filter(email=user.email).last() or Team_Leader.objects.filter(user=user).last()
+            if not team_leader_profile:
+                return Response({"detail": "Team leader profile not found for this user."}, status=status.HTTP_404_NOT_FOUND)
+            qs = ActivityLog.objects.filter(team_leader=team_leader_profile).order_by('-created_date')
+        elif getattr(user, 'is_staff_new', False):
+            staff_profile = Staff.objects.filter(email=user.email).last()
+            # original: ActivityLog.objects.filter(Q(user=request.user) | Q(staff=staff_instance))
+            if staff_profile:
+                qs = ActivityLog.objects.filter(Q(user=user) | Q(staff=staff_profile)).order_by('-created_date')
+            else:
+                # fallback: at least show logs where user=request.user
+                qs = ActivityLog.objects.filter(user=user).order_by('-created_date')
+        else:
+            # default: nothing / forbidden
+            return Response({"detail": "You do not have permission to view activity logs."}, status=status.HTTP_403_FORBIDDEN)
+
+        # Optional: support simple search by 'q' (like original had none) -- not required, but useful
+        q = request.query_params.get('q', '').strip()
+        if q:
+            qs = qs.filter(
+                Q(description__icontains=q) |
+                Q(email__icontains=q) |
+                Q(name__icontains=q) |
+                Q(activity_type__icontains=q)
+            )
+
+        # Pagination
+        try:
+            page_size = int(request.query_params.get('page_size', 100))
+            if page_size <= 0:
+                page_size = 100
+        except Exception:
+            page_size = 100
+
+        paginator = Paginator(qs, page_size)
+        page_number = request.query_params.get('page', 1)
+        page_obj = paginator.get_page(page_number)
+
+        serializer = ActivityLogSerializer(page_obj.object_list, many=True, context={'request': request})
+        logs_data = serializer.data
+
+        total_pages = paginator.num_pages
+        current_page = page_obj.number
+
+        # build page_range similar to your view (numbers only; no '...' strings)
+        if total_pages <= 7:
+            page_range = list(range(1, total_pages + 1))
+        else:
+            pr = list(range(1, 4))
+            start = max(3, current_page - 2)
+            end = min(current_page + 1, total_pages - 2)
+            pr.extend(list(range(start, end + 1)))
+            pr.extend(list(range(total_pages - 2, total_pages + 1)))
+            page_range = sorted(set(pr))
+
+        response = {
+            'logs': logs_data,
+            'page': current_page,
+            'page_size': page_size,
+            'total_items': paginator.count,
+            'total_pages': total_pages,
+            'page_range': page_range,
+            # local dev reference image (will be transformed by dev pipeline)
+            'reference_image': '/mnt/data/c2dc665d-9d54-40ab-a57d-08f450e93be3.png'
+        }
+        return Response(response, status=status.HTTP_200_OK)
+
 
 
 

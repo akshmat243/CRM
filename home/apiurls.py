@@ -92,7 +92,7 @@ urlpatterns = [
     path('api/projects/', api.ProjectListCreateAPIView.as_view(), name='api_project_list_create'),
     path('api/superuser/project/edit/<int:id>/', api.ProjectEditAPIView.as_view(), name='api_superuser_project_edit'),
 
-    path('api/activitylogs/', api.ActivityLogsAPIView.as_view(), name='api_activity_logs'),
+    path('api/activityloggs/', api.ActivityLogsAPIView.as_view(), name='api_activity_logs'),
 
 
     #team leader dashbord supeuserside
@@ -251,6 +251,10 @@ urlpatterns = [
 
     # --- TEAM LEADER LEAD HISTORY ---
     path('api/team-leader/lead-history/<int:id>/', api.TeamLeaderLeadHistoryAPIView.as_view(), name='api_tl_lead_history'),
+
+    #ACTIVITY LOGS
+    path('api/activityteamlogs/', ActivityLogsRoleAPIView.as_view(), name='api-activitylogs-role'),
+
 
 
 
