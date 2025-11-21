@@ -4292,8 +4292,9 @@ def staff_productivity_view(request):
             total_all_calls += total_calls
     
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        return JsonResponse({'staff_data': staff_data,
-                             'total_calls': total_calls,
+        return JsonResponse({
+                'staff_data': staff_data,
+                'total_calls': total_calls,
                 'total_all_leads': total_all_leads,
                 'total_all_interested': total_all_interested,
                 'total_all_not_interested': total_all_not_interested,

@@ -1180,3 +1180,107 @@ class TeamLeaderAddStaffSerializer(serializers.ModelSerializer):
             **validated_data
         )
         return staff
+    
+
+
+
+class LeadForDashboardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LeadUser
+        fields = '__all__' 
+
+
+
+
+# ==========================================================
+# API: TEAM-LEADER - ADD NEW LEAD (BY SELF) SERIALIZER
+# ==========================================================
+class TeamLeaderLeadCreateSerializer(serializers.ModelSerializer):
+    """
+    Use this for the endpoint that allows a Team Leader to create a lead.
+    Frontend sends: name, email, mobile, status, description
+    We map: mobile -> call, description -> message
+    The view should pass team_leader and user via serializer.save()
+    """
+    mobile = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    description = serializers.CharField(source='message', write_only=True, required=False, allow_blank=True)
+    status = serializers.CharField(required=False, allow_blank=True)
+
+    class Meta:
+        model = LeadUser
+        # We only accept minimal fields from client
+        fields = ('id', 'name', 'email', 'mobile', 'status', 'description')
+
+    def validate_name(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("Name is required.")
+        return value.strip()
+
+    def create(self, validated_data):
+        # map mobile -> call and description->message
+        mobile = validated_data.pop('mobile', '') or ''
+        message = validated_data.pop('message', '')  # because source='message' maps description -> message
+        # team_leader and user must be passed by view in serializer.save()
+        team_leader = self.context.get('team_leader') or self._kwargs.get('team_leader') if hasattr(self, '_kwargs') else None
+        user = self.context.get('request').user if self.context.get('request') else None
+
+        # if the view passes team_leader in save(kwargs), that will be available in validated_data kwargs,
+        # so we try to fetch from self._kwargs passed by DRF - but safest is to allow view to pass via save()
+        extra_kwargs = {}
+        # If team_leader passed via save(kwargs) it will be in self.context or view must provide; below we check validated_data
+        # Create lead:
+        lead = LeadUser.objects.create(
+            user = user,
+            team_leader = team_leader,
+            name = validated_data.get('name', ''),
+            email = validated_data.get('email', ''),
+            call = mobile,
+            message = message,
+            status = validated_data.get('status', '')
+        )
+        return lead
+
+
+
+
+class LeadCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for creating Lead from Team Leader API.
+    Frontend sends: name, email, mobile, status, description
+    We map mobile -> call and description -> message (model fields)
+    """
+    mobile = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    description = serializers.CharField(source='message', write_only=True, required=False, allow_blank=True)
+    status = serializers.CharField(required=False, allow_blank=True)
+
+    class Meta:
+        model = LeadUser
+        fields = ('id', 'name', 'email', 'mobile', 'status', 'description')
+
+    def validate_name(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("Name is required.")
+        return value.strip()
+
+    def create(self, validated_data):
+        # map mobile -> call and description -> message
+        mobile = validated_data.pop('mobile', '') or ''
+        message = validated_data.pop('message', '')  # because source='message' maps description -> message
+
+        # team_leader and user should be passed by the view via serializer.context or serializer.save(kwargs)
+        team_leader = self.context.get('team_leader', None)
+        user = self.context.get('request').user if self.context.get('request') else None
+
+        lead = LeadUser.objects.create(
+            user = user,
+            team_leader = team_leader,
+            name = validated_data.get('name', ''),
+            email = validated_data.get('email', ''),
+            call = mobile,
+            message = message,
+            status = validated_data.get('status', '')
+        )
+        return lead
+# ------------------------------
+
+

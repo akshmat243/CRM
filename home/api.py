@@ -643,7 +643,7 @@ class StaffProfileAPIView(APIView):
         return Response({"success": "Your profile has been successfully updated."}, status=status.HTTP_200_OK)
     
 class EditRecordAPIView(APIView):
-    permission_classes = [IsAuthenticated , CustomIsSuperuser]
+    permission_classes = [IsAuthenticated , CustomIsSuperuser , IsCustomTeamLeaderUser , IsCustomStaffUser , IsCustomAdminUser]
 
     def get(self, request, source):
         user = request.user
@@ -6608,3 +6608,740 @@ class TeamLeadLeadsReportAPIView(APIView):
             'previous': f"?page={page-1}" if has_previous else None,
             'results': paginated_results
         }, status=status.HTTP_200_OK)
+    
+
+# home/api.py
+
+class TeamLeaderStaffProductivityReportAPIView(APIView):
+    """
+    API endpoint for 'staff_productivity_view' (Team Leader Dashboard).
+    GET: Fetches productivity stats for all staff under this Team Leader.
+    """
+    permission_classes = [IsAuthenticated, IsCustomTeamLeaderUser]
+
+    def get(self, request, format=None):
+        # 1. Get Team Leader Profile
+        try:
+            team_leader_instance = Team_Leader.objects.get(user=request.user)
+        except Team_Leader.DoesNotExist:
+            return Response({"error": "Team Leader profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 2. Get Date Filters
+        date_filter = request.query_params.get('date')
+        end_date_str = request.query_params.get('endDate') # Matching your view params
+        
+        # Default Dates (Today)
+        today = timezone.now().date()
+        start_date = timezone.make_aware(datetime.combine(today, datetime.min.time()))
+        end_date = timezone.make_aware(datetime.combine(today, datetime.max.time()))
+
+        if date_filter and end_date_str:
+            try:
+                s_date = datetime.strptime(date_filter, '%Y-%m-%d')
+                # Handle end date string check
+                if isinstance(end_date_str, str):
+                    e_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+                else:
+                    e_date = end_date_str
+                
+                # Set logic as per your view (Add 1 day then subtract 1 second for end of day)
+                start_date = timezone.make_aware(datetime.combine(s_date, datetime.min.time()))
+                end_date = timezone.make_aware(e_date + timedelta(days=1)) - timedelta(seconds=1)
+                
+            except ValueError:
+                pass # Use defaults if error
+
+        # 3. Define Filters
+        # Status ke liye Updated Date
+        update_filter = {'updated_date__range': [start_date, end_date]}
+        # Total Leads ke liye Created Date
+        create_filter = {'created_date__range': [start_date, end_date]}
+
+        # 4. Get Staff Members
+        staffs = Staff.objects.filter(
+            team_leader=team_leader_instance, 
+            user__user_active=True, 
+            user__is_freelancer=False
+        )
+        
+        staff_data = []
+        
+        # Aggregates initialization
+        total_all_leads = 0
+        total_all_interested = 0
+        total_all_not_interested = 0
+        total_all_other_location = 0
+        total_all_not_picked = 0
+        total_all_lost = 0
+        total_all_visit = 0
+        total_all_calls = 0
+
+        # 5. Loop and Calculate
+        for staff in staffs:
+            # Query 1: Activity Stats (Updated Date)
+            leads_activity = LeadUser.objects.filter(assigned_to=staff, **update_filter).aggregate(
+                interested=Count('id', filter=Q(status='Intrested')),
+                not_interested=Count('id', filter=Q(status='Not Interested')),
+                other_location=Count('id', filter=Q(status='Other Location')),
+                not_picked=Count('id', filter=Q(status='Not Picked')),
+                lost=Count('id', filter=Q(status='Lost')),
+                visit=Count('id', filter=Q(status='Visit'))
+            )
+            
+            # Query 2: Total Leads (Created Date)
+            leads_created = LeadUser.objects.filter(assigned_to=staff, **create_filter).aggregate(
+                total_leads=Count('id')
+            )
+
+            # Extract values
+            total = leads_created['total_leads']
+            interested = leads_activity['interested']
+            not_interested = leads_activity['not_interested']
+            other_location = leads_activity['other_location']
+            not_picked = leads_activity['not_picked']
+            lost = leads_activity['lost']
+            visit = leads_activity['visit']
+            
+            total_calls = interested + not_interested + other_location + not_picked + lost + visit
+
+            # Calculate Percentages
+            visit_percentage = (visit / total * 100) if total > 0 else 0
+            interested_percentage = (interested / total * 100) if total > 0 else 0
+
+            # Append to List
+            staff_data.append({
+                'id': staff.id,
+                'name': staff.name,
+                'total_leads': total,
+                'interested': interested,
+                'not_interested': not_interested,
+                'other_location': other_location,
+                'not_picked': not_picked,
+                'lost': lost,
+                'visit': visit,
+                'visit_percentage': round(visit_percentage, 2),
+                'interested_percentage': round(interested_percentage, 2),
+                'total_calls': total_calls,
+            })
+
+            # Accumulate Grand Totals
+            total_all_leads += total
+            total_all_interested += interested
+            total_all_not_interested += not_interested
+            total_all_other_location += other_location
+            total_all_not_picked += not_picked
+            total_all_lost += lost
+            total_all_visit += visit
+            total_all_calls += total_calls
+
+        # 6. Grand Total Percentages
+        total_visit_percentage = (total_all_visit / total_all_leads * 100) if total_all_leads > 0 else 0
+        total_interested_percentage = (total_all_interested / total_all_leads * 100) if total_all_leads > 0 else 0
+
+        # 7. Final Response
+        response_data = {
+            'staff_data': staff_data, # Table List
+            
+            # Top Cards Data
+            'total_all_leads': total_all_leads,
+            'total_all_interested': total_all_interested,
+            'total_all_not_interested': total_all_not_interested,
+            'total_all_other_location': total_all_other_location,
+            'total_all_not_picked': total_all_not_picked,
+            'total_all_lost': total_all_lost,
+            'total_all_visit': total_all_visit,
+            'total_all_calls': total_all_calls,
+            
+            'total_visit_percentage': round(total_visit_percentage, 2),
+            'total_interested_percentage': round(total_interested_percentage, 2),
+            'total_staff_count': staffs.count(),
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+    
+
+
+
+
+# home/api.py
+
+# home/api.py
+
+class TeamLeaderFreelancerProductivityAPIView(APIView):
+    """
+    Freelancer productivity API for Team Leader dashboard.
+    Query params:
+      - date=YYYY-MM-DD         (single date)
+      - endDate=YYYY-MM-DD      (optional end date for range)
+      - teamleader_id=INT       (optional filter)
+      - admin_id=INT            (optional)
+    Only accessible to users with is_team_leader == True.
+    """
+    permission_classes = []  # using explicit check below; add IsAuthenticated if needed
+
+    def get(self, request, *args, **kwargs):
+        # Permission check: only team leader allowed
+        if not getattr(request.user, "is_team_leader", False):
+            return Response({"detail": "Permission denied. Only Team Leader can access."},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        date_filter = request.GET.get('date', None)
+        end_date = request.GET.get('endDate', None)
+        teamleader_id = request.GET.get('teamleader_id', None)
+        admin_id = request.GET.get('admin_id', None)
+
+        # Try to fetch team leader profile for the current user
+        try:
+            team_leader_instance = Team_Leader.objects.filter(user=request.user).last()
+        except Exception:
+            team_leader_instance = None
+
+        if not team_leader_instance:
+            return Response({"detail": "Team leader profile not found."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Base queryset: freelancers (user__is_freelancer=True) under this team leader
+        staffs = Staff.objects.filter(team_leader=team_leader_instance, user__user_active=True, user__is_freelancer=True)
+
+        # optional filters (if provided)
+        if admin_id:
+            try:
+                admins_int = int(admin_id)
+                staffs = staffs.filter(team_leader__admin=admins_int)
+            except Exception:
+                pass
+        if teamleader_id:
+            try:
+                tid = int(teamleader_id)
+                staffs = staffs.filter(team_leader=tid)
+            except Exception:
+                pass
+
+        staff_data = []
+        total_all_leads = total_all_interested = total_all_not_interested = 0
+        total_all_other_location = total_all_not_picked = total_all_lost = 0
+        total_all_visit = total_all_calls = 0
+        total_staff_count = staffs.count()
+        total_calls = 0
+
+        for staff in staffs:
+            # date range
+            if date_filter and end_date:
+                # parse dates
+                try:
+                    start_dt = datetime.strptime(date_filter, '%Y-%m-%d')
+                    start_dt = timezone.make_aware(start_dt)
+                except Exception:
+                    return Response({"error": "Invalid start date format. Use YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
+
+                try:
+                    end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+                except Exception:
+                    return Response({"error": "Invalid end date format. Use YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
+
+                end_dt = end_dt + timedelta(days=1) - timedelta(seconds=1)
+                if timezone.is_naive(end_dt):
+                    end_dt = timezone.make_aware(end_dt)
+
+                lead_filter = {'updated_date__range': [start_dt, end_dt]}
+                lead_filter1 = {'created_date__range': [start_dt, end_dt]}
+
+                leads_by_date = LeadUser.objects.filter(assigned_to=staff, **lead_filter).aggregate(
+                    interested=Count('id', filter=Q(status='Intrested')),
+                    not_interested=Count('id', filter=Q(status='Not Interested')),
+                    other_location=Count('id', filter=Q(status='Other Location')),
+                    not_picked=Count('id', filter=Q(status='Not Picked')),
+                    lost=Count('id', filter=Q(status='Lost')),
+                    visit=Count('id', filter=Q(status='Visit'))
+                )
+                leads_by_date1 = LeadUser.objects.filter(assigned_to=staff, **lead_filter1).aggregate(total_leads=Count('id'))
+
+            elif date_filter:
+                # single day
+                try:
+                    _ = datetime.strptime(date_filter, '%Y-%m-%d')
+                except Exception:
+                    return Response({"error": "Invalid date format. Use YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
+
+                leads_by_date = LeadUser.objects.filter(
+                    assigned_to=staff,
+                    updated_date__date=date_filter
+                ).aggregate(
+                    interested=Count('id', filter=Q(status='Intrested')),
+                    not_interested=Count('id', filter=Q(status='Not Interested')),
+                    other_location=Count('id', filter=Q(status='Other Location')),
+                    not_picked=Count('id', filter=Q(status='Not Picked')),
+                    lost=Count('id', filter=Q(status='Lost')),
+                    visit=Count('id', filter=Q(status='Visit'))
+                )
+                leads_by_date1 = LeadUser.objects.filter(assigned_to=staff, created_date__date=date_filter).aggregate(total_leads=Count('id'))
+
+            else:
+                leads_by_date = LeadUser.objects.filter(assigned_to=staff).aggregate(
+                    total_leads=Count('id'),
+                    interested=Count('id', filter=Q(status='Intrested')),
+                    not_interested=Count('id', filter=Q(status='Not Interested')),
+                    other_location=Count('id', filter=Q(status='Other Location')),
+                    not_picked=Count('id', filter=Q(status='Not Picked')),
+                    lost=Count('id', filter=Q(status='Lost')),
+                    visit=Count('id', filter=Q(status='Visit'))
+                )
+                leads_by_date1 = {'total_leads': leads_by_date.get('total_leads', 0)}
+
+            # safe ints
+            total_leads = int(leads_by_date1.get('total_leads') or 0)
+            interested = int(leads_by_date.get('interested') or 0)
+            not_interested = int(leads_by_date.get('not_interested') or 0)
+            other_location = int(leads_by_date.get('other_location') or 0)
+            not_picked = int(leads_by_date.get('not_picked') or 0)
+            lost = int(leads_by_date.get('lost') or 0)
+            visit = int(leads_by_date.get('visit') or 0)
+
+            total_calls_for_staff = interested + not_interested + other_location + not_picked + lost + visit
+            visit_percentage = (visit / total_leads * 100) if total_leads > 0 else 0
+            interested_percentage = (interested / total_leads * 100) if total_leads > 0 else 0
+
+            staff_data.append({
+                'id': staff.id,
+                'name': staff.name,
+                'total_leads': total_leads,
+                'interested': interested,
+                'not_interested': not_interested,
+                'other_location': other_location,
+                'not_picked': not_picked,
+                'lost': lost,
+                'visit': visit,
+                'visit_percentage': round(visit_percentage, 2),
+                'interested_percentage': round(interested_percentage, 2),
+                'total_calls': total_calls_for_staff,
+            })
+
+            # update totals
+            total_all_leads += total_leads
+            total_all_interested += interested
+            total_all_not_interested += not_interested
+            total_all_other_location += other_location
+            total_all_not_picked += not_picked
+            total_all_lost += lost
+            total_all_visit += visit
+            total_all_calls += total_calls_for_staff
+            total_calls = total_calls_for_staff
+
+        total_visit_percentage = (total_all_visit / total_all_leads * 100) if total_all_leads > 0 else 0
+        total_interested_percentage = (total_all_interested / total_all_leads * 100) if total_all_leads > 0 else 0
+
+        resp = {
+            'staff_data': staff_data,
+            'total_calls': total_calls,
+            'total_all_leads': total_all_leads,
+            'total_all_interested': total_all_interested,
+            'total_all_not_interested': total_all_not_interested,
+            'total_all_other_location': total_all_other_location,
+            'total_all_not_picked': total_all_not_picked,
+            'total_all_lost': total_all_lost,
+            'total_all_visit': total_all_visit,
+            'total_all_calls': total_all_calls,
+            'total_visit_percentage': round(total_visit_percentage, 2),
+            'total_interested_percentage': round(total_interested_percentage, 2),
+            'total_staff_count': total_staff_count,
+        }
+
+        return Response(resp, status=status.HTTP_200_OK)
+    
+
+
+class LeadsDashboardAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsCustomTeamLeaderUser]
+
+    def get(self, request, format=None):
+        user = request.user
+
+        # team_leader instance
+        try:
+            team_leader = Team_Leader.objects.get(user=user)
+        except Team_Leader.DoesNotExist:
+            return Response({"detail": "Team leader profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # base queryset: show leads belonging to this team_leader
+        qs = LeadUser.objects.filter(team_leader=team_leader).order_by('-id')
+
+        # Optional: keep server-side pagination for performance but DO NOT return pagination keys
+        # (we still limit to first 10 so response size isn't huge; if you want ALL items, set page_size=None)
+        page_size = 10
+        paginator = Paginator(qs, page_size)
+        page_obj = paginator.get_page(1)  # always return first page to frontend (or change logic as needed)
+
+        # serialize leads on this page
+        serializer = LeadForDashboardSerializer(page_obj.object_list, many=True, context={'request': request})
+        serialized = serializer.data
+
+        # Build items exactly for UI (no filters/pagination meta)
+        items = []
+        # serial numbers start at 1 for the returned list
+        for idx, lead_data in enumerate(serialized, start=1):
+            phone = lead_data.get('mobile') or lead_data.get('phone') or ""
+            whatsapp_flag = bool(phone)  # adjust if you have explicit field
+            items.append({
+                'sn': idx,
+                'id': lead_data.get('id'),
+                'name': lead_data.get('name'),
+                'phone': phone,
+                'whatsapp': whatsapp_flag,
+                'status': lead_data.get('status'),
+                #'assigned_to': lead_data.get('assigned_to'),
+                #'possible_statuses': ["Leads", "Intrested", "Not Interested", "Other Location", "Not Picked", "Lost", "Customer", "Maybe"],
+            })
+
+        # staff list to populate Team dropdown in UI
+        staff_qs = Staff.objects.filter(team_leader=team_leader)
+        staff_list = [{'id': s.id, 'name': s.name} for s in staff_qs]
+
+        # aggregates shown on page top
+        aggregates = {
+            'total_upload_leads': LeadUser.objects.filter(team_leader=team_leader, assigned_to__isnull=True).count(),
+            'total_leads': LeadUser.objects.filter(team_leader=team_leader, status="Leads").count(),
+            'total_interested_leads': LeadUser.objects.filter(team_leader=team_leader, status="Intrested").count(),
+            'total_lost_leads': LeadUser.objects.filter(team_leader=team_leader, status="Lost").count(),
+        }
+
+        # Final response: only required fields (no filters, no pagination)
+        response = {
+            'staff_name': items,
+            'staff_list': staff_list,
+            'aggregates': aggregates,
+            'dashboard_image': '/mnt/data/06177923-6185-42b4-848d-92bccd262b6e.png',  # local path -> dev will convert to URL
+        }
+
+        return Response(response, status=status.HTTP_200_OK)
+
+
+
+
+
+class AddLeadAPI(APIView):
+    permission_classes = [IsAuthenticated, IsCustomTeamLeaderUser]
+
+    def post(self, request, format=None):
+        """
+        POST /api/leads/add/
+        Body (application/json or form-data):
+          - name (required)
+          - email (optional)
+          - mobile (optional)  -> saved to model field `call`
+          - status (optional)
+          - message (description) (optional)
+        Only accessible to team_leader users. The created LeadUser.team_leader is set
+        from the requesting user's Team_Leader profile.
+        """
+        serializer = LeadCreateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        # get team_leader instance for request.user
+        try:
+            team_lead = Team_Leader.objects.get(user=request.user)
+        except Team_Leader.DoesNotExist:
+            # fallback: maybe Team_Leader is stored by email
+            team_lead = Team_Leader.objects.filter(email=request.user.username).first()
+            if not team_lead:
+                return Response({'detail': 'Team leader profile not found.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create lead using serializer but we need to set team_leader and assigned_to accordingly
+        validated = serializer.validated_data
+        mobile = validated.pop('mobile', '') or ''
+        # if team leader is creating for self (as in original view), assigned_to left null
+        # if you want team_leader to assign to a staff automatically, implement logic here
+        lead = LeadUser.objects.create(
+            user = request.user,
+            team_leader = team_lead,
+            name = validated.get('name', ''),
+            email = validated.get('email', ''),
+            call = mobile,
+            message = validated.get('message', ''),
+            status = validated.get('status', '')
+        )
+
+        # return minimal created response
+        return Response({
+            'id': lead.id,
+            'name': lead.name,
+            'email': lead.email,
+            'status': lead.status,
+            'call': lead.call,
+            'message': lead.message,
+        }, status=status.HTTP_201_CREATED)
+
+
+
+class TeamCustomerAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsCustomTeamLeaderUser]
+
+    def get(self, request, tag=None, format=None):
+        """
+        Now requires a tag. Valid tags: pending_follow, today_follow, tommorrow_follow
+        Supports both query-param (?tag=...) and path-param (/api/teamcustomer/<tag>/)
+        """
+        VALID_TAGS = ['pending_follow', 'today_follow', 'tommorrow_follow']
+
+        # prefer query param, fallback to path param
+        tag_q = request.query_params.get('tag')
+        if tag_q:
+            tag = tag_q.strip()
+
+        # if tag missing -> error
+        if not tag:
+            return Response({
+                "detail": "Tag is required. Valid tags: " + ", ".join(VALID_TAGS),
+                "valid_tags": VALID_TAGS
+            }, status=400)
+
+        # if tag invalid -> error
+        if tag not in VALID_TAGS:
+            return Response({
+                "detail": f"Invalid tag '{tag}'. Valid tags: " + ", ".join(VALID_TAGS),
+                "valid_tags": VALID_TAGS
+            }, status=400)
+
+        # tag is present and valid — continue normal processing
+        user = request.user
+        today = timezone.now().date()
+        tomorrow = today + timedelta(days=1)
+
+        search_query = request.query_params.get('search', '').strip()
+
+        # find team_leader instance
+        try:
+            team_leader = Team_Leader.objects.filter(user=user).last() or Team_Leader.objects.filter(email=user.email).last()
+        except Exception:
+            team_leader = None
+
+        qs = LeadUser.objects.none()
+
+        # If search was provided, still restrict to team_leader scope (matching your original)
+        if search_query:
+            qs = LeadUser.objects.filter(
+                Q(name__icontains=search_query) | Q(call__icontains=search_query) | Q(team_leader__name__icontains=search_query),
+                status='Intrested'
+            ).order_by('-updated_date')
+        else:
+            # handle allowed tag values
+            if tag == 'pending_follow':
+                qs = LeadUser.objects.filter(status='Intrested', follow_up_date__isnull=False).order_by('-updated_date')
+            elif tag == 'today_follow':
+                qs = LeadUser.objects.filter(status='Intrested', follow_up_date=today).order_by('-updated_date')
+            elif tag == 'tommorrow_follow':
+                qs = LeadUser.objects.filter(status='Intrested', follow_up_date=tomorrow).order_by('-updated_date')
+
+        # Always restrict to this team_leader's leads to match original behavior
+        if team_leader:
+            qs = qs.filter(team_leader=team_leader)
+
+        # Pagination (50 per page)
+        page_size = 50
+        paginator = Paginator(qs, page_size)
+        page_number = request.query_params.get('page', 1)
+        page_obj = paginator.get_page(page_number)
+
+        serializer = ApiLeadUserSerializer(page_obj.object_list, many=True, context={'request': request})
+        leads_data = serializer.data
+
+        total_pages = paginator.num_pages
+        current_page = page_obj.number
+
+        if total_pages <= 7:
+            page_range = list(range(1, total_pages + 1))
+        else:
+            pr = list(range(1, 4))
+            start = max(3, current_page - 2)
+            end = min(current_page + 1, total_pages - 2)
+            pr.extend(list(range(start, end + 1)))
+            pr.extend(list(range(total_pages - 2, total_pages + 1)))
+            page_range = sorted(set(pr))
+
+        response = {
+            'leads': leads_data,
+            'total_items': paginator.count,
+            'page': current_page,
+            'total_pages': total_pages,
+            'page_range': page_range,
+            'interested_leads_count': qs.count(),
+            'reference_image': '/mnt/data/c2dc665d-9d54-40ab-a57d-08f450e93be3.png',
+            'valid_tags': VALID_TAGS
+        }
+        return Response(response, status=200)
+
+
+
+
+# ==========================================================
+# API: TEAM LEADER-ONLY - UPDATE LEAD STATUS
+# ==========================================================
+class TeamLeaderUpdateLeadAPIView(APIView):
+    """
+    API endpoint for Team Leader to update a lead's status.
+    PATCH: Updates status, message, follow-up date/time.
+    ONLY TEAM LEADER (is_team_leader=True) can access this.
+    """
+    
+    permission_classes = [IsAuthenticated, IsCustomTeamLeaderUser]
+
+    def patch(self, request, id, format=None):
+        # 1. Get Team Leader Profile
+        try:
+            tl_instance = Team_Leader.objects.get(user=request.user)
+        except Team_Leader.DoesNotExist:
+            return Response({"error": "Team Leader profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 2. Get Lead & Verify Permission
+        try:
+            lead_user = LeadUser.objects.get(id=id)
+            
+            # Check: Kya ye lead is Team Leader ke Staff ki hai?
+            # OR Kya ye lead direct Team Leader ko assigned hai?
+            is_authorized = False
+            
+            if lead_user.assigned_to and lead_user.assigned_to.team_leader == tl_instance:
+                is_authorized = True
+            elif lead_user.team_leader == tl_instance:
+                is_authorized = True
+                
+            if not is_authorized:
+                 return Response({"error": "You do not have permission to update this lead."}, status=status.HTTP_403_FORBIDDEN)
+
+        except LeadUser.DoesNotExist:
+            return Response({"error": "Lead not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        current_status = lead_user.status
+
+        # 3. Validate & Update Data
+        serializer = LeadUpdateSerializer(instance=lead_user, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            status_val = serializer.validated_data.get('status')
+            message = serializer.validated_data.get('message', lead_user.message)
+            follow_date = serializer.validated_data.get('followDate')
+            follow_time = serializer.validated_data.get('followTime')
+
+            # --- Special Case: Not Picked ---
+            if status_val == "Not Picked":
+                try:
+                    Team_LeadData.objects.create(
+                        user=lead_user.user,
+                        name=lead_user.name,
+                        call=lead_user.call,
+                        status="Leads", # Reset status
+                        email=lead_user.email,
+                        team_leader=tl_instance # Wapas TL ke pool me
+                    )
+                    lead_user.delete() # Staff se hata do
+                    return Response({'message': 'Lead moved back to Team Leader pool (Not Picked)'}, status=status.HTTP_200_OK)
+                except Exception as e:
+                    return Response({'error': f'Failed to move lead: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            # --- Normal Update ---
+            lead_user.status = status_val
+            lead_user.message = message
+            
+            if follow_date:
+                lead_user.follow_up_date = follow_date
+            if follow_time:
+                lead_user.follow_up_time = follow_time
+            
+            lead_user.save()
+
+            # 4. Create History Log
+            try:
+                Leads_history.objects.create(
+                    leads=lead_user,
+                    lead_id=id,
+                    status=status_val,
+                    name=lead_user.name,
+                    message=message
+                )
+            except Exception:
+                pass # Ignore history error
+
+            # 5. Create Activity Log
+            try:
+                ip = get_client_ip(request)
+                user_type = get_user_type(request.user)
+                tagline = f"Lead status changed from {current_status} to {status_val} by user[Email: {request.user.email}, {user_type}]"
+                
+                ActivityLog.objects.create(
+                    team_leader=tl_instance,
+                    description=tagline,
+                    ip_address=ip,
+                    email=request.user.email,
+                    user_type=user_type,
+                    activity_type=status_val,
+                    name=request.user.name,
+                )
+            except Exception:
+                pass
+
+            return Response({'message': 'Lead updated successfully', 'data': ApiLeadUserSerializer(lead_user).data}, status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def post(self, request, id, format=None):
+        # Allow POST as well
+        return self.patch(request, id, format)
+    
+
+
+
+
+
+class TeamLeaderLeadHistoryAPIView(APIView):
+    """
+    API endpoint for 'LeadHistory' function (Team Leader Dashboard).
+    GET: Fetches history of a specific lead.
+    ONLY TEAM LEADER can access this.
+    """
+    permission_classes = [IsAuthenticated, IsCustomTeamLeaderUser]
+    pagination_class = StandardResultsSetPagination
+
+    def get(self, request, id, format=None):
+        # 1. Verify Team Leader
+        try:
+            tl_instance = Team_Leader.objects.get(user=request.user)
+        except Team_Leader.DoesNotExist:
+            return Response({"error": "Team Leader profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 2. Verify Lead Access
+        # Check karo ki ye lead is TL ke kisi staff ki hai, ya TL ki khud ki hai
+        try:
+            lead = LeadUser.objects.get(id=id)
+            is_authorized = False
+            
+            # Case A: Lead is assigned to a staff under this TL
+            if lead.assigned_to and lead.assigned_to.team_leader == tl_instance:
+                is_authorized = True
+            # Case B: Lead is directly under this TL (rare but possible)
+            elif lead.team_leader == tl_instance:
+                is_authorized = True
+                
+            if not is_authorized:
+                return Response({"error": "Permission denied. This lead does not belong to your team."}, status=status.HTTP_403_FORBIDDEN)
+
+        except LeadUser.DoesNotExist:
+            # Agar lead LeadUser me nahi hai, toh shayad wo Team_LeadData (uploaded) me ho?
+            # History usually LeadUser ki hi hoti hai. Agar nahi mili to 404.
+            return Response({"error": "Lead not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 3. Get History
+        history_qs = Leads_history.objects.filter(lead_id=id).order_by('-updated_date')
+
+        # 4. Paginate & Serialize
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(history_qs, request, view=self)
+        
+        if page is not None:
+            serializer = LeadsHistorySerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
+        serializer = LeadsHistorySerializer(history_qs, many=True)
+        return Response(serializer.data)
+    
+
+
+

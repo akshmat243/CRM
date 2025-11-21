@@ -230,10 +230,27 @@ urlpatterns = [
     # --- TEAM LEADER ALL LEADS (CARD CLICK) ---
     path('api/team-leader/all-leads/<str:tag>/', api.TeamLeadLeadsReportAPIView.as_view(), name='api_tl_all_leads'),
 
+    #STAFFPRODUCTIVITY
+    path('api/team-leader/productivity-report/', api.TeamLeaderStaffProductivityReportAPIView.as_view(), name='api_team_leader_productivity_report'),
+
+    # --- FREELANCER PRODUCTIVITY REPORT ---
+    path('team-leader/freelancer-productivity/', TeamLeaderFreelancerProductivityAPIView.as_view(), name='teamleader-freelancer-productivity'),
+
+    # --- TEAM LEADER LEADS DASHBOARD ---
+    path('api/leads/', LeadsDashboardAPIView.as_view(), name='leads-dashboard'),
+
+    #ADDLEADAPI
+    path('api/leads/add/', AddLeadAPI.as_view(), name='api-add-lead'),
 
 
+    #TEAMCUSTOMESTAGSS
+    path('api/teamcustomer/<str:tag>/', TeamCustomerAPIView.as_view(), name='api-teamcustomer-tag'),
 
+    # --- TEAM LEADER UPDATE LEAD STATUS ---
+    path('api/team-leader/update-lead/<int:id>/', api.TeamLeaderUpdateLeadAPIView.as_view(), name='api_tl_update_lead'),
 
+    # --- TEAM LEADER LEAD HISTORY ---
+    path('api/team-leader/lead-history/<int:id>/', api.TeamLeaderLeadHistoryAPIView.as_view(), name='api_tl_lead_history'),
 
 
 
