@@ -1375,7 +1375,66 @@ class ActivityLogMinimalSerializer(serializers.ModelSerializer):
 
 
 
+
+
+
+
+# home/serializers.py
+
+class TeamLeaderUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer to UPDATE Team Leader Profile (and underlying User).
+    """
+    # Yeh fields User model se aa rahe hain, inhe writable banao
+    email = serializers.EmailField(source='user.email', required=False)
+    
+    class Meta:
+        model = Team_Leader
+        fields = [
+            'name', 'email', 'mobile', 'address', 'city', 'state', 'pincode',
+            'dob', 'pancard', 'aadharCard', 'profile_image'
+        ]
+
+    def update(self, instance, validated_data):
+        # 1. User Data Nikaalo (Email update ke liye)
+        user_data = validated_data.pop('user', {})
+        email = user_data.get('email')
+
+        # 2. Update Team Leader Fields
+        instance.name = validated_data.get('name', instance.name)
+        instance.mobile = validated_data.get('mobile', instance.mobile)
+        instance.address = validated_data.get('address', instance.address)
+        instance.city = validated_data.get('city', instance.city)
+        instance.state = validated_data.get('state', instance.state)
+        instance.pincode = validated_data.get('pincode', instance.pincode)
+        instance.dob = validated_data.get('dob', instance.dob)
+        instance.pancard = validated_data.get('pancard', instance.pancard)
+        instance.aadharCard = validated_data.get('aadharCard', instance.aadharCard)
         
+        # Image update logic (agar nayi image aayi hai)
+        if 'profile_image' in validated_data:
+            instance.profile_image = validated_data['profile_image']
+
+        instance.save()
+
+        # 3. Update User Fields (Email sync karna zaroori hai)
+        user = instance.user
+        if email and user.email != email:
+            # Check duplicate email
+            if User.objects.filter(email=email).exclude(id=user.id).exists():
+                raise serializers.ValidationError({"email": "Email already exists."})
+            user.email = email
+            user.username = email # Username ko bhi email bana do
+            user.save()
+            
+        # User name aur mobile bhi sync kar sakte ho agar chahiye
+        user.name = instance.name
+        user.mobile = instance.mobile
+        user.save()
+
+        return instance
+    
+
 
 
 

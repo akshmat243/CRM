@@ -58,11 +58,46 @@ from django.utils.timezone import make_aware
 from django.utils.timezone import get_current_timezone
 
 
-
-# -----------------------------
-# UNIVERSAL MARKETING PERMISSION
-# -----------------------------
 from rest_framework.permissions import BasePermission
+
+class IsLeadOwnerOrAdminOrTeamLeader(BasePermission):
+    def has_permission(self, request, view):
+        user = request.user
+
+        if not user.is_authenticated:
+            return False
+        
+        # Superuser always allowed
+        if user.is_superuser:
+            return True
+        
+        # Allow admin, TL, staff to change status
+        if getattr(user, "is_admin", False):
+            return True
+        
+        if getattr(user, "is_team_leader", False):
+            return True
+        
+        if getattr(user, "is_staff_new", False):
+            return True
+
+        return False
+
+
+# home/permissions.py
+from rest_framework.permissions import BasePermission
+
+class IsOnlyAdminUser(BasePermission):
+    """
+    Allow access only to users with is_admin==True and NOT superuser.
+    """
+    def has_permission(self, request, view):
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False
+        # Allow only if is_admin True AND is_superuser False
+        return getattr(user, "is_admin", False) and not getattr(user, "is_superuser", False)
+
 
 class MarketingAccessPermission(BasePermission):
     """
@@ -8814,111 +8849,70 @@ class AdminLostLeadsAPIView(APIView):
         return paginator.get_paginated_response({"leads": serializer.data})
     
 
-
-# ==========================================================
-# API: ADMIN-ONLY - UPDATE LEAD STATUS
-# ==========================================================
-class AdminUpdateLeadAPIView(APIView):
+# home/api.py
+# home/api.py
+class ChangeLeadStatusAPIView(APIView):
     """
-    API for Admin to update a lead's status (e.g., Leads -> Interested).
-    PATCH: Updates status, message, follow-up info.
-    ONLY ADMIN (is_admin=True) can access this.
+    POST /accounts/change-lead-status/<lead_id>/
+    Only users with is_admin=True and is_superuser=False can access.
     """
-    
-    permission_classes = [IsAuthenticated, IsCustomAdminUser]
+    permission_classes = [IsAuthenticated, IsOnlyAdminUser]
 
-    def patch(self, request, id, format=None):
-        # 1. Verify Admin
-        try:
-            admin_profile = Admin.objects.get(self_user=request.user)
-        except Admin.DoesNotExist:
-            return Response({"error": "Admin profile not found."}, status=status.HTTP_404_NOT_FOUND)
+    def post(self, request, lead_id=None):
+        # 1) Fetch lead (404 if not found)
+        lead = get_object_or_404(LeadUser, id=lead_id)
 
-        # 2. Verify Lead Access
-        # Check karo ki lead is Admin ke network ki hai
-        try:
-            lead_user = LeadUser.objects.get(id=id)
-            is_authorized = False
-            
-            # Check via Staff -> TL -> Admin
-            if lead_user.assigned_to and lead_user.assigned_to.team_leader and lead_user.assigned_to.team_leader.admin == admin_profile:
-                is_authorized = True
-            # Check via Direct TL -> Admin
-            elif lead_user.team_leader and lead_user.team_leader.admin == admin_profile:
-                is_authorized = True
-                
-            if not is_authorized:
-                 return Response({"error": "Permission denied. This lead is not under your administration."}, status=status.HTTP_403_FORBIDDEN)
+        # 2) Validate input
+        serializer = LeadUpdateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        data = serializer.validated_data
 
-        except LeadUser.DoesNotExist:
-            return Response({"error": "Lead not found."}, status=status.HTTP_404_NOT_FOUND)
+        # 3) Apply updates
+        status_val = data.get('status')
+        message = data.get('message', None)
+        follow_date = data.get('followDate', None)
+        follow_time = data.get('followTime', None)
 
-        current_status = lead_user.status
+        if status_val is not None:
+            lead.status = status_val
+        if message is not None:
+            lead.message = message
+        if follow_date is not None:
+            lead.follow_up_date = follow_date
+        if follow_time is not None:
+            lead.follow_up_time = follow_time
 
-        # 3. Update Logic
-        serializer = LeadUpdateSerializer(instance=lead_user, data=request.data, partial=True)
-        
-        if serializer.is_valid():
-            status_val = serializer.validated_data.get('status')
-            message = serializer.validated_data.get('message', lead_user.message)
-            
-            # --- Special Logic: Not Picked (Recycle Lead) ---
-            if status_val == "Not Picked":
-                try:
-                    Team_LeadData.objects.create(
-                        user=lead_user.user,
-                        name=lead_user.name,
-                        call=lead_user.call,
-                        status="Leads",
-                        email=lead_user.email,
-                        team_leader=lead_user.assigned_to.team_leader if lead_user.assigned_to else lead_user.team_leader
-                    )
-                    lead_user.delete() # Delete from current assignment
-                    return Response({'message': 'Lead status changed to Not Picked (Recycled).'}, status=status.HTTP_200_OK)
-                except Exception as e:
-                    return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        lead.save()
 
-            # --- Normal Update ---
-            # Follow-up dates agar aayi hain to update karo
-            if 'followDate' in request.data:
-                lead_user.follow_up_date = request.data['followDate']
-            if 'followTime' in request.data:
-                lead_user.follow_up_time = request.data['followTime']
-                
-            serializer.save() # Status aur Message save karo
+        # 4) Create ActivityLog (optional) - link to Admin profile if exists
+        user = request.user
+        ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR'))
+        user_type = "Admin User"
+        admin_instance = Admin.objects.filter(self_user=user).last()
+        tagline = f"Lead({lead.name}) status changed to {lead.status} by admin [{user.email}]"
+        ActivityLog.objects.create(
+            admin=admin_instance,
+            description=tagline,
+            ip_address=ip,
+            email=user.email,
+            user_type=user_type,
+            activity_type=f"Lead status changed to {lead.status}",
+            name=user.name or user.username
+        )
 
-            # 4. Create Logs (History & Activity)
-            try:
-                Leads_history.objects.create(
-                    leads=lead_user,
-                    lead_id=id,
-                    status=status_val,
-                    name=lead_user.name,
-                    message=message
-                )
-                
-                ip = get_client_ip(request)
-                user_type = get_user_type(request.user)
-                tagline = f"Lead status changed from {current_status} to {status_val} by Admin {admin_profile.name}"
-                
-                ActivityLog.objects.create(
-                    admin=admin_profile,
-                    description=tagline,
-                    ip_address=ip,
-                    email=request.user.email,
-                    user_type=user_type,
-                    activity_type=status_val,
-                    name=request.user.name,
-                )
-            except Exception:
-                pass 
+        out = {
+            "id": lead.id,
+            "name": lead.name,
+            "status": lead.status,
+            "message": lead.message,
+            "follow_up_date": lead.follow_up_date,
+            "follow_up_time": lead.follow_up_time,
+        }
+        return Response({"message": "Lead updated", "data": out}, status=status.HTTP_200_OK)
 
-            return Response({'message': 'Lead updated successfully', 'data': ApiLeadUserSerializer(lead_user).data}, status=status.HTTP_200_OK)
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    def post(self, request, id, format=None):
-        return self.patch(request, id, format)
+
+
 
 
 
@@ -8939,4 +8933,117 @@ class AdminNotInterestedLeadsAPIView(APIView):
         leads_qs = LeadUser.objects.filter(status="Not Interested", team_leader__admin=admin_profile).order_by('-updated_date')
 
         serializer = ApiLeadUserSerializer(leads_qs, many=True, context={'request': request})
-        return Response({"users_lead_lost": serializer.data}, status=status.HTTP_200_OK)        
+        return Response({"users_lead_lost": serializer.data}, status=status.HTTP_200_OK)  
+
+
+
+
+
+
+
+
+
+class MaybeLeadsAPIView(APIView):
+    """
+    Returns leads with status 'Other Location' for the admin of the logged-in user.
+    Accessible ONLY by admin users.
+    """
+    permission_classes = [IsAuthenticated , IsCustomAdminUser ]
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+
+        # Enforce admin-only access
+        if not getattr(user, "is_admin", False):
+            return Response(
+                {"detail": "You do not have permission to access this resource."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # find admin profile related to this user
+        admin_instance = Admin.objects.filter(self_user=user).last()
+        if not admin_instance:
+            return Response(
+                {"detail": "Admin profile not found for this user."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # fetch leads with status "Other Location" that belong to this admin
+        leads_qs = LeadUser.objects.filter(status="Other Location", team_leader__admin=admin_instance).order_by('-updated_date')
+
+        serializer = ApiLeadUserSerializer(leads_qs, many=True, context={'request': request})
+        return Response({"leads": serializer.data}, status=status.HTTP_200_OK)
+    
+
+
+
+
+
+
+
+
+
+
+
+# -------------------------
+# Not Picked (Admin only)
+# -------------------------
+class NotPickedAPIView(APIView):
+    permission_classes = [IsAuthenticated , IsCustomAdminUser ]
+
+    def get(self, request):
+        admin_instance = Admin.objects.filter(self_user=request.user).last()
+        if not admin_instance:
+            return Response({"detail": "Admin profile not found."}, status=status.HTTP_404_NOT_FOUND)
+        leads = LeadUser.objects.filter(status="Not Picked", team_leader__admin=admin_instance).order_by('-updated_date')
+        serializer = ApiLeadUserSerializer(leads, many=True)
+        return Response({"leads": serializer.data}, status=status.HTTP_200_OK)
+
+
+
+
+
+# ---------------------------
+# lost (Lost) admin-only API (POST)
+# ---------------------------
+class LostAdminAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsCustomAdminUser]
+
+    def get(self, request):
+        admin_obj = Admin.objects.filter(self_user=request.user).last()
+        if not admin_obj:
+            return Response({'error': 'Admin profile not found.'}, status=status.HTTP_404_NOT_FOUND)
+        qs = LeadUser.objects.filter(status="Lost", team_leader__admin=admin_obj).order_by('-updated_date')
+        serializer = ApiLeadUserSerializer(qs, many=True)
+        return Response({'lead_lost': serializer.data}, status=status.HTTP_200_OK)
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -351,7 +351,7 @@ urlpatterns = [
     path('lost-leads/', AdminLostLeadsAPIView.as_view(), name='api-lost-leads-admin'),
 
     # --- ADMIN UPDATE LEAD STATUS ---
-    path('api/admin/update-lead/<int:id>/', api.AdminUpdateLeadAPIView.as_view(), name='api_admin_update_lead'),
+    path('change-lead-status/<int:lead_id>/', ChangeLeadStatusAPIView.as_view(), name='api_change_lead_status'),
 
 
 
@@ -359,6 +359,17 @@ urlpatterns = [
     
     # NOTINTRESTED
     path('admin/not-interested-leads/', AdminNotInterestedLeadsAPIView.as_view(), name='api-admin-not-interested-leads'),
+
+    
+    # OTHERLOCATIONS
+    path('api/maybe/', MaybeLeadsAPIView.as_view(), name='api-maybe'),
+
+    #not picked
+    path('api/not-picked/', NotPickedAPIView.as_view(), name='api_not_picked'),
+
+     #lost
+    path('lost/admin/', api.LostAdminAPIView.as_view(), name='api_lost_admin'), 
+
 
 
 
